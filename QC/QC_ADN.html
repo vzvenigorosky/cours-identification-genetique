@@ -1,0 +1,303 @@
+<html>
+<head>
+  <title>Questions de cours</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    
+    body {
+      font-family: 'Open Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #333;
+      color: #fff;
+      padding: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .header p {
+      font-size: 20px;
+      margin: 0;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+    .nav {
+      background-color: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .nav li {
+      margin: 0 10px;
+    }
+    .nav li a {
+	  font-family: 'Roboto', sans-serif;
+	  font-size: 20px;
+	  font-weight: 700;
+	  text-decoration: none;
+	  color: #333;
+	}
+
+  .subnav {
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.subnav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.subnav li {
+  margin: 0 10px;
+}
+
+.subnav li a {
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  text-decoration: none;
+  color: #333;
+}
+
+.subnav li a:hover {
+  color: #0088cc;
+}
+
+.subnav li a.active {
+  font-weight: 700;
+  border-bottom: 2px solid #333;
+}
+	.nav li a:hover {
+	  color: #0088cc;
+	}
+	.nav li a.active {
+	  border-bottom: 2px solid #333;
+	}
+    .main {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .content {
+      width: 80%;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .content h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .content p {
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 24px;
+      margin: 20px 0;
+      color: #333;
+	  text-align: justify;
+    }
+    .content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 20px 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .answer p {
+      font-size: 18px;
+      font-weight: 200;
+	  color: #0088cc;
+    }	
+  </style>
+    <div class="header">
+    <h1>Exercices d'identification génétique</h1>
+    <p>Pour les étudiants du Master Ethique, Parcours : Médecine légale et criminalistique</p>
+  </div>
+    <div class="nav">
+    <ul>
+      <li><a href="../index.html">Accueil</a></li>
+	  <li><a href="../Questions_cours.html" class="active">Questions de cours</a></li>
+	  <li><a href="../Hypotheses_identification.html">Hypothèses d'identification</a></li>
+      <li><a href="../Comparaison_profils.html">Comparaison de profils</a></li>
+	  <li><a href="../Scenes_crime.html">Scènes de crime</a></li>
+      <li><a href="../Lignees_uniparentales.html">Lignées uniparentales</a></li>
+      <li><a href="../Tests_paternite.html">Tests de paternité</a></li>
+      <li><a href="../Probabilites_parente.html">Probabilités de parenté</a></li>
+   </ul>
+  </div>
+
+<div class="subnav">
+  <ul>
+    <li><a href="QC_ADN.html" class="active">Structure moléculaire de l'ADN</a></li>
+    <li><a href="QC_genome.html">Structure du génome humain</a></li>
+    <li><a href="QC_str.html">Les Short Tandem Repeats (STR)</a></li>
+    <li><a href="QC_extraction.html">Techniques de biologie moléculaire (1) - Extraction</a></li>
+    <li><a href="QC_amplification.html">Techniques de biologie moléculaire (2) - Amplification</a></li>
+    <li><a href="QC_lecture.html">Techniques de biologie moléculaire (3) - Lecture et Analyse des STR</a></li>
+    <li><a href="QC_identification.html">Principes de l'identification génétique</a></li>
+    <li><a href="QC_marqueurs.html">Marqueurs des lignées uniparentales</a></li>
+    <li><a href="QC_parente.html">La parenté en génétique médico-légale</a></li>
+    <li><a href="QC_probabilites.html">Calcul de probabilités de parenté</a></li>
+  </ul>
+</div>
+
+
+
+	  <div class="main">
+
+    <div class="content">
+      <button onclick="window.location.href = '../Questions_cours.html'">Retour aux fiches récapitulatives</button>
+      <br>
+      <br>
+      <h1>1 - Structure moléculaire de l'ADN</h1>
+      
+      
+	  
+<!-- Question -->
+      <div class="question-container">
+        <div class="question">
+          <p>Que signifie l'abréviation ADN ?</p>
+		<div class="answer" style="display: none;">
+          <p>Acide DésoxyriboNucléique</p>
+        </div>
+          <button class="show-answer-btn">Montrer la réponse</button>
+        </div>
+      </div>
+	  
+<!-- Question -->
+      <div class="question-container">
+        <div class="question">
+          <p>Comment se nomment les quatre bases azotées ?</p> <!--the question-->
+		<div class="answer" style="display: none;">
+          <p>Adénine, Thymine, Guanine, Cytosine</p> <!--the answer-->
+        </div>
+          <button class="show-answer-btn">Montrer la réponse</button>
+        </div>
+      </div>  
+
+<!-- Question -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce qu'un nucléotide, et de quoi est-il composé ?</p> <!-- La question -->
+    <div class="answer" style="display: none;">
+      <p>Un nucléotide est la sous-unité de la molécule d'ADN. Il est composé d'une base azotée, d'un sucre (ribose ou désoxyribose) et d'un groupement phosphate.</p> <!-- La réponse -->
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+
+<!-- Question -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce qu'une séquence d'ADN ?</p>
+    <div class="answer" style="display: none;">
+      <p>Une séquence d'ADN est une suite ordonnée de nucléotides sur un brin d'ADN.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+
+<!-- Question -->
+<div class="question-container">
+  <div class="question">
+    <p>Quelles sont les trois différences entre l'ARN et l'ADN ?</p>
+    <div class="answer" style="display: none;">
+      <p>Les trois différences entre l'ARN et l'ADN sont : l'ARN est simple brin, l'ARN a des fonctions au-delà du stockage d'informations, et l'uracile remplace la thymine dans l'ARN.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+
+<!-- Question -->
+<div class="question-container">
+  <div class="question">
+    <p>Comment s'apparient les bases azotées de l'ADN ?</p>
+    <div class="answer" style="display: none;">
+      <p>Les bases azotées de l'ADN s'apparient de manière spécifique : adénine (A) est toujours appariée avec thymine (T), et guanine (G) est toujours appariée avec cytosine (C).</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+
+<!-- Question -->
+<div class="question-container">
+  <div class="question">
+    <p>Comment est généralement notée l'orientation de la molécule d'ADN, et qu'est-ce qui permet cette orientation ?</p>
+    <div class="answer" style="display: none;">
+      <p>L'orientation de la molécule d'ADN est généralement notée de 5' vers 3', ce qui signifie que le ribose de chaque nucléotide est numéroté à partir de l'atome d'oxygène en position 5'. Cette orientation est permise par la complémentarité des nucléotides.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+
+<!-- Question -->
+<div class="question-container">
+  <div class="question">
+    <p>Pourquoi dit-on que les brins de la molécule d'ADN sont antiparallèles ?</p>
+    <div class="answer" style="display: none;">
+      <p>Les brins de la molécule d'ADN sont dits antiparallèles car ils sont orientés dans des directions opposées : le brin 5' → 3' est orienté dans le sens inverse du brin 3' → 5'.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+
+<!-- Question -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce que la complémentarité des brins de la molécule d'ADN ?</p>
+    <div class="answer" style="display: none;">
+      <p>La complémentarité des brins de la molécule d'ADN fait référence à la manière dont les bases azotées sont appariées : l'adénine (A) est toujours appariée avec la thymine (T), et la guanine (G) est toujours appariée avec la cytosine (C).</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+
+<br>
+
+	  
+    </div>
+	
+  </div>
+
+
+</body>
+</html>
+
+<script>
+  const showAnswerBtns = document.querySelectorAll('.show-answer-btn');
+  const answers = document.querySelectorAll('.answer');
+
+  showAnswerBtns.forEach((btn, index) => {
+    btn.addEventListener('click', () => {
+      const answer = answers[index];
+      if (answer.style.display === 'block') {
+        answer.style.display = 'none';
+        btn.textContent = 'Montrer la réponse';
+      } else {
+        answer.style.display = 'block';
+        btn.textContent = 'Cacher la réponse';
+      }
+    });
+  });
+</script>

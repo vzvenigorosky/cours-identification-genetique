@@ -1,0 +1,199 @@
+<html>
+<head>
+  <title>Hypothèses d'identification</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Open Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #333;
+      color: #fff;
+      padding: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .header p {
+      font-size: 20px;
+      margin: 0;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+    .nav {
+      background-color: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .nav li {
+      margin: 0 10px;
+    }
+    .nav li a {
+	  font-family: 'Roboto', sans-serif;
+	  font-size: 20px;
+	  font-weight: 700;
+	  text-decoration: none;
+	  color: #333;
+	}
+	.nav li a:hover {
+	  color: #0088cc;
+	}
+	.nav li a.active {
+	  border-bottom: 2px solid #333;
+	}
+  .subnav {
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.subnav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.subnav li {
+  margin: 0 10px;
+}
+
+.subnav li a {
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  text-decoration: none;
+  color: #333;
+}
+
+.subnav li a:hover {
+  color: #0088cc;
+}
+
+.subnav li a.active {
+  font-weight: 700;
+  border-bottom: 2px solid #333;
+}
+    .main {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .content {
+      width: 80%;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .content h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .content p {
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 24px;
+      margin: 20px 0;
+      color: #333;
+	  text-align: justify;
+    }
+    .content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 20px 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .answer p {
+      font-size: 18px;
+      font-weight: 200;
+	  color: #0088cc;
+    }
+	img {
+	height: 500px;
+	}
+  </style>
+    <div class="header">
+    <h1>Exercices d'identification génétique</h1>
+    <p>Pour les étudiants du Master Ethique, Parcours : Médecine légale et criminalistique</p>
+  </div>
+  <div class="nav">
+    <ul>
+      <li><a href="../index.html">Accueil</a></li>
+	  <li><a href="../Questions_cours.html">Questions de cours</a></li>
+	  <li><a href="../Hypotheses_identification.html" class="active">Hypothèses d'identification</a></li>
+      <li><a href="../Comparaison_profils.html">Comparaison de profils</a></li>
+	  <li><a href="../Scenes_crime.html">Scènes de crime</a></li>
+      <li><a href="../Lignees_uniparentales.html">Lignées uniparentales</a></li>
+      <li><a href="../Tests_paternite.html">Tests de paternité</a></li>
+      <li><a href="../Probabilites_parente.html">Probabilités de parenté</a></li>
+   </ul>
+  </div>
+
+  <nav class="subnav">
+    <ul>
+      <li><a href="HI_1.html">Exercice 1</a></li>
+      <li><a href="HI_2.html">Exercice 2</a></li>
+      <li><a href="HI_3.html">Exercice 3</a></li>
+      <li><a href="HI_4.html">Exercice 4</a></li>
+      <li><a href="HI_5.html">Exercice 5</a></li>
+      <li><a href="HI_6.html" class="active">Exercice 6</a></li>
+      <li><a href="HI_7.html">Exercice 7</a></li>
+      <li><a href="HI_8.html">Exercice 8</a></li>
+      <li><a href="HI_9.html">Exercice 9</a></li>
+      <li><a href="HI_10.html">Exercice 10</a></li>
+    </ul>
+  </nav>
+
+	  <div class="main">
+    <div class="content">
+      <button onclick="window.location.href = '../Hypotheses_identification.html'">Retour à l'exemple</button>
+      <br>
+      <br>
+	  
+	  <h1>Exercice n°6</h1>
+	  <br>
+	  
+
+	  
+    </div>
+	
+  </div>
+</body>
+</html>
+
+<script>
+  const showAnswerBtns = document.querySelectorAll('.show-answer-btn');
+  const answers = document.querySelectorAll('.answer');
+
+  showAnswerBtns.forEach((btn, index) => {
+    btn.addEventListener('click', () => {
+      const answer = answers[index];
+      if (answer.style.display === 'block') {
+        answer.style.display = 'none';
+        btn.textContent = 'Montrer la réponse';
+      } else {
+        answer.style.display = 'block';
+        btn.textContent = 'Cacher la réponse';
+      }
+    });
+  });
+</script>

@@ -1,0 +1,310 @@
+<html>
+<head>
+  <title>Questions de cours</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Open Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #333;
+      color: #fff;
+      padding: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .header p {
+      font-size: 20px;
+      margin: 0;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+    .nav {
+      background-color: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .nav li {
+      margin: 0 10px;
+    }
+    .nav li a {
+	  font-family: 'Roboto', sans-serif;
+	  font-size: 20px;
+	  font-weight: 700;
+	  text-decoration: none;
+	  color: #333;
+	}
+
+  .subnav {
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.subnav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.subnav li {
+  margin: 0 10px;
+}
+
+.subnav li a {
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  text-decoration: none;
+  color: #333;
+}
+
+.subnav li a:hover {
+  color: #0088cc;
+}
+
+.subnav li a.active {
+  font-weight: 700;
+  border-bottom: 2px solid #333;
+}
+	.nav li a:hover {
+	  color: #0088cc;
+	}
+	.nav li a.active {
+	  border-bottom: 2px solid #333;
+	}
+    .main {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .content {
+      width: 80%;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .content h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .content p {
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 24px;
+      margin: 20px 0;
+      color: #333;
+	  text-align: justify;
+    }
+    .content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 20px 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .answer p {
+      font-size: 18px;
+      font-weight: 200;
+	  color: #0088cc;
+    }	
+  </style>
+    <div class="header">
+    <h1>Exercices d'identification génétique</h1>
+    <p>Pour les étudiants du Master Ethique, Parcours : Médecine légale et criminalistique</p>
+  </div>
+  <div class="nav">
+    <ul>
+      <li><a href="../index.html">Accueil</a></li>
+	  <li><a href="../Questions_cours.html" class="active">Questions de cours</a></li>
+	  <li><a href="../Hypotheses_identification.html">Hypothèses d'identification</a></li>
+      <li><a href="../Comparaison_profils.html">Comparaison de profils</a></li>
+	  <li><a href="../Scenes_crime.html">Scènes de crime</a></li>
+      <li><a href="../Lignees_uniparentales.html">Lignées uniparentales</a></li>
+      <li><a href="../Tests_paternite.html">Tests de paternité</a></li>
+      <li><a href="../Probabilites_parente.html">Probabilités de parenté</a></li>
+   </ul>
+  </div>
+
+<div class="subnav">
+  <ul>
+    <li><a href="QC_ADN.html">Structure moléculaire de l'ADN</a></li>
+    <li><a href="QC_genome.html" class="active">Structure du génome humain</a></li>
+    <li><a href="QC_str.html">Les Short Tandem Repeats (STR)</a></li>
+    <li><a href="QC_extraction.html">Techniques de biologie moléculaire (1) - Extraction</a></li>
+    <li><a href="QC_amplification.html">Techniques de biologie moléculaire (2) - Amplification</a></li>
+    <li><a href="QC_lecture.html">Techniques de biologie moléculaire (3) - Lecture et Analyse des STR</a></li>
+    <li><a href="QC_identification.html">Principes de l'identification génétique</a></li>
+    <li><a href="QC_marqueurs.html">Marqueurs des lignées uniparentales</a></li>
+    <li><a href="QC_parente.html">La parenté en génétique médico-légale</a></li>
+    <li><a href="QC_probabilites.html">Calcul de probabilités de parenté</a></li>
+  </ul>
+</div>
+
+
+
+	  <div class="main">
+    <div class="content">
+      <button onclick="window.location.href = '../Questions_cours.html'">Retour aux fiches récapitulatives</button>
+      <br>
+      <br>
+        <h1>2 - Structure du génome humain</h1>
+	  
+<!-- Question 1 -->
+<div class="question-container">
+  <div class="question">
+    <p>Combien de paires de chromosomes composent le génome nucléaire humain ?</p>
+    <div class="answer" style="display: none;">
+      <p>Le génome nucléaire humain est composé de 22 paires d'autosomes et d'une paire de chromosomes sexuels, soit un total de 23 paires de chromosomes.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Question 2 -->
+<div class="question-container">
+  <div class="question">
+    <p>Quels sont les chromosomes sexuels chez l'humain ?</p>
+    <div class="answer" style="display: none;">
+      <p>Les chromosomes sexuels chez l'homme sont les chromosomes X et Y.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Question 3 -->
+<div class="question-container">
+  <div class="question">
+    <p>Comment se transmettent les séquences des chromosomes sexuels ?</p>
+    <div class="answer" style="display: none;">
+      <p>Les séquences des chromosomes sexuels sont transmises de manière différente de celle des autres chromosomes. Les femmes ont deux chromosomes X et transmettent un de leurs deux chromosomes X à leur descendance. Les hommes ont un chromosome X et un chromosome Y et transmettent soit leur chromosome X, soit leur chromosome Y à leur descendance, déterminant ainsi le sexe moléculaire de leur enfant.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Question 4 -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce que l'ADN mitochondrial et comment est-il transmis ?</p>
+    <div class="answer" style="display: none;">
+      <p>L'ADN mitochondrial est le génome de la mitochondrie, un organite intracellulaire essentiel à la production d'énergie. L'ADN mitochondrial est transmis uniquement par la mère, car les mitochondries de l'embryon proviennent uniquement de l'ovocyte et non du spermatozoïde.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Question 5 -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce qu'un gène ?</p>
+    <div class="answer" style="display: none;">
+      <p>Un gène est une séquence d'ADN codant pour une protéine ou un ARN fonctionnel.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Qu'est-ce qu'une région non-codante ? -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce qu'une région non-codante ?</p>
+    <div class="answer" style="display: none;">
+      <p>Une région non-codante est une séquence d'ADN qui ne code pas directement pour une protéine. Ces régions peuvent toutefois avoir des fonctions régulatrices sur les gènes ou avoir un rôle structurel dans la chromatine.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Qu'est-ce qu'un locus ? -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce qu'un locus ?</p>
+    <div class="answer" style="display: none;">
+      <p>Un locus est une position spécifique sur un chromosome où se situe un gène ou une autre séquence d'ADN avec ou sans fonction biologique.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Qu'est-ce qu'un allèle ? -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce qu'un allèle ?</p>
+    <div class="answer" style="display: none;">
+      <p>Un allèle est une variante de la séquence d'ADN à un locus (une position dans le génome) connu.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Question -->
+<div class="question-container">
+  <div class="question">
+    <p>Que sont des chromosomes homologues ?</p>
+    <div class="answer" style="display: none;">
+      <p>Des chromosomes homologues sont des paires de chromosomes ayant la même taille et les mêmes gènes/loci mais portant des allèles différents aux mêmes gènes/loci.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- Qu'est-ce qu'un SNP ? -->
+<div class="question-container">
+  <div class="question">
+    <p>Qu'est-ce qu'un SNP ?</p>
+    <div class="answer" style="display: none;">
+      <p>Un SNP (Single Nucleotide Polymorphism ou "polymorphisme ponctuel") est une variation d'un seul nucléotide à un locus donné dans le génome. Les SNP sont des marqueurs génétiques largement utilisés dans les études de génétique humaine.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+<!-- La majorité du génome humain est composée de gènes, vrai ou faux ? -->
+<div class="question-container">
+  <div class="question">
+    <p>La majorité du génome humain est composée de gènes, vrai ou faux ?</p>
+    <div class="answer" style="display: none;">
+      <p>Faux. La majorité du génome humain est composée de régions non-codantes qui ne codent pas pour des protéines.</p>
+    </div>
+    <button class="show-answer-btn">Montrer la réponse</button>
+  </div>
+</div>
+	  
+
+<br>
+
+	  
+    </div>
+	
+  </div>
+</body>
+</html>
+
+<script>
+  const showAnswerBtns = document.querySelectorAll('.show-answer-btn');
+  const answers = document.querySelectorAll('.answer');
+
+  showAnswerBtns.forEach((btn, index) => {
+    btn.addEventListener('click', () => {
+      const answer = answers[index];
+      if (answer.style.display === 'block') {
+        answer.style.display = 'none';
+        btn.textContent = 'Montrer la réponse';
+      } else {
+        answer.style.display = 'block';
+        btn.textContent = 'Cacher la réponse';
+      }
+    });
+  });
+</script>
