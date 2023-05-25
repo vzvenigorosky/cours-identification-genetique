@@ -160,13 +160,13 @@ td {
 
   <nav class="subnav">
     <ul>
-      <li><a href="CO_1.html" class="active">Exercice 1</a></li>
+      <li><a href="CO_1.html">Exercice 1</a></li>
       <li><a href="CO_2.html">Exercice 2</a></li>
       <li><a href="CO_3.html">Exercice 3</a></li>
       <li><a href="CO_4.html">Exercice 4</a></li>
       <li><a href="CO_5.html">Exercice 5</a></li>
       <li><a href="CO_6.html">Exercice 6</a></li>
-      <li><a href="CO_7.html">Exercice 7</a></li>
+      <li><a href="CO_7.html" class="active">Exercice 7</a></li>
       <li><a href="CO_8.html">Exercice 8</a></li>
       <li><a href="CO_9.html">Exercice 9</a></li>
       <li><a href="CO_10.html">Exercice 10</a></li>
@@ -179,7 +179,7 @@ td {
         <button onclick="window.location.href = '../Comparaison_profils.html'">Retour à l'exemple</button>
         <br>
         <br>
-      <h1>Exercice 1</h1>
+      <h1>Exercice 7</h1>
 	  
       <style>
         table {
@@ -202,74 +202,100 @@ td {
       <div class="question-container">
         <div class="question">
       
-            <table>
-                <tr>
-                  <th>Test</th>
-                  <th>Amelogenine</th>
-                  <th>CSFPO</th>
-                  <th>D10S1248</th>
-                  <th>D12S391</th>
-                  <th>D13S317</th>
-                  <th>D16S539</th>
-                  <th>D18S51</th>
-                  <th>D19S433</th>
-                  <th>D1S1656</th>
-                  <th>D21S11</th>
-                  <th>D22S1045</th>
-                  <th>D2S1338</th>
-                  <th>D2S441</th>
-                </tr>
-                <tr>
-                  <td>Trace profil 1</td>
-                  <td>X</td>
-                  <td>12</td>
-                  <td>12</td>
-                  <td>18/20</td>
-                  <td>*</td>
-                  <td>*</td>
-                  <td>18</td>
-                  <td>18</td>
-                  <td>19</td>
-                  <td>27</td>
-                  <td>18</td>
-                  <td>20</td>
-                  <td>12</td>
-                </tr>
-                <tr>
-                  <td>Trace profil 2</td>
-                  <td>X/Y</td>
-                  <td>12</td>
-                  <td>11</td>
-                  <td>*</td>
-                  <td>*</td>
-                  <td>*</td>
-                  <td>18</td>
-                  <td>13</td>
-                  <td>17</td>
-                  <td>30</td>
-                  <td>18</td>
-                  <td>*</td>
-                  <td>10</td>
-                </tr>
-                <tr>
-                    <tr id="consensus-row" style="display: none;">
-                  <td>Consensus</td>
-                  <td>X/Y</td>
-                  <td>12/12</td>
-                  <td>(11/12)</td>
-                  <td>(18/20)</td>
-                  <td>*</td>
-                  <td>*</td>
-                  <td>18/18</td>
-                  <td>(13/18)</td>
-                  <td>(17/19)</td>
-                  <td>(27/30)</td>
-                  <td>18/18</td>
-                  <td>(20)/?</td>
-                  <td>(10/12)</td>
-                </tr>
-              </table>
-              
+
+
+          <table>
+            <tr>
+              <th>Test</th>
+              <th>Amelogenine</th>
+              <th>CSFPO</th>
+              <th>D10S1248</th>
+              <th>D12S391</th>
+              <th>D13S317</th>
+              <th>D16S539</th>
+              <th>D18S51</th>
+              <th>D19S433</th>
+              <th>D1S1656</th>
+              <th>D21S11</th>
+              <th>D22S1045</th>
+              <th>D2S1338</th>
+              <th>D2S441</th>
+            </tr>
+            <tr>
+              <td>Trace profil 1</td>
+              <td>X/Y</td>
+              <td>10/13</td>
+              <td>*</td>
+              <td>*</td>
+              <td>13</td>
+              <td>11</td>
+              <td>16/17</td>
+              <td>12/14</td>
+              <td>14/15</td>
+              <td>*</td>
+              <td>15/17</td>
+              <td>24</td>
+              <td>11</td>
+            </tr>
+            <tr>
+              <td>Trace profil 2</td>
+              <td>X/Y</td>
+              <td>10/13</td>
+              <td>13</td>
+              <td>24</td>
+              <td>9/13</td>
+              <td>11/13</td>
+              <td>16/17</td>
+              <td>12/14</td>
+              <td>14/15</td>
+              <td>31/33</td>
+              <td>15/17</td>
+              <td>17</td>
+              <td>*</td>
+            </tr>
+            <tr>
+              <td>Trace profil 3</td>
+              <td>X/Y</td>
+              <td>10/13</td>
+              <td>13</td>
+              <td>19/24</td>
+              <td>9/13</td>
+              <td>11/13</td>
+              <td>16/17</td>
+              <td>12/14</td>
+              <td>14/15</td>
+              <td>31/33</td>
+              <td>15/17</td>
+              <td>17/24</td>
+              <td>11</td>
+            </tr>
+            <tr id="consensus-row" style="display: none;">
+              <td>Consensus</td>
+              <td>X/Y</td>
+              <td>10/13</td>
+              <td>13/13</td>
+              <td>(19)/24</td>
+              <td>9/13</td>
+              <td>11/13</td>
+              <td>16/17</td>
+              <td>12/14</td>
+              <td>14/15</td>
+              <td>31/33</td>
+              <td>15/17</td>
+              <td>17/(24)</td>
+              <td>11/11</td>
+            </tr>
+          </table>
+          
+
+
+
+
+
+
+
+
+            
       
           <div class="answer" style="display: none;">
           </div>
