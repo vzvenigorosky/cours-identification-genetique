@@ -1,0 +1,315 @@
+<html>
+<head>
+  <title>Comparaison de profils</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Open Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #333;
+      color: #fff;
+      padding: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .header p {
+      font-size: 20px;
+      margin: 0;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+    .nav {
+      background-color: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .nav li {
+      margin: 0 10px;
+    }
+    .nav li a {
+	  font-family: 'Roboto', sans-serif;
+	  font-size: 20px;
+	  font-weight: 700;
+	  text-decoration: none;
+	  color: #333;
+	}
+	.nav li a:hover {
+	  color: #0088cc;
+	}
+	.nav li a.active {
+	  border-bottom: 2px solid #333;
+	}
+    .subnav {
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.subnav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.subnav li {
+  margin: 0 10px;
+}
+
+.subnav li a {
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  text-decoration: none;
+  color: #333;
+}
+
+.subnav li a:hover {
+  color: #0088cc;
+}
+
+.subnav li a.active {
+  font-weight: 700;
+  border-bottom: 2px solid #333;
+}
+    .main {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .content {
+      width: 80%;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .content h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .content p {
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 24px;
+      margin: 20px 0;
+      color: #333;
+	  text-align: justify;
+    }
+    .content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 20px 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .answer p {
+      font-size: 18px;
+      font-weight: 200;
+	  color: #0088cc;
+    }
+table {
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th {
+  border: 1px solid black;
+  padding: 10px;
+}
+
+td {
+  border: 1px solid black;
+  padding: 10px;
+}
+  </style>
+    <div class="header">
+    <h1>Exercices d'identification génétique</h1>
+    <p>Pour les étudiants du Master Ethique, Parcours : Médecine légale et criminalistique</p>
+  </div>
+  <div class="nav">
+    <ul>
+      <li><a href="../index.html">Accueil</a></li>
+	  <li><a href="../Questions_cours.html">Questions de cours</a></li>
+	  <li><a href="../Hypotheses_identification.html">Hypothèses d'identification</a></li>
+    <li><a href="../Consensus.html" class="active">Profils consensus</a></li>
+      <li><a href="../Comparaison_profils.html">Comparaison de profils</a></li>
+      <li><a href="../Tests_paternite.html">Tests de paternité</a></li>
+      <li><a href="../Probabilites_parente.html">Probabilités de parenté</a></li>
+   </ul>
+  </div>
+
+  <nav class="subnav">
+    <ul>
+      <li><a href="CO_1.html">Exercice 1</a></li>
+      <li><a href="CO_2.html">Exercice 2</a></li>
+      <li><a href="CO_3.html">Exercice 3</a></li>
+      <li><a href="CO_4.html" class="active">Exercice 4</a></li>
+      <li><a href="CO_5.html">Exercice 5</a></li>
+      <li><a href="CO_6.html">Exercice 6</a></li>
+      <li><a href="CO_7.html">Exercice 7</a></li>
+      <li><a href="CO_8.html">Exercice 8</a></li>
+      <li><a href="CO_9.html">Exercice 9</a></li>
+      <li><a href="CO_10.html">Exercice 10</a></li>
+    </ul>
+  </nav>
+
+
+	  <div class="main">
+    <div class="content">
+        <button onclick="window.location.href = '../Comparaison_profils.html'">Retour à l'exemple</button>
+        <br>
+        <br>
+      <h1>Exercice 4</h1>
+	  
+      <style>
+        table {
+          border-collapse: collapse;
+          width: 100%;
+          table-layout: auto;
+        }
+        th,
+        td {
+          padding: 8px;
+          text-align: center;
+          border: 1px solid black;
+        }
+        tr:last-child {
+          color: red;
+        }
+      </style>
+      
+      <!-- A question begins -->
+      <div class="question-container">
+        <div class="question">
+      
+
+
+
+
+
+
+          <table>
+            <tr>
+              <th>Test</th>
+              <th>Amelogenine</th>
+              <th>CSFPO</th>
+              <th>D10S1248</th>
+              <th>D12S391</th>
+              <th>D13S317</th>
+              <th>D16S539</th>
+              <th>D18S51</th>
+              <th>D19S433</th>
+              <th>D1S1656</th>
+              <th>D21S11</th>
+              <th>D22S1045</th>
+              <th>D2S1338</th>
+              <th>D2S441</th>
+            </tr>
+            <tr>
+              <td>Trace profil 1</td>
+              <td>X/Y</td>
+              <td>12</td>
+              <td>*</td>
+              <td>15</td>
+              <td>9</td>
+              <td>11</td>
+              <td>*</td>
+              <td>11</td>
+              <td>15</td>
+              <td>27/28</td>
+              <td>11/18</td>
+              <td>22</td>
+              <td>11</td>
+            </tr>
+            <tr>
+              <td>Trace profil 2</td>
+              <td>X</td>
+              <td>12</td>
+              <td>12</td>
+              <td>*</td>
+              <td>9</td>
+              <td>9/11</td>
+              <td>23</td>
+              <td>16</td>
+              <td>*</td>
+              <td>*</td>
+              <td>*</td>
+              <td>22</td>
+              <td>*</td>
+            </tr>
+            <tr id="consensus-row" style="display: none;">
+              <td>Consensus</td>
+              <td>X/Y</td>
+              <td>12/12</td>
+              <td>(12)/?</td>
+              <td>(15)/?</td>
+              <td>9/9</td>
+              <td>(9)/11</td>
+              <td>(23)/?</td>
+              <td>(11/16)</td>
+              <td>(15)/?</td>
+              <td>(27/28)</td>
+              <td>(11/18)</td>
+              <td>22/22</td>
+              <td>(11)/?</td>
+            </tr>
+          </table>
+          
+
+
+
+
+
+
+            
+      
+          <div class="answer" style="display: none;">
+          </div>
+          <br>
+          <button class="show-answer-btn">Montrer le consensus</button>
+        </div>
+      </div>
+      <!-- A question ends -->
+      
+      <script>
+        const showAnswerBtns = document.querySelectorAll('.show-answer-btn');
+        const answers = document.querySelectorAll('.answer');
+        const consensusRow = document.getElementById('consensus-row');
+      
+        showAnswerBtns.forEach((btn, index) => {
+          btn.addEventListener('click', () => {
+            const answer = answers[index];
+            const consensus = consensusRow.style;
+            if (answer.style.display === 'block') {
+              answer.style.display = 'none';
+              consensus.display = 'none';
+              btn.textContent = 'Montrer le consensus';
+            } else {
+              answer.style.display = 'block';
+              consensus.display = 'table-row';
+              btn.textContent = 'Cacher le consensus';
+            }
+          });
+        });
+      </script>
+      
