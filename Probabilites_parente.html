@@ -146,13 +146,13 @@ td {
     <div>
       <p>Vous pouvez utiliser cet outil pour obtenir une représentation graphique des LR.</p>
         <label for="lrpo">LR(PO): </label>
-        <input type="number" id="lrpo" name="lrpo" value="0">
+        <input type="number" id="lrpo" name="lrpo" value="">
         <label for="lrfs">LR(FS): </label>
-        <input type="number" id="lrfs" name="lrfs" value="0">
+        <input type="number" id="lrfs" name="lrfs" value="">
         <label for="lrhs">LR(HS): </label>
-        <input type="number" id="lrhs" name="lrhs" value="0">
+        <input type="number" id="lrhs" name="lrhs" value="">
         <label for="lrco">LR(CO): </label>
-        <input type="number" id="lrco" name="lrco" value="0">
+        <input type="number" id="lrco" name="lrco" value="">
         <button onclick="drawChart()">Dessiner le graphique</button>
         <button onclick="resetFields()">Reset</button>
     </div>
@@ -200,12 +200,12 @@ function drawChart() {
     });
 }
 
-// Function to reset all the input fields to 0
+// Function to reset all the input fields to ""
 function resetFields() {
-    document.getElementById('lrpo').value = "0";
-    document.getElementById('lrfs').value = "0";
-    document.getElementById('lrhs').value = "0";
-    document.getElementById('lrco').value = "0";
+    document.getElementById('lrpo').value = "";
+    document.getElementById('lrfs').value = "";
+    document.getElementById('lrhs').value = "";
+    document.getElementById('lrco').value = "";
     if(myChart !== null){
         myChart.destroy();
     }
