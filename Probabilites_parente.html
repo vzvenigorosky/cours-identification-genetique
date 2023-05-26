@@ -127,15 +127,16 @@ td {
     <div class="content">
 
 
-        <div>
-          <h1>Comparaisons de valeurs de rapports de vraisemblance (Likelihood Ratios, LR)</h1>
-          <p>Vous pouvez utiliser les zones de recherche pour trouver un ou deux individus, une relation ou autre chose dans le tableau.</p>
-            <label for="search">Search:</label>
-            <input type="text" id="search-input1" placeholder="Person 1...">
-            <input type="text" id="search-input2" placeholder="Person 2...">
-            <button id="reset-button">Reset</button>
-        </div>
-        <br>
+      <div>
+        <h1>Comparaisons de valeurs de rapports de vraisemblance (Likelihood Ratios, LR)</h1>
+        <p>Vous pouvez utiliser les zones de recherche pour trouver un ou deux individus, une relation ou autre chose dans le tableau.</p>
+          <label for="search">Search:</label>
+          <input type="text" id="search-input1" placeholder="Par exemple : individu 1...">
+          <input type="text" id="search-input2" placeholder="Par exemple : individu 2...">
+          <input type="text" id="search-input3" placeholder="Autre information...">
+          <button id="reset-button">Reset</button>
+      </div>
+      <br>
         
         
 
@@ -229,36 +230,42 @@ function searchFunction() {
     }
 }
 document.getElementById('search-input1').addEventListener('keyup', searchFunction);
-    document.getElementById('search-input2').addEventListener('keyup', searchFunction);
-    document.getElementById('reset-button').addEventListener('click', resetFunction);
+document.getElementById('search-input2').addEventListener('keyup', searchFunction);
+document.getElementById('search-input3').addEventListener('keyup', searchFunction);
+document.getElementById('reset-button').addEventListener('click', resetFunction);
 
-    function searchFunction() {
-      let input1, filter1, input2, filter2, table, tr, td, i, j, visible1, visible2;
-      input1 = document.getElementById("search-input1");
-      filter1 = input1.value.toUpperCase();
-      input2 = document.getElementById("search-input2");
-      filter2 = input2.value.toUpperCase();
-      table = document.querySelector(".content table");
-      tr = table.getElementsByTagName("tr");
+function searchFunction() {
+  let input1, filter1, input2, filter2, input3, filter3, table, tr, td, i, j, visible1, visible2, visible3;
+  input1 = document.getElementById("search-input1");
+  filter1 = input1.value.toUpperCase();
+  input2 = document.getElementById("search-input2");
+  filter2 = input2.value.toUpperCase();
+  input3 = document.getElementById("search-input3");
+  filter3 = input3.value.toUpperCase();
+  table = document.querySelector(".content table");
+  tr = table.getElementsByTagName("tr");
 
-      for (i = 1; i < tr.length; i++) {
-        td = tr[i].getElementsByTagName("td");
-        visible1 = Array.from(td).some(cell => cell.innerHTML.toUpperCase().includes(filter1));
-        visible2 = Array.from(td).some(cell => cell.innerHTML.toUpperCase().includes(filter2));
+  for (i = 1; i < tr.length; i++) {
+    td = tr[i].getElementsByTagName("td");
+    visible1 = Array.from(td).some(cell => cell.innerHTML.toUpperCase().includes(filter1));
+    visible2 = Array.from(td).some(cell => cell.innerHTML.toUpperCase().includes(filter2));
+    visible3 = Array.from(td).some(cell => cell.innerHTML.toUpperCase().includes(filter3));
 
-        if (visible1 && visible2) {
-          tr[i].style.display = "";
-        } else {
-          tr[i].style.display = "none";
-        }
-      }
-    };
+    if (visible1 && visible2 && visible3) {
+      tr[i].style.display = "";
+    } else {
+      tr[i].style.display = "none";
+    }
+  }
+};
 
-    function resetFunction() {
-      document.getElementById('search-input1').value = '';
-      document.getElementById('search-input2').value = '';
-      searchFunction();
-    };
+function resetFunction() {
+  document.getElementById('search-input1').value = '';
+  document.getElementById('search-input2').value = '';
+  document.getElementById('search-input3').value = '';
+  searchFunction();
+};
+
 </script>
 
 </body>
