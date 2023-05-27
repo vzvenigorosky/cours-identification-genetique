@@ -162,27 +162,135 @@
 
 
 
-	  <div class="main">
-    <div class="content">
-      <h1>Fiches récapitulatives</h1>
-      <p>Vous pouvez télécharger les fiches ici. Les onglets vous permettent d'accéder à une série de questions de cours.</p>
+<div class="main">
+  <div class="content">
+    <h1>Fiches récapitulatives</h1>
+    <p>Vous pouvez télécharger les fiches ici et écouter les explications. Les onglets vous permettent d'accéder à une série de questions de cours.</p>
+
+    <button onclick="toggleVisibility('pdf1')">(Montrer/Cacher) Structure moléculaire de l'ADN</button>
+    <div id="pdf1" style="display:none;">
+      <audio controls>
+        <source src="1 - Structure moléculaire de l'ADN.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
       <embed src="QC/1 - Structure moléculaire de l'ADN.pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/2 - Structure du génome humain.pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/3 - Les Short Tandem Repeats (STR).pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/4 - Techniques de biologie moléculaire (1) - Extraction.pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/5 - Techniques de biologie moléculaire (2) - Amplification.pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/6 - Techniques de biologie moléculaire (3) - Lecture et Analyse des STR.pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/7 - Principes de l'identification génétique.pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/8 - Marqueurs des lignées uniparentales.pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/9 - La parenté en génétique médico-légale.pdf" type="application/pdf" width="100%" height="600px" />
-      <embed src="QC/10 - Calcul de probabilités de parenté.pdf" type="application/pdf" width="100%" height="600px" />
-
-<br>
-
-	  
     </div>
-	
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf2')">(Montrer/Cacher) Structure du génome humain</button>
+    <div id="pdf2" style="display:none;">
+      <audio controls>
+        <source src="2 - Structure du génome humain.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/2 - Structure du génome humain.pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf3')">(Montrer/Cacher) Les Short Tandem Repeats (STR)</button>
+    <div id="pdf3" style="display:none;">
+      <audio controls>
+        <source src="3 - STR.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/3 - Les Short Tandem Repeats (STR).pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf4')">(Montrer/Cacher) Techniques de biologie moléculaire (1) - Extraction</button>
+    <div id="pdf4" style="display:none;">
+      <audio controls>
+        <source src="4 - Techniques de biologie moléculaire - Extraction.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/4 - Techniques de biologie moléculaire (1) - Extraction.pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf5')">(Montrer/Cacher) Techniques de biologie moléculaire (2) - Amplification</button>
+    <div id="pdf5" style="display:none;">
+      <audio controls>
+        <source src="5 - Techniques de biologie moléculaire - Amplification.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/5 - Techniques de biologie moléculaire (2) - Amplification.pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf6')">(Montrer/Cacher) Techniques de biologie moléculaire (3) - Lecture et Analyse des STR</button>
+    <div id="pdf6" style="display:none;">
+      <audio controls>
+        <source src="6 - Techniques de biologie moléculaire - Analyse des STR.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/6 - Techniques de biologie moléculaire (3) - Lecture et Analyse des STR.pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf7')">(Montrer/Cacher) Principes de l'identification génétique</button>
+    <div id="pdf7" style="display:none;">
+      <audio controls>
+        <source src="7 - Principes de l_identification génétique.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/7 - Principes de l'identification génétique.pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf8')">(Montrer/Cacher) Marqueurs des lignées uniparentales</button>
+    <div id="pdf8" style="display:none;">
+      <audio controls>
+        <source src="8 - Marqueurs des lignées uniparentales.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/8 - Marqueurs des lignées uniparentales.pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf9')">(Montrer/Cacher) La parenté en génétique médico-légale</button>
+    <div id="pdf9" style="display:none;">
+      <audio controls>
+        <source src="9 - La parenté en génétique médico-légale.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/9 - La parenté en génétique médico-légale.pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+
+    <button onclick="toggleVisibility('pdf10')">(Montrer/Cacher) Calcul de probabilités de parenté</button>
+    <div id="pdf10" style="display:none;">
+      <audio controls>
+        <source src="10 - Calculs de probabilités de parenté.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <embed src="QC/10 - Calcul de probabilités de parenté.pdf" type="application/pdf" width="100%" height="600px" />
+    </div>
+    <br>
+    <br>
+    
   </div>
+</div>
+
+<script>
+function toggleVisibility(id) {
+  var x = document.getElementById(id);
+  if (x.style.display === "none") {
+    x.style.display = "block";
+  } else {
+    x.style.display = "none";
+  }
+}
+</script>
+
 </body>
 </html>
 
