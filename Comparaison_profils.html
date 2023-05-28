@@ -126,21 +126,21 @@
       font-size: 18px;
       font-weight: 200;
 	  color: #0088cc;
-    }
-table {
-  border-collapse: collapse;
-  table-layout: fixed;
-}
+    }	
+    table {
+    border-collapse: collapse;
+    width: 100%;
+  }
 
-th {
-  border: 1px solid black;
-  padding: 10px;
-}
+  th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: center;
+  }
 
-td {
-  border: 1px solid black;
-  padding: 10px;
-}
+  th {
+    background-color: #f2f2f2;
+  }
   </style>
     <div class="header">
     <h1>Exercices d'identification génétique</h1>
@@ -157,9 +157,739 @@ td {
       <li><a href="Probabilites_parente.html">Probabilités de parenté</a></li>
    </ul>
   </div>
+  </head>
+
+  <body>
+    <div class="main">
+
+      <div class="content">
+    <p>Pour comparer 2 ou trois profils, utilisez les listes déroulantes. Vous trouverez en première ligne du tableau un emplacement pour vos notes et des compteurs pour les différentes situations de partage d'allèles. Essayez par exemple de noter tous les allèles en commun, ou tous les allèles différents, ou le nombre d'allèles identiques (ou différents) pour chaque marqueur.</p>
+    
+    <label for="select-individual-1">Individu 1 :</label>
+    <select id="select-individual-1">
+      <option value="all">Tous</option>
+      <option value="ID 1">ID 1</option>
+      <option value="ID 2">ID 2</option>
+      <option value="ID 3">ID 3</option>
+      <!-- Add more options for each individual -->
+      <option value="ID 4">ID 4</option>
+      <option value="ID 5">ID 5</option>
+      <option value="ID 6">ID 6</option>
+      <option value="ID 7">ID 7</option>
+      <option value="ID 8">ID 8</option>
+      <option value="ID 9">ID 9</option>
+      <option value="ID 10">ID 10</option>
+      <option value="ID 11">ID 11</option>
+      <option value="ID 12">ID 12</option>
+      <option value="ID 13">ID 13</option>
+      <option value="ID 14">ID 14</option>
+      <option value="ID 15">ID 15</option>
+      <option value="ID 16">ID 16</option>
+      <option value="ID 17">ID 17</option>
+      <option value="ID 18">ID 18</option>
+      <option value="ID 19">ID 19</option>
+      <option value="ID 20">ID 20</option>
+    </select>
+    
+    <label for="select-individual-2">Individu 2 :</label>
+    <select id="select-individual-2">
+      <option value="all">Tous</option>
+      <option value="ID 1">ID 1</option>
+      <option value="ID 2">ID 2</option>
+      <option value="ID 3">ID 3</option>
+      <!-- Add more options for each individual -->
+      <option value="ID 4">ID 4</option>
+      <option value="ID 5">ID 5</option>
+      <option value="ID 6">ID 6</option>
+      <option value="ID 7">ID 7</option>
+      <option value="ID 8">ID 8</option>
+      <option value="ID 9">ID 9</option>
+      <option value="ID 10">ID 10</option>
+      <option value="ID 11">ID 11</option>
+      <option value="ID 12">ID 12</option>
+      <option value="ID 13">ID 13</option>
+      <option value="ID 14">ID 14</option>
+      <option value="ID 15">ID 15</option>
+      <option value="ID 16">ID 16</option>
+      <option value="ID 17">ID 17</option>
+      <option value="ID 18">ID 18</option>
+      <option value="ID 19">ID 19</option>
+      <option value="ID 20">ID 20</option>
+    </select>
 
 
+    
+    
+    <button onclick="filterTable()">Appliquer la sélection</button>
+    <button onclick="resetSelection()">Reset</button>
+    <br>
+    <br>
 
-	  <div class="main">
-    <div class="content">
-      <h1>Bientôt disponible</h1>
+    <div class="counter-container">
+      <div class="counter">
+        <span>Deux homozygotes identiques: </span>
+        <button onclick="decrementCounter('counter1')">-</button>
+        <span id="counter1">0</span>
+        <button onclick="incrementCounter('counter1')">+</button>
+      </div>
+    
+      <div class="counter">
+        <span>Deux hétérozygotes identiques: </span>
+        <button onclick="decrementCounter('counter2')">-</button>
+        <span id="counter2">0</span>
+        <button onclick="incrementCounter('counter2')">+</button>
+      </div>
+    
+      <div class="counter">
+        <span>Deux hétérozygotes, 1 allèle en commun: </span>
+        <button onclick="decrementCounter('counter3')">-</button>
+        <span id="counter3">0</span>
+        <button onclick="incrementCounter('counter3')">+</button>
+      </div>
+    
+      <div class="counter">
+        <span>Un homozygote, un hétérozygote, 1 allèle en commun: </span>
+        <button onclick="decrementCounter('counter4')">-</button>
+        <span id="counter4">0</span>
+        <button onclick="incrementCounter('counter4')">+</button>
+      </div>
+    
+      <div class="counter">
+        <span>Exclusion allélique (deux homozygotes): </span>
+        <button onclick="decrementCounter('counter5')">-</button>
+        <span id="counter5">0</span>
+        <button onclick="incrementCounter('counter5')">+</button>
+      </div>
+    
+      <div class="counter">
+        <span>Exclusion allélique (deux hétérozygotes): </span>
+        <button onclick="decrementCounter('counter6')">-</button>
+        <span id="counter6">0</span>
+        <button onclick="incrementCounter('counter6')">+</button>
+      </div>
+    
+      <div class="counter">
+        <span>Exclusion allélique (un homozygote, un hétérozygote): </span>
+        <button onclick="decrementCounter('counter7')">-</button>
+        <span id="counter7">0</span>
+        <button onclick="incrementCounter('counter7')">+</button>
+      </div>
+    </div>
+    
+    
+      <button class="reset-button" onclick="resetCounters()">Reset</button>
+    
+      <div class="exclusions-display">
+        <p>Exclusions alléliques: <span id="exclusions-sum">0</span></p>
+      </div>
+    
+      <script>
+        function incrementCounter(counterId) {
+          var counter = document.getElementById(counterId);
+          var value = parseInt(counter.innerText);
+          counter.innerText = value + 1;
+          updateExclusionsSum();
+        }
+    
+        function decrementCounter(counterId) {
+          var counter = document.getElementById(counterId);
+          var value = parseInt(counter.innerText);
+          if (value > 0) {
+            counter.innerText = value - 1;
+            updateExclusionsSum();
+          }
+        }
+    
+        function resetCounters() {
+          var counters = document.querySelectorAll('.counter span');
+          counters.forEach(function(counter) {
+            counter.innerText = '0';
+          });
+          updateExclusionsSum();
+        }
+    
+        function updateExclusionsSum() {
+          var sumDisplay = document.getElementById('exclusions-sum');
+          var counters = document.querySelectorAll('.counter span');
+          var sum = 0;
+          counters.forEach(function(counter) {
+            sum += parseInt(counter.innerText);
+          });
+          sumDisplay.innerText = sum;
+        }
+      </script>
+ 
+
+  <table id="profile-table">
+    <tr>
+      <th>Vos notes</th>
+      <td><input type="text" placeholder="CSFPO"></td>
+      <td><input type="text" placeholder="D10S1248"></td>
+      <td><input type="text" placeholder="D12S391"></td>
+      <td><input type="text" placeholder="D13S317"></td>
+      <td><input type="text" placeholder="D16S539"></td>
+      <td><input type="text" placeholder="D18S51"></td>
+      <td><input type="text" placeholder="D19S433"></td>
+      <td><input type="text" placeholder="D1S1656"></td>
+      <td><input type="text" placeholder="D21S11"></td>
+      <td><input type="text" placeholder="D2S1338"></td>
+      <td><input type="text" placeholder="D22S1045"></td>
+      <td><input type="text" placeholder="D2S441"></td>
+      <td><input type="text" placeholder="D3S1358"></td>
+      <td><input type="text" placeholder="D5S818"></td>
+      <td><input type="text" placeholder="D7S820"></td>
+      <td><input type="text" placeholder="D8S1179"></td>
+      <td><input type="text" placeholder="FGA"></td>
+      <td><input type="text" placeholder="SE33"></td>
+      <td><input type="text" placeholder="TH01"></td>
+      <td><input type="text" placeholder="TPOX"></td>
+
+      <td><input type="text" placeholder="vWA"></td>
+    </tr>
+    <tr>
+      <th>Individu</th>
+      <th>CSFPO</th>
+      <th>D10S1248</th>
+      <th>D12S391</th>
+      <th>D13S317</th>
+      <th>D16S539</th>
+      <th>D18S51</th>
+      <th>D19S433</th>
+      <th>D1S1656</th>
+      <th>D21S11</th>
+      <th>D22S1045</th>
+      <th>D2S1338</th>
+      <th>D2S441</th>
+      <th>D3S1358</th>
+      <th>D5S818</th>
+      <th>D7S820</th>
+      <th>D8S1179</th>
+      <th>FGA</th>
+      <th>SE33</th>
+      <th>TH01</th>
+      <th>TPOX</th>
+      <th>vWA</th>
+    </tr>
+    <tr>
+      <td>ID 1</td>
+      <td>14/12</td>
+      <td>14/17</td>
+      <td>21/23</td>
+      <td>10/12</td>
+      <td>12/14</td>
+      <td>17/23</td>
+      <td>13/14</td>
+      <td>12/15</td>
+      <td>31/30</td>
+      <td>18/15</td>
+      <td>18/24</td>
+      <td>13/10</td>
+      <td>17/19</td>
+      <td>14</td>
+      <td>8/10</td>
+      <td>15/14</td>
+      <td>20/18</td>
+      <td>24</td>
+      <td>8/7</td>
+      <td>11/10</td>
+      <td>16/14</td>
+    </tr>
+    <tr>
+      <td>ID 2</td>
+      <td>12/10</td>
+      <td>17/16</td>
+      <td>24/21</td>
+      <td>11/8</td>
+      <td>12/11</td>
+      <td>18/19</td>
+      <td>15/14</td>
+      <td>14</td>
+      <td>33/28</td>
+      <td>14/13</td>
+      <td>21</td>
+      <td>13/11</td>
+      <td>15/19</td>
+      <td>14/12</td>
+      <td>8/10</td>
+      <td>17/13</td>
+      <td>24/26</td>
+      <td>33/24</td>
+      <td>9</td>
+      <td>10/9</td>
+      <td>13/16</td>
+    </tr>
+    <tr>
+      <td>ID 3</td>
+      <td>14/11</td>
+      <td>14/13</td>
+      <td>20/22</td>
+      <td>11/10</td>
+      <td>13/11</td>
+      <td>10/21</td>
+      <td>14/12</td>
+      <td>15/12</td>
+      <td>31/32</td>
+      <td>18/16</td>
+      <td>20/21</td>
+      <td>12/11</td>
+      <td>17/14</td>
+      <td>8/10</td>
+      <td>10</td>
+      <td>14</td>
+      <td>24</td>
+      <td>23/22</td>
+      <td>6/9</td>
+      <td>12/10</td>
+      <td>16/13</td>
+    </tr>
+    <tr>
+      <td>ID 4</td>
+      <td>11/14</td>
+      <td>11/13</td>
+      <td>23/22</td>
+      <td>12/9</td>
+      <td>12/11</td>
+      <td>16/22</td>
+      <td>17/14</td>
+      <td>12/18</td>
+      <td>32/28</td>
+      <td>13/16</td>
+      <td>18/21</td>
+      <td>11/14</td>
+      <td>16/19</td>
+      <td>9/7</td>
+      <td>10</td>
+      <td>14</td>
+      <td>23</td>
+      <td>21/29</td>
+      <td>7/6</td>
+      <td>12</td>
+      <td>14/19</td>
+    </tr>
+    <tr>
+      <td>ID 5</td>
+      <td>11/13</td>
+      <td>16</td>
+      <td>19/22</td>
+      <td>11/13</td>
+      <td>8/10</td>
+      <td>16/19</td>
+      <td>11/14</td>
+      <td>19/15</td>
+      <td>30/32</td>
+      <td>17/18</td>
+      <td>25/20</td>
+      <td>11/12</td>
+      <td>17/18</td>
+      <td>10/8</td>
+      <td>10</td>
+      <td>14/16</td>
+      <td>20/27</td>
+      <td>23/15</td>
+      <td>7/8</td>
+      <td>12/10</td>
+      <td>17/18</td>
+    </tr>
+    <tr>
+      <td>ID 6</td>
+      <td>12/11</td>
+      <td>15/12</td>
+      <td>19/22</td>
+      <td>10/12</td>
+      <td>13/11</td>
+      <td>23/15</td>
+      <td>13/14</td>
+      <td>15/13</td>
+      <td>30/33</td>
+      <td>13/15</td>
+      <td>20/25</td>
+      <td>10/11</td>
+      <td>16/17</td>
+      <td>12/11</td>
+      <td>11/12</td>
+      <td>14</td>
+      <td>21/23</td>
+      <td>27/17</td>
+      <td>9/6</td>
+      <td>11/9</td>
+      <td>15/13</td>
+    </tr>
+    <tr>
+      <td>ID 7</td>
+      <td>11/10</td>
+      <td>12/9</td>
+      <td>15/19</td>
+      <td>10/8</td>
+      <td>11</td>
+      <td>19/15</td>
+      <td>13/15</td>
+      <td>15/16</td>
+      <td>28/32</td>
+      <td>14/13</td>
+      <td>24/21</td>
+      <td>10</td>
+      <td>15/16</td>
+      <td>11/12</td>
+      <td>9/10</td>
+      <td>13/11</td>
+      <td>23/20</td>
+      <td>16</td>
+      <td>8/7</td>
+      <td>11/12</td>
+      <td>15/19</td>
+    </tr>
+    <tr>
+      <td>ID 8</td>
+      <td>10/11</td>
+      <td>13/14</td>
+      <td>23</td>
+      <td>8/13</td>
+      <td>12/11</td>
+      <td>17</td>
+      <td>13/16</td>
+      <td>15/17</td>
+      <td>30</td>
+      <td>13/11</td>
+      <td>19/24</td>
+      <td>12/14</td>
+      <td>14/17</td>
+      <td>11</td>
+      <td>7/10</td>
+      <td>14/11</td>
+      <td>19/22</td>
+      <td>21/27</td>
+      <td>9/6</td>
+      <td>11</td>
+      <td>18</td>
+    </tr>
+    <tr>
+      <td>ID 9</td>
+      <td>9/14</td>
+      <td>11/16</td>
+      <td>21/24</td>
+      <td>12/8</td>
+      <td>10/11</td>
+      <td>24/19</td>
+      <td>15/16</td>
+      <td>14/13</td>
+      <td>28/31</td>
+      <td>15/12</td>
+      <td>23/19</td>
+      <td>13/12</td>
+      <td>18/17</td>
+      <td>12/13</td>
+      <td>10</td>
+      <td>14</td>
+      <td>23</td>
+      <td>24/23</td>
+      <td>7</td>
+      <td>10/11</td>
+      <td>16</td>
+    </tr>
+    <tr>
+      <td>ID 10</td>
+      <td>11/12</td>
+      <td>11</td>
+      <td>15/18</td>
+      <td>11/13</td>
+      <td>10/11</td>
+      <td>23</td>
+      <td>15</td>
+      <td>16/19</td>
+      <td>30/28</td>
+      <td>16/12</td>
+      <td>19/24</td>
+      <td>13/12</td>
+      <td>17/16</td>
+      <td>14/10</td>
+      <td>10/13</td>
+      <td>12/14</td>
+      <td>20/24</td>
+      <td>23</td>
+      <td>8/6</td>
+      <td>11/9</td>
+      <td>18/15</td>
+    </tr>
+    <tr>
+      <td>ID 11</td>
+      <td>12/9</td>
+      <td>12/14</td>
+      <td>15/20</td>
+      <td>12/9</td>
+      <td>10/11</td>
+      <td>14/19</td>
+      <td>15/17</td>
+      <td>15</td>
+      <td>30/31</td>
+      <td>14/18</td>
+      <td>20/19</td>
+      <td>13/12</td>
+      <td>15/19</td>
+      <td>7/9</td>
+      <td>12/11</td>
+      <td>14/13</td>
+      <td>23/22</td>
+      <td>26/23</td>
+      <td>7/9</td>
+      <td>11/12</td>
+      <td>15/18</td>
+    </tr>
+    <tr>
+      <td>ID 12</td>
+      <td>11/10</td>
+      <td>16/11</td>
+      <td>15/17</td>
+      <td>11/12</td>
+      <td>8/11</td>
+      <td>18/19</td>
+      <td>15/12</td>
+      <td>16/12</td>
+      <td>28/31</td>
+      <td>11/15</td>
+      <td>19/17</td>
+      <td>11/10</td>
+      <td>14/17</td>
+      <td>7/13</td>
+      <td>11</td>
+      <td>13/12</td>
+      <td>23</td>
+      <td>23/17</td>
+      <td>6/8</td>
+      <td>10/11</td>
+      <td>16/17</td>
+    </tr>
+    <tr>
+      <td>ID 13</td>
+      <td>11/10</td>
+      <td>12/13</td>
+      <td>15/18</td>
+      <td>11/12</td>
+      <td>14</td>
+      <td>16</td>
+      <td>11/16</td>
+      <td>15/17</td>
+      <td>29/31</td>
+      <td>13/16</td>
+      <td>21/20</td>
+      <td>12</td>
+      <td>18/17</td>
+      <td>9/10</td>
+      <td>9/10</td>
+      <td>12/16</td>
+      <td>23/19</td>
+      <td>25/24</td>
+      <td>7/9</td>
+      <td>9/12</td>
+      <td>16/18</td>
+    </tr>
+    <tr>
+      <td>ID 14</td>
+      <td>11/10</td>
+      <td>10/13</td>
+      <td>23/19</td>
+      <td>10</td>
+      <td>9/10</td>
+      <td>19</td>
+      <td>12</td>
+      <td>14/17</td>
+      <td>33/28</td>
+      <td>14/18</td>
+      <td>20/25</td>
+      <td>13/11</td>
+      <td>19/14</td>
+      <td>7/9</td>
+      <td>10</td>
+      <td>13/15</td>
+      <td>21/22</td>
+      <td>22/21</td>
+      <td>9</td>
+      <td>12/9</td>
+      <td>18/14</td>
+    </tr>
+    <tr>
+      <td>ID 15</td>
+      <td>14/12</td>
+      <td>10/11</td>
+      <td>21/15</td>
+      <td>11/9</td>
+      <td>9/10</td>
+      <td>23/26</td>
+      <td>16/14</td>
+      <td>14/13</td>
+      <td>29/27</td>
+      <td>17/18</td>
+      <td>24/21</td>
+      <td>13/10</td>
+      <td>17</td>
+      <td>10/9</td>
+      <td>9/7</td>
+      <td>17/15</td>
+      <td>25/26</td>
+      <td>28/17</td>
+      <td>8</td>
+      <td>10/11</td>
+      <td>16/18</td>
+    </tr>
+    <tr>
+      <td>ID 16</td>
+      <td>9</td>
+      <td>12/16</td>
+      <td>24</td>
+      <td>10/13</td>
+      <td>8/14</td>
+      <td>20/19</td>
+      <td>11/15</td>
+      <td>12/17</td>
+      <td>31/28</td>
+      <td>15/18</td>
+      <td>21/24</td>
+      <td>13</td>
+      <td>15</td>
+      <td>11</td>
+      <td>12/9</td>
+      <td>12</td>
+      <td>18/27</td>
+      <td>20/32</td>
+      <td>7/8</td>
+      <td>10/11</td>
+      <td>16/17</td>
+    </tr>
+    <tr>
+      <td>ID 17</td>
+      <td>14</td>
+      <td>14/13</td>
+      <td>21/20</td>
+      <td>10/8</td>
+      <td>10/11</td>
+      <td>22/11</td>
+      <td>12</td>
+      <td>16</td>
+      <td>30/29</td>
+      <td>11/15</td>
+      <td>20/16</td>
+      <td>14/13</td>
+      <td>18/19</td>
+      <td>12/11</td>
+      <td>10</td>
+      <td>15/13</td>
+      <td>23/18</td>
+      <td>21/33</td>
+      <td>7/9</td>
+      <td>11/9</td>
+      <td>14/17</td>
+    </tr>
+    <tr>
+      <td>ID 18</td>
+      <td>14/11</td>
+      <td>8/13</td>
+      <td>21/22</td>
+      <td>10</td>
+      <td>13/11</td>
+      <td>20/19</td>
+      <td>15</td>
+      <td>13/14</td>
+      <td>31/33</td>
+      <td>13/18</td>
+      <td>19/20</td>
+      <td>14/10</td>
+      <td>16/19</td>
+      <td>11</td>
+      <td>13/10</td>
+      <td>17/10</td>
+      <td>24/22</td>
+      <td>27/30</td>
+      <td>8/6</td>
+      <td>11</td>
+      <td>18/20</td>
+    </tr>
+    <tr>
+      <td>ID 19</td>
+      <td>11/14</td>
+      <td>14/10</td>
+      <td>15/22</td>
+      <td>11/12</td>
+      <td>14/10</td>
+      <td>21/19</td>
+      <td>16/15</td>
+      <td>14</td>
+      <td>29/31</td>
+      <td>18/15</td>
+      <td>18/21</td>
+      <td>11/13</td>
+      <td>17/14</td>
+      <td>12/9</td>
+      <td>10/8</td>
+      <td>14/10</td>
+      <td>27/20</td>
+      <td>19</td>
+      <td>8/9</td>
+      <td>12/11</td>
+      <td>14/18</td>
+    </tr>
+    <tr>
+      <td>ID 20</td>
+      <td>12/13</td>
+      <td>16/11</td>
+      <td>17/20</td>
+      <td>11</td>
+      <td>14/11</td>
+      <td>23/19</td>
+      <td>15/12</td>
+      <td>13/19</td>
+      <td>28</td>
+      <td>14/16</td>
+      <td>20/22</td>
+      <td>13/11</td>
+      <td>17/16</td>
+      <td>9/11</td>
+      <td>11/9</td>
+      <td>14/11</td>
+      <td>24/27</td>
+      <td>24/23</td>
+      <td>7</td>
+      <td>10</td>
+      <td>20/17</td>
+    </tr>
+  </table>
+  
+  <script>
+    function filterTable() {
+      var select1 = document.getElementById("select-individual-1");
+      var select2 = document.getElementById("select-individual-2");
+      var table = document.getElementById("profile-table");
+      var rows = table.getElementsByTagName("tr");
+  
+      var selected1 = select1.value;
+      var selected2 = select2.value;
+  
+      for (var i = 2; i < rows.length; i++) { // Start from index 2 to exclude "Notes" row
+        var profile = rows[i].getElementsByTagName("td")[0];
+        if (selected1 === "all" && selected2 === "all") {
+          rows[i].style.display = "";
+        } else if (selected1 === "all") {
+          rows[i].style.display = profile.textContent === selected2 ? "" : "none";
+        } else if (selected2 === "all") {
+          rows[i].style.display = profile.textContent === selected1 ? "" : "none";
+        } else {
+          rows[i].style.display = (profile.textContent === selected1 || profile.textContent === selected2) ? "" : "none";
+        }
+      }
+    }
+  
+    function resetSelection() {
+      document.getElementById("select-individual-1").value = "all";
+      document.getElementById("select-individual-2").value = "all";
+  
+      var table = document.getElementById("profile-table");
+      var rows = table.getElementsByTagName("tr");
+  
+      for (var i = 2; i < rows.length; i++) { // Start from index 2 to exclude "Notes" row
+        rows[i].style.display = "";
+      }
+    }
+  </script>
+  
+</body>
+</div>
+</div>
+</html>
