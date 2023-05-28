@@ -141,6 +141,10 @@
   th {
     background-color: #f2f2f2;
   }
+  #profile-table th:nth-child(2),
+  #profile-table td:nth-child(2) {
+    display: none;
+  }
   </style>
     <div class="header">
     <h1>Exercices d'identification génétique</h1>
@@ -164,33 +168,50 @@
 
       <div class="content">
         <h1>Comparaison de profils pour tests de paternité (en construction mais fonctionnel)</h1>
-        <p>Comparez les profils et identifiez les parents et enfants. Vous pouvez commencer en éliminant un par un les individus qui ne partagent aucun allèle à un locus avec l'individu qui vous intéresse (exclusion allélique). Vous pouvez cacher les lignes du tableau en cliquant.</p>
+        <p>Comparez les profils et identifiez les parents et enfants. Vous pouvez commencer en éliminant un par un les individus qui ne partagent aucun allèle à un locus avec l'individu qui vous intéresse (exclusion allélique). En cliquant sur chaque ligne vous pouvez la cacher. Vous pouvez aussi vous entraîner en sélectionnant une seule famille.</p>
 
     
-
+        <div class="subnav">
+          <ul>
+            <li>
+              <label for="select-famille">Choisir Famille:</label>
+              <select id="select-famille" onchange="filterTable()">
+                <option value="all">Tout afficher</option>
+                <option value="1">Famille 1</option>
+                <option value="2">Famille 2</option>
+                <option value="3">Famille 3</option>
+                <option value="4">Famille 4</option>
+                <option value="5">Famille 5</option>
+                <option value="6">Famille 6</option>
+                <option value="7">Famille 7</option>
+                <option value="8">Famille 8</option>
+              </select>
+            </li>
+          </ul>
+        </div>
     
     
     <script>
       var hiddenRows = [];
     
       function filterTable() {
-        var selectFamille = document.getElementById("select-famille");
-        var table = document.getElementById("profile-table");
-        var rows = table.getElementsByTagName("tr");
-        var selectedFamille = selectFamille.value;
-    
-        for (var i = 1; i < rows.length; i++) {
-          var idCell = rows[i].getElementsByTagName("td")[0];
-          if (
-            selectedFamille === "all" ||
-            idCell.textContent === selectedFamille
-          ) {
-            rows[i].style.display = "";
-          } else {
-            rows[i].style.display = "none";
-          }
-        }
-      }
+  var selectFamille = document.getElementById("select-famille");
+  var table = document.getElementById("profile-table");
+  var rows = table.getElementsByTagName("tr");
+  var selectedFamille = selectFamille.value;
+
+  for (var i = 1; i < rows.length; i++) {
+    var familleCell = rows[i].getElementsByTagName("td")[1]; // get the "Famille" column
+    if (
+      selectedFamille === "all" ||
+      familleCell.textContent.trim() === selectedFamille
+    ) {
+      rows[i].style.display = "";
+    } else {
+      rows[i].style.display = "none";
+    }
+  }
+}
     
       function resetSelection() {
         document.getElementById("select-famille").value = "all";
@@ -932,20 +953,7 @@
   </table>
   
 
-<label for="select-famille">Famille :</label>
-<select id="select-famille">
-  <option value="all">Tous</option>
-  <option value="1">1</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-  <option value="4">4</option>
-  <option value="5">5</option>
-  <option value="6">6</option>
-  <option value="7">7</option>
-  <option value="8">8</option>
-</select>
 
-<button onclick="filterTable()">Appliquer la sélection</button>
 
   
 </body>
