@@ -1,0 +1,969 @@
+<html>
+<head>
+  <title>Mélanges d'ADN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Open Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #333;
+      color: #fff;
+      padding: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .header p {
+      font-size: 20px;
+      margin: 0;
+      font-weight: 400;
+      letter-spacing: 1px;
+    }
+    .nav {
+      background-color: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .nav ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .nav li {
+      margin: 0 10px;
+    }
+    .nav li a {
+	  font-family: 'Roboto', sans-serif;
+	  font-size: 20px;
+	  font-weight: 700;
+	  text-decoration: none;
+	  color: #333;
+	}
+	.nav li a:hover {
+	  color: #0088cc;
+	}
+	.nav li a.active {
+	  border-bottom: 2px solid #333;
+	}
+  .subnav {
+  background-color: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  padding: 10px;
+}
+
+.subnav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+
+.subnav li {
+  margin: 0 10px;
+}
+
+.subnav li a {
+  font-family: 'Roboto', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  text-decoration: none;
+  color: #333;
+}
+
+.subnav li a:hover {
+  color: #0088cc;
+}
+
+.subnav li a.active {
+  font-weight: 700;
+  border-bottom: 2px solid #333;
+}
+    .main {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px;
+    }
+    .content {
+      width: 80%;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    .content h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .content p {
+      font-size: 20px;
+      font-weight: 400;
+      line-height: 24px;
+      margin: 20px 0;
+      color: #333;
+	  text-align: justify;
+    }
+    .content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 20px 0;
+      text-transform: uppercase;
+      color: #333;
+    }
+    .answer p {
+      font-size: 18px;
+      font-weight: 200;
+	  color: #0088cc;
+    }	
+    table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: center;
+  }
+
+  th {
+    background-color: #f2f2f2;
+  }
+  #profile-table th:nth-child(2),
+  #profile-table td:nth-child(2) {
+    display: none;
+  }
+  select-famille  {
+
+  display: none;
+}
+  </style>
+    <div class="header">
+    <h1>Exercices d'identification génétique</h1>
+    <p>Pour les étudiants du Master Ethique, Parcours : Médecine légale et criminalistique</p>
+  </div>
+    <div class="nav">
+    <ul>
+      <li><a href="index.html">Accueil</a></li>
+	  <li><a href="Questions_cours.html">Questions de cours</a></li>
+	  <li><a href="Hypotheses_identification.html">Hypothèses d'identification</a></li>
+    <li><a href="Consensus.html">Profils consensus</a></li>
+      <li><a href="Comparaison_profils.html">Comparaison de profils</a></li>
+      <li><a href="melanges_ADN.html" class="active">Mélanges d'ADN</a></li>
+      <li><a href="Tests_paternite.html">Tests de paternité</a></li>
+      <li><a href="Probabilites_parente.html">Probabilités de parenté</a></li>
+      <li><a href="annales_M1.html">Annales M1</a></li>
+      <li><a href="annales_M2.html">Annales M2</a></li>
+   </ul>
+  </div>
+  </head>
+
+  <body>
+    <div class="main">
+
+      <div class="content">
+        <h1>Comparaison de profils mélangés</h1>
+        <p>Comparez les profils et identifiez les contributeurs de la trace. Vous pouvez commencer en éliminant un par un les individus qui ne partagent aucun allèle à un locus avec la trace mélangée que vous étudiez.</p>
+
+    
+        <div class="subnav" style="display: none;">
+          <ul>
+            <li>
+              <label for="select-famille">Choisir Famille:</label>
+              <select id="select-famille" onchange="filterTable()">
+                <option value="all">Tout afficher</option>
+                <option value="1">Famille 1</option>
+                <option value="2">Famille 2</option>
+                <option value="3">Famille 3</option>
+                <option value="4">Famille 4</option>
+                <option value="5">Famille 5</option>
+                <option value="6">Famille 6</option>
+                <option value="7">Famille 7</option>
+                <option value="8">Famille 8</option>
+              </select>
+            </li>
+          </ul>
+        </div>
+    
+    
+    <script>
+      var hiddenRows = [];
+    
+      function filterTable() {
+  var selectFamille = document.getElementById("select-famille");
+  var table = document.getElementById("profile-table");
+  var rows = table.getElementsByTagName("tr");
+  var selectedFamille = selectFamille.value;
+
+  for (var i = 1; i < rows.length; i++) {
+    var familleCell = rows[i].getElementsByTagName("td")[1]; // get the "Famille" column
+    if (
+      selectedFamille === "all" ||
+      familleCell.textContent.trim() === selectedFamille
+    ) {
+      rows[i].style.display = "";
+    } else {
+      rows[i].style.display = "none";
+    }
+  }
+}
+    
+      function resetSelection() {
+        document.getElementById("select-famille").value = "all";
+        var table = document.getElementById("profile-table");
+        var rows = table.getElementsByTagName("tr");
+    
+        for (var i = 1; i < rows.length; i++) {
+          rows[i].style.display = "";
+        }
+      }
+    
+      function resetAll() {
+        resetSelection();
+        hiddenRows = [];
+        updateHiddenRowsList();
+      }
+    
+      function toggleRowVisibility(row) {
+        if (row.style.display === "none") {
+          row.style.display = "";
+          var index = hiddenRows.indexOf(row.cells[0].textContent);
+          if (index !== -1) {
+            hiddenRows.splice(index, 1);
+          }
+        } else {
+          row.style.display = "none";
+          if (!hiddenRows.includes(row.cells[0].textContent)) {
+            hiddenRows.push(row.cells[0].textContent);
+          }
+        }
+        updateHiddenRowsList();
+      }
+    
+      function updateHiddenRowsList() {
+        var list = document.getElementById("hidden-rows-list");
+        list.innerHTML = "";
+        hiddenRows.forEach(function (rowId) {
+          var listItem = document.createElement("li");
+          var link = document.createElement("a");
+          link.textContent = rowId;
+          link.style.cursor = "pointer";
+          link.onclick = function () {
+            var rows = document.getElementById("profile-table").getElementsByTagName("tr");
+            for (var i = 1; i < rows.length; i++) {
+              if (rows[i].cells[0].textContent === rowId) {
+                toggleRowVisibility(rows[i]);
+                break;
+              }
+            }
+          };
+          listItem.appendChild(link);
+          list.appendChild(listItem);
+        });
+      }
+    </script>
+    
+    <p>Lignes cachées (cliquez sur un ID pour montrer la ligne) :</p><button onclick="resetAll()">Reset</button>
+    <ul id="hidden-rows-list"></ul>
+<br>
+<br>
+ 
+
+ <table id="profile-table">
+    <tr>
+      <th>Individu</th>
+      <th>Famille</th>
+      <th>CSFPO</th>
+      <th>D10S1248</th>
+      <th>D12S391</th>
+      <th>D13S317</th>
+      <th>D16S539</th>
+      <th>D18S51</th>
+      <th>D19S433</th>
+      <th>D1S1656</th>
+      <th>D21S11</th>
+      <th>D22S1045</th>
+      <th>D2S1338</th>
+      <th>D2S441</th>
+      <th>D3S1358</th>
+      <th>D5S818</th>
+      <th>D7S820</th>
+      <th>D8S1179</th>
+      <th>FGA</th>
+      <th>SE33</th>
+      <th>TH01</th>
+      <th>TPOX</th>
+      <th>vWA</th>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 1</td>
+      <td>4</td>
+      <td>11/10</td>
+      <td>16/11</td>
+      <td>15/17</td>
+      <td>11/12</td>
+      <td>8/11</td>
+      <td>18/19</td>
+      <td>15/12</td>
+      <td>16/12</td>
+      <td>28/31</td>
+      <td>11/15</td>
+      <td>19/17</td>
+      <td>11/10</td>
+      <td>14/17</td>
+      <td>7/13</td>
+      <td>11</td>
+      <td>13/12</td>
+      <td>23</td>
+      <td>23/17</td>
+      <td>6/8</td>
+      <td>10/11</td>
+      <td>16/17</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 2</td>
+      <td>1</td>
+      <td>14/11</td>
+      <td>14/13</td>
+      <td>20/22</td>
+      <td>11/10</td>
+      <td>13/11</td>
+      <td>10/21</td>
+      <td>14/12</td>
+      <td>15/12</td>
+      <td>31/32</td>
+      <td>18/16</td>
+      <td>20/21</td>
+      <td>12/11</td>
+      <td>17/14</td>
+      <td>8/10</td>
+      <td>10</td>
+      <td>14</td>
+      <td>24</td>
+      <td>23/22</td>
+      <td>6/9</td>
+      <td>12/10</td>
+      <td>16/13</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 3</td>
+      <td>2</td>
+      <td>12/11</td>
+      <td>15/12</td>
+      <td>19/22</td>
+      <td>10/12</td>
+      <td>13/11</td>
+      <td>23/15</td>
+      <td>13/14</td>
+      <td>15/13</td>
+      <td>30/33</td>
+      <td>13/15</td>
+      <td>20/25</td>
+      <td>10/11</td>
+      <td>16/17</td>
+      <td>12/11</td>
+      <td>11/12</td>
+      <td>14</td>
+      <td>21/23</td>
+      <td>27/17</td>
+      <td>9/6</td>
+      <td>11/9</td>
+      <td>15/13</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 4</td>
+      <td>6</td>
+      <td>14/11</td>
+      <td>8/13</td>
+      <td>21/22</td>
+      <td>10</td>
+      <td>13/11</td>
+      <td>20/19</td>
+      <td>15</td>
+      <td>13/14</td>
+      <td>31/33</td>
+      <td>13/18</td>
+      <td>19/20</td>
+      <td>14/10</td>
+      <td>16/19</td>
+      <td>11</td>
+      <td>13/10</td>
+      <td>17/10</td>
+      <td>24/22</td>
+      <td>27/30</td>
+      <td>8/6</td>
+      <td>11</td>
+      <td>18/20</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 5</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 6</td>
+      <td>5</td>
+      <td>14/12</td>
+      <td>10/11</td>
+      <td>21/15</td>
+      <td>11/9</td>
+      <td>9/10</td>
+      <td>23/26</td>
+      <td>16/14</td>
+      <td>14/13</td>
+      <td>29/27</td>
+      <td>17/18</td>
+      <td>24/21</td>
+      <td>13/10</td>
+      <td>17</td>
+      <td>10/9</td>
+      <td>9/7</td>
+      <td>17/15</td>
+      <td>25/26</td>
+      <td>28/17</td>
+      <td>8</td>
+      <td>10/11</td>
+      <td>16/18</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 7</td>
+      <td>1</td>
+      <td>10/12</td>
+      <td>17</td>
+      <td>21/24</td>
+      <td>10/11</td>
+      <td>12</td>
+      <td>17/18</td>
+      <td>13/14</td>
+      <td>12/14</td>
+      <td>28/30</td>
+      <td>14/15</td>
+      <td>21/24</td>
+      <td>11/13</td>
+      <td>15/19</td>
+      <td>12/14</td>
+      <td>10/10</td>
+      <td>15/17</td>
+      <td>18/24</td>
+      <td>24</td>
+      <td>8/9</td>
+      <td>10</td>
+      <td>13/14</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 8</td>
+      <td>3</td>
+      <td>11/10</td>
+      <td>12/9</td>
+      <td>15/19</td>
+      <td>10/8</td>
+      <td>11</td>
+      <td>19/15</td>
+      <td>13/15</td>
+      <td>15/16</td>
+      <td>28/32</td>
+      <td>14/13</td>
+      <td>24/21</td>
+      <td>10</td>
+      <td>15/16</td>
+      <td>11/12</td>
+      <td>9/10</td>
+      <td>13/11</td>
+      <td>23/20</td>
+      <td>16</td>
+      <td>8/7</td>
+      <td>11/12</td>
+      <td>15/19</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 9</td>
+      <td>7</td>
+      <td>11/14</td>
+      <td>14/10</td>
+      <td>15/22</td>
+      <td>11/12</td>
+      <td>14/10</td>
+      <td>21/19</td>
+      <td>16/15</td>
+      <td>14</td>
+      <td>29/31</td>
+      <td>18/15</td>
+      <td>18/21</td>
+      <td>11/13</td>
+      <td>17/14</td>
+      <td>12/9</td>
+      <td>10/8</td>
+      <td>14/10</td>
+      <td>27/20</td>
+      <td>19</td>
+      <td>8/9</td>
+      <td>12/11</td>
+      <td>14/18</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 10</td>
+      <td>4</td>
+      <td>12/9</td>
+      <td>12/14</td>
+      <td>15/20</td>
+      <td>12/9</td>
+      <td>10/11</td>
+      <td>14/19</td>
+      <td>15/17</td>
+      <td>15</td>
+      <td>30/31</td>
+      <td>14/18</td>
+      <td>20/19</td>
+      <td>13/12</td>
+      <td>15/19</td>
+      <td>7/9</td>
+      <td>12/11</td>
+      <td>14/13</td>
+      <td>23/22</td>
+      <td>26/23</td>
+      <td>7/9</td>
+      <td>11/12</td>
+      <td>15/18</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 11</td>
+      <td>5</td>
+      <td>11/10</td>
+      <td>12/13</td>
+      <td>15/18</td>
+      <td>11/12</td>
+      <td>14</td>
+      <td>16</td>
+      <td>11/16</td>
+      <td>15/17</td>
+      <td>29/31</td>
+      <td>13/16</td>
+      <td>21/20</td>
+      <td>12</td>
+      <td>18/17</td>
+      <td>9/10</td>
+      <td>9/10</td>
+      <td>12/16</td>
+      <td>23/19</td>
+      <td>25/24</td>
+      <td>7/9</td>
+      <td>9/12</td>
+      <td>16/18</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 12</td>
+      <td>2</td>
+      <td>11/14</td>
+      <td>11/13</td>
+      <td>23/22</td>
+      <td>12/9</td>
+      <td>12/11</td>
+      <td>16/22</td>
+      <td>17/14</td>
+      <td>12/18</td>
+      <td>32/28</td>
+      <td>13/16</td>
+      <td>18/21</td>
+      <td>11/14</td>
+      <td>16/19</td>
+      <td>9/7</td>
+      <td>10</td>
+      <td>14</td>
+      <td>23</td>
+      <td>21/29</td>
+      <td>7/6</td>
+      <td>12</td>
+      <td>14/19</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 13</td>
+      <td>2</td>
+      <td>11/12</td>
+      <td>15/16</td>
+      <td>19/22</td>
+      <td>10/11</td>
+      <td>8/13</td>
+      <td>19/23</td>
+      <td>14</td>
+      <td>15</td>
+      <td>30</td>
+      <td>15/18</td>
+      <td>20/25</td>
+      <td>11/12</td>
+      <td>17/18</td>
+      <td>10/12</td>
+      <td>10/11</td>
+      <td>14</td>
+      <td>23/27</td>
+      <td>15/17</td>
+      <td>6/8</td>
+      <td>9/10</td>
+      <td>15/17</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 14</td>
+      <td>1</td>
+      <td>14/12</td>
+      <td>14/17</td>
+      <td>21/23</td>
+      <td>10/12</td>
+      <td>12/14</td>
+      <td>17/23</td>
+      <td>13/14</td>
+      <td>12/15</td>
+      <td>31/30</td>
+      <td>18/15</td>
+      <td>18/24</td>
+      <td>13/10</td>
+      <td>17/19</td>
+      <td>14</td>
+      <td>8/10</td>
+      <td>15/14</td>
+      <td>20/18</td>
+      <td>24</td>
+      <td>8/7</td>
+      <td>11/10</td>
+      <td>16/14</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 15</td>
+      <td>6</td>
+      <td>14</td>
+      <td>14/13</td>
+      <td>21/20</td>
+      <td>10/8</td>
+      <td>10/11</td>
+      <td>22/11</td>
+      <td>12</td>
+      <td>16</td>
+      <td>30/29</td>
+      <td>11/15</td>
+      <td>20/16</td>
+      <td>14/13</td>
+      <td>18/19</td>
+      <td>12/11</td>
+      <td>10</td>
+      <td>15/13</td>
+      <td>23/18</td>
+      <td>21/33</td>
+      <td>7/9</td>
+      <td>11/9</td>
+      <td>14/17</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 16</td>
+      <td>5</td>
+      <td>11/10</td>
+      <td>10/13</td>
+      <td>23/19</td>
+      <td>10</td>
+      <td>9/10</td>
+      <td>19</td>
+      <td>12</td>
+      <td>14/17</td>
+      <td>33/28</td>
+      <td>14/18</td>
+      <td>20/25</td>
+      <td>13/11</td>
+      <td>19/14</td>
+      <td>7/9</td>
+      <td>10</td>
+      <td>13/15</td>
+      <td>21/22</td>
+      <td>22/21</td>
+      <td>9</td>
+      <td>12/9</td>
+      <td>18/14</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 17</td>
+      <td>4</td>
+      <td>11/12</td>
+      <td>11</td>
+      <td>15/18</td>
+      <td>11/13</td>
+      <td>10/11</td>
+      <td>23</td>
+      <td>15</td>
+      <td>16/19</td>
+      <td>30/28</td>
+      <td>16/12</td>
+      <td>19/24</td>
+      <td>13/12</td>
+      <td>17/16</td>
+      <td>14/10</td>
+      <td>10/13</td>
+      <td>12/14</td>
+      <td>20/24</td>
+      <td>23</td>
+      <td>8/6</td>
+      <td>11/9</td>
+      <td>18/15</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 18</td>
+      <td>8</td>
+      <td>12/13</td>
+      <td>16/11</td>
+      <td>17/20</td>
+      <td>11</td>
+      <td>14/11</td>
+      <td>23/19</td>
+      <td>15/12</td>
+      <td>13/19</td>
+      <td>28</td>
+      <td>14/16</td>
+      <td>20/22</td>
+      <td>13/11</td>
+      <td>17/16</td>
+      <td>9/11</td>
+      <td>11/9</td>
+      <td>14/11</td>
+      <td>24/27</td>
+      <td>24/23</td>
+      <td>7</td>
+      <td>10</td>
+      <td>20/17</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 19</td>
+      <td>3</td>
+      <td>9/14</td>
+      <td>11/16</td>
+      <td>21/24</td>
+      <td>12/8</td>
+      <td>10/11</td>
+      <td>24/19</td>
+      <td>15/16</td>
+      <td>14/13</td>
+      <td>28/31</td>
+      <td>15/12</td>
+      <td>23/19</td>
+      <td>13/12</td>
+      <td>18/17</td>
+      <td>12/13</td>
+      <td>10</td>
+      <td>14</td>
+      <td>23</td>
+      <td>24/23</td>
+      <td>7</td>
+      <td>10/11</td>
+      <td>16</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 20</td>
+      <td>6</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 21</td>
+      <td>3</td>
+      <td>10/11</td>
+      <td>13/14</td>
+      <td>23</td>
+      <td>8/13</td>
+      <td>12/11</td>
+      <td>17</td>
+      <td>13/16</td>
+      <td>15/17</td>
+      <td>30</td>
+      <td>13/11</td>
+      <td>19/24</td>
+      <td>12/14</td>
+      <td>14/17</td>
+      <td>11</td>
+      <td>7/10</td>
+      <td>14/11</td>
+      <td>19/22</td>
+      <td>21/27</td>
+      <td>9/6</td>
+      <td>11</td>
+      <td>18</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 22</td>
+      <td>1</td>
+      <td>12/10</td>
+      <td>17/16</td>
+      <td>24/21</td>
+      <td>11/8</td>
+      <td>12/11</td>
+      <td>18/19</td>
+      <td>15/14</td>
+      <td>14</td>
+      <td>33/28</td>
+      <td>14/13</td>
+      <td>21</td>
+      <td>13/11</td>
+      <td>15/19</td>
+      <td>14/12</td>
+      <td>8/10</td>
+      <td>17/13</td>
+      <td>24/26</td>
+      <td>33/24</td>
+      <td>9</td>
+      <td>10/9</td>
+      <td>13/16</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 23</td>
+      <td>4</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 24</td>
+      <td>2</td>
+      <td>11/13</td>
+      <td>16</td>
+      <td>19/22</td>
+      <td>11/13</td>
+      <td>8/10</td>
+      <td>16/19</td>
+      <td>11/14</td>
+      <td>19/15</td>
+      <td>30/32</td>
+      <td>17/18</td>
+      <td>25/20</td>
+      <td>11/12</td>
+      <td>17/18</td>
+      <td>10/8</td>
+      <td>10</td>
+      <td>14/16</td>
+      <td>20/27</td>
+      <td>23/15</td>
+      <td>7/8</td>
+      <td>12/10</td>
+      <td>17/18</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 25</td>
+      <td>6</td>
+      <td>9</td>
+      <td>12/16</td>
+      <td>24</td>
+      <td>10/13</td>
+      <td>8/14</td>
+      <td>20/19</td>
+      <td>11/15</td>
+      <td>12/17</td>
+      <td>31/28</td>
+      <td>15/18</td>
+      <td>21/24</td>
+      <td>13</td>
+      <td>15</td>
+      <td>11</td>
+      <td>12/9</td>
+      <td>12</td>
+      <td>18/27</td>
+      <td>20/32</td>
+      <td>7/8</td>
+      <td>10/11</td>
+      <td>16/17</td>
+    </tr>
+    <tr onclick="toggleRowVisibility(this)">
+      <td>ID 26</td>
+      <td>3</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </table>
+  
+
+
+
+  
+</body>
+</div>
+</div>
+</html>
