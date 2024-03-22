@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Random Question Quiz</title>
+    <style>
+        .correct { color: green; }
+        .wrong { color: red; }
+    </style>
+</head>
+<body>
+
+<div id="question"></div>
+<ul id="answers"></ul>
+
+<script>
+    // Sample questions and answers
+    const questions = [
+        {
+            question: "Qu'est-ce que l'ADN mitochondrial ?",
+            correctAnswer: "ADN présent dans les mitochondries, hérité de la mère",
+            wrongAnswers: [
+                "ADN présent dans le noyau des cellules",
+                "ADN présent dans les chloroplastes",
+                "ADN hérité du père",
+                "ADN utilisé pour la photosynthèse",
+                "ADN impliqué dans la respiration cellulaire",
+                "ADN trouvé uniquement chez les animaux",
+                "ADN qui détermine le type de sang",
+                "ADN qui code pour les protéines virales",
+                "ADN utilisé pour déterminer l'âge biologique",
+                "ADN associé à la mémoire cellulaire"
+            ]
+        }
+        // Add more questions here
+    ];
+
+    function displayQuestion() {
+        // Pick a random question
+        const questionIndex = Math.floor(Math.random() * questions.length);
+        const selectedQuestion = questions[questionIndex];
+
+        // Combine correct and wrong answers, then shuffle
+        const answers = [selectedQuestion.correctAnswer, ...selectedQuestion.wrongAnswers]
+                            .sort(() => 0.5 - Math.random()) // Shuffle
+                            .slice(0, 5); // Get five answers randomly
+
+        // Display the question
+        document.getElementById('question').textContent = selectedQuestion.question;
+
+        // Display the answers
+        const answersList = document.getElementById('answers');
+        answersList.innerHTML = ''; // Clear previous answers
+        answers.forEach(answer => {
+            const li = document.createElement('li');
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.onchange = function() { checkAnswer(answer, selectedQuestion.correctAnswer, this); };
+            li.appendChild(input);
+            li.appendChild(document.createTextNode(answer));
+            answersList.appendChild(li);
+        });
+    }
+
+    function checkAnswer(selectedAnswer, correctAnswer, checkbox) {
+        // Disable all checkboxes
+        document.querySelectorAll('#answers input').forEach(input => {
+            input.disabled = true;
+            input.parentElement.className = input.nextSibling.nodeValue === correctAnswer ? 'correct' : 'wrong';
+        });
+
+        // Show result
+        if (selectedAnswer === correctAnswer) {
+            checkbox.nextSibling.after(' ✓');
+            checkbox.parentElement.classList.add('correct');
+        } else {
+            checkbox.nextSibling.after(' ✗');
+            checkbox.parentElement.classList.add('wrong');
+        }
+    }
+
+    // Initialize the quiz with a question
+    window.onload = displayQuestion;
+</script>
+
+</body>
+</html>
