@@ -1,74 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Random Question Quiz</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quiz</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        .correct { color: green; }
-        .wrong { color: red; }
+        body {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        .main {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+        }
+        .content {
+            flex-grow: 1;
+            margin-right: 20px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .sidebar {
+            width: 20%;
+            background-color: #f9f9f9;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        #nextQuestion {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #333;
+            border: none;
+            cursor: pointer;
+        }
+        #nextQuestion:hover {
+            background-color: #555;
+        }
+        .correct {
+            color: green;
+        }
+        .wrong {
+            color: red;
+        }
     </style>
 </head>
 <body>
 
-<div id="question"></div>
-<ul id="answers"></ul>
-    <button id="nextQuestion" style="display:none;" onclick="nextQuestion()">Next Question</button>
+<div class="header">
+    <h1>Welcome to the Quiz</h1>
+    <p>See how well you know your stuff!</p>
+</div>
 
+<div class="main">
+    <div class="content" id="quizContent">
+        <div id="question" style="font-size: 20px; font-weight: bold;"></div>
+        <ul id="answers" style="list-style-type: none; padding: 0;"></ul>
+        <button id="nextQuestion">Next Question</button>
+    </div>
+    <div class="sidebar" id="wrongAnswers">
+        <h2>Correct Answers for Missed Questions</h2>
+    </div>
+</div>
 
 <script src="quiz-data.js"></script>
 <script>
+let currentQuestionIndex = 0;
+
 function displayQuestion() {
-    // Randomly select a question
     const questionIndex = Math.floor(Math.random() * quizData.length);
     const selectedQuestion = quizData[questionIndex];
 
-    // Randomly select three wrong answers and include the correct one
-    const answers = [selectedQuestion.correctAnswer, ...selectedQuestion.wrongAnswers.sort(() => 0.5 - Math.random()).slice(0, 3)]
-                        .sort(() => 0.5 - Math.random()); // Shuffle all answers
+    const answers = [selectedQuestion.correctAnswer, ...selectedQuestion.wrongAnswers.sort(() => 0.5 - Math.random()).slice(0, 3)].sort(() => 0.5 - Math.random());
 
-    // Display the question
     document.getElementById('question').textContent = selectedQuestion.question;
-    // Hide the Next Question button until an answer is selected
     document.getElementById('nextQuestion').style.display = 'none';
 
-    // Display the answers
     const answersList = document.getElementById('answers');
-    answersList.innerHTML = ''; // Clear previous answers
+    answersList.innerHTML = '';
     answers.forEach(answer => {
         const li = document.createElement('li');
         const input = document.createElement('input');
         input.type = 'checkbox';
-        input.name = "answers"; // Ensure all checkboxes share the same name to mimic radio button behavior
+        input.name = "answers";
         input.onchange = () => checkAnswer(answer, selectedQuestion.correctAnswer, input);
         li.appendChild(input);
-        li.append(document.createTextNode(` ${answer}`));
+        li.append(` ${answer}`);
         answersList.appendChild(li);
     });
 }
 
 function checkAnswer(selectedAnswer, correctAnswer, checkbox) {
-    // Disable all checkboxes to prevent changing the answer
     document.querySelectorAll('#answers input').forEach(input => {
         input.disabled = true;
         if (input.nextSibling.textContent.trim() === correctAnswer) {
-            input.parentElement.classList.add('correct');
+            input.parentElement.className = 'correct';
             input.nextSibling.after(' ✓');
         } else {
-            input.parentElement.classList.add('wrong');
+            input.parentElement.className = 'wrong';
             input.nextSibling.after(' ✗');
         }
     });
 
-    // Show the Next Question button
+    if (selectedAnswer !== correctAnswer) {
+        const wrongAnswersDiv = document.getElementById('wrongAnswers');
+        const p = document.createElement('p');
+        p.textContent = `Q: ${document.getElementById('question').textContent} A: ${correctAnswer}`;
+        wrongAnswersDiv.appendChild(p);
+    }
+
     document.getElementById('nextQuestion').style.display = 'block';
 }
 
-// Attach the displayQuestion function to the Next Question button
 document.getElementById('nextQuestion').onclick = displayQuestion;
 
-// Load the first question on page load
 window.onload = displayQuestion;
 </script>
-
 
 </body>
 </html>
