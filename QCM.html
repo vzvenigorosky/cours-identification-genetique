@@ -16,31 +16,28 @@
 
 <script src="quiz-data.js"></script>
 <script>
-let currentQuestionIndex = 0;
-
 function displayQuestion() {
-    if (currentQuestionIndex >= quizData.length) {
-        document.getElementById('question').textContent = "Quiz Finished!";
-        document.getElementById('answers').innerHTML = '';
-        document.getElementById('nextQuestion').style.display = 'none';
-        return;
-    }
-    
-    const selectedQuestion = quizData[currentQuestionIndex];
+    // Randomly select a question
+    const questionIndex = Math.floor(Math.random() * quizData.length);
+    const selectedQuestion = quizData[questionIndex];
 
+    // Randomly select three wrong answers and include the correct one
     const answers = [selectedQuestion.correctAnswer, ...selectedQuestion.wrongAnswers.sort(() => 0.5 - Math.random()).slice(0, 3)]
-                            .sort(() => 0.5 - Math.random());
+                        .sort(() => 0.5 - Math.random()); // Shuffle all answers
 
+    // Display the question
     document.getElementById('question').textContent = selectedQuestion.question;
+    // Hide the Next Question button until an answer is selected
     document.getElementById('nextQuestion').style.display = 'none';
 
+    // Display the answers
     const answersList = document.getElementById('answers');
-    answersList.innerHTML = '';
+    answersList.innerHTML = ''; // Clear previous answers
     answers.forEach(answer => {
         const li = document.createElement('li');
         const input = document.createElement('input');
         input.type = 'checkbox';
-        input.name = "answers";
+        input.name = "answers"; // Ensure all checkboxes share the same name to mimic radio button behavior
         input.onchange = () => checkAnswer(answer, selectedQuestion.correctAnswer, input);
         li.appendChild(input);
         li.append(document.createTextNode(` ${answer}`));
@@ -49,6 +46,7 @@ function displayQuestion() {
 }
 
 function checkAnswer(selectedAnswer, correctAnswer, checkbox) {
+    // Disable all checkboxes to prevent changing the answer
     document.querySelectorAll('#answers input').forEach(input => {
         input.disabled = true;
         if (input.nextSibling.textContent.trim() === correctAnswer) {
@@ -60,16 +58,17 @@ function checkAnswer(selectedAnswer, correctAnswer, checkbox) {
         }
     });
 
+    // Show the Next Question button
     document.getElementById('nextQuestion').style.display = 'block';
 }
 
-function nextQuestion() {
-    currentQuestionIndex++;
-    displayQuestion();
-}
+// Attach the displayQuestion function to the Next Question button
+document.getElementById('nextQuestion').onclick = displayQuestion;
 
+// Load the first question on page load
 window.onload = displayQuestion;
 </script>
+
 
 </body>
 </html>
