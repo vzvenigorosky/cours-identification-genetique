@@ -9,7 +9,7 @@ const quizData = [
             { text: "Mauvaise réponse 4", correct: false },
 			{ text: "Mauvaise réponse 5", correct: false },
 			{ text: "Mauvaise réponse 6", correct: false },
-			{ text: "Mauvaise réponse 7", correct: false }
+			{ text: "Mauvaise réponse 7", correct: false },
         ]
     },
     {
