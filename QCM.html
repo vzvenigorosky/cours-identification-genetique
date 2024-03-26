@@ -66,27 +66,29 @@
     document.addEventListener('DOMContentLoaded', () => {
     const quizContainer = document.getElementById('quiz');
     let score = 0;
-    let answeredQuestions = 0;
+    let answeredQuestions = 0; // Keep track of answered questions for score calculation
 
     // Function to shuffle array
-    const shuffleArray = array => {
+    function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [array[i], array[j]] = [array[j], array[i]];
         }
-    };
+    }
 
-    // Randomly select 20 questions
+    // Randomly select 20 questions from the quizData
     const selectedQuestions = quizData.sort(() => 0.5 - Math.random()).slice(0, 20);
 
     selectedQuestions.forEach((question, index) => {
-        // Select three random wrong answers
-        const wrongAnswers = question.wrongAnswers.sort(() => 0.5 - Math.random()).slice(0, 3);
+        // Randomly pick one correct answer and three wrong answers
+        const correctAnswer = question.answers.find(ans => ans.correct);
+        const wrongAnswers = question.answers.filter(ans => !ans.correct).sort(() => 0.5 - Math.random()).slice(0, 3);
 
-        // Combine with the correct answer and shuffle
-        const answers = [...wrongAnswers, question.correctAnswer].sort(() => 0.5 - Math.random());
+        // Combine, then shuffle the selected answers
+        const answers = [correctAnswer, ...wrongAnswers];
+        shuffleArray(answers);
 
-        // Create question element
+        // Create and append the question and answers to the quizContainer
         const questionElem = document.createElement('div');
         questionElem.classList.add('question');
         questionElem.innerHTML = `<h2>${index + 1}. ${question.question}</h2>`;
@@ -97,16 +99,17 @@
             const input = document.createElement('input');
             input.type = 'radio';
             input.name = `question-${index}`;
-            input.value = answer;
-            input.id = `question-${index}-${answer}`;
+            input.value = answer.text;
 
             const label = document.createElement('label');
-            label.htmlFor = input.id;
-            label.textContent = answer;
+            label.appendChild(input);
+            label.append(` ${answer.text}`);
+            li.appendChild(label);
+            ul.appendChild(li);
 
             input.addEventListener('change', () => {
                 answeredQuestions++;
-                if(answer === question.correctAnswer) {
+                if(answer.correct) {
                     score += 0.5;
                     label.classList.add('correct');
                     label.innerHTML += ' ✓';
@@ -115,23 +118,19 @@
                     label.innerHTML += ' ✗';
                 }
 
-                // Disable all inputs for this question
-                document.querySelectorAll(`[name="question-${index}"]`).forEach(inp => inp.disabled = true);
+                // Disable all inputs for this question to prevent changing the answer
+                ul.querySelectorAll('input').forEach(inp => inp.disabled = true);
 
-                // Update score
-                const totalScore = (score / answeredQuestions * 20).toFixed(1);
-                document.getElementById('score').textContent = `${totalScore} sur 10`;
+                // Update the score display
+                document.getElementById('score').textContent = `${(score / answeredQuestions * 20).toFixed(1)} sur 10`;
             });
-
-            li.appendChild(input);
-            li.appendChild(label);
-            ul.appendChild(li);
         });
 
         questionElem.appendChild(ul);
         quizContainer.appendChild(questionElem);
     });
 });
+
 
 </script>
 
