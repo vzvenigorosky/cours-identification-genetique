@@ -1,8 +1,8 @@
 const quizData = [
     {
-        question: "Question 1 ?",
+        question: "Que signifie l'abréviation ADN ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Acide DésoxyriboNucléique", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -13,9 +13,9 @@ const quizData = [
         ]
     },
     {
-        question: "Question 2 ?",
+        question: "Comment se nomment les quatre bases azotées ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Adénine, Thymine, Guanine, Cytosine", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -26,9 +26,9 @@ const quizData = [
         ]
     },
         {
-        question: "Question 3 ?",
+        question: "Qu'est-ce qu'un nucléotide ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Un nucléotide est la sous-unité de la molécule d'ADN", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -39,9 +39,9 @@ const quizData = [
         ]
     },
 	    {
-        question: "Question 4 ?",
+        question: "De quoi est composé un nucléotide ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Il est composé d'une base azotée, d'un sucre (ribose ou désoxyribose) et d'un groupement phosphate", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -52,9 +52,9 @@ const quizData = [
         ]
     },
 	    {
-        question: "Question 5 ?",
+        question: "Qu'est-ce qu'une séquence d'ADN ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Une suite ordonnée de nucléotides sur un brin d'ADN", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -65,9 +65,9 @@ const quizData = [
         ]
     },
 	    {
-        question: "Question 6 ?",
+        question: "Quelles sont les trois différences entre l'ARN et l'ADN ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Les trois différences entre l'ARN et l'ADN sont : l'ARN est simple brin, l'ARN a des fonctions au-delà du stockage d'informations, et l'uracile remplace la thymine dans l'ARN", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -78,9 +78,9 @@ const quizData = [
         ]
     },
 	    {
-        question: "Question 7 ?",
+        question: "Comment s'apparient les bases azotées de l'ADN ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Les bases azotées de l'ADN s'apparient de manière spécifique : adénine (A) est toujours appariée avec thymine (T), et guanine (G) est toujours appariée avec cytosine (C)", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -91,9 +91,9 @@ const quizData = [
         ]
     },
 	    {
-        question: "Question 8 ?",
+        question: "Comment est généralement notée l'orientation de la molécule d'ADN ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "de 5' vers 3'", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -104,9 +104,9 @@ const quizData = [
         ]
     },
 	    {
-        question: "Question 9 ?",
+        question: "Qu'est qui permet l'orientation de la molécule d'ADN ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Chaque nucléotide est numéroté à partir de l'atome d'oxygène en position 5'", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -117,9 +117,9 @@ const quizData = [
         ]
     },
 	    {
-        question: "Question 10 ?",
+        question: "Pourquoi dit-on que les brins de la molécule d'ADN sont antiparallèles ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "Le brin 5' → 3' est orienté dans le sens inverse du brin 3' → 5'.", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
@@ -130,9 +130,9 @@ const quizData = [
         ]
     },
 	    {
-        question: "Question 11 ?",
+        question: "Qu'est-ce que la complémentarité des brins de la molécule d'ADN ?",
         answers: [
-            { text: "Bonne réponse", correct: true },
+            { text: "L'adénine (A) est toujours appariée avec la thymine (T), et la guanine (G) est toujours appariée avec la cytosine (C).", correct: true },
             { text: "Mauvaise réponse 1", correct: false },
             { text: "Mauvaise réponse 2", correct: false },
             { text: "Mauvaise réponse 3", correct: false },
