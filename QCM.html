@@ -63,10 +63,10 @@
 <script src="quiz-data.js"></script>
 <script src="script.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
     const quizContainer = document.getElementById('quiz');
-    let score = 0;
-    let answeredQuestions = 0; // Keep track of answered questions for score calculation
+    let correctAnswersCount = 0; // Keep track of correct answers
+    let answeredQuestionsCount = 0; // Keep track of answered questions for score calculation
 
     // Function to shuffle array
     function shuffleArray(array) {
@@ -80,7 +80,6 @@
     const selectedQuestions = quizData.sort(() => 0.5 - Math.random()).slice(0, 20);
 
     selectedQuestions.forEach((question, index) => {
-        // Randomly pick one correct answer and three wrong answers
         const correctAnswer = question.answers.find(ans => ans.correct);
         const wrongAnswers = question.answers.filter(ans => !ans.correct).sort(() => 0.5 - Math.random()).slice(0, 3);
 
@@ -108,9 +107,9 @@
             ul.appendChild(li);
 
             input.addEventListener('change', () => {
-                answeredQuestions++;
+                answeredQuestionsCount++;
                 if(answer.correct) {
-                    score += 0.5;
+                    correctAnswersCount++;
                     label.classList.add('correct');
                     label.innerHTML += ' ✓';
                 } else {
@@ -122,7 +121,7 @@
                 ul.querySelectorAll('input').forEach(inp => inp.disabled = true);
 
                 // Update the score display
-                document.getElementById('score').textContent = `${(score / answeredQuestions * 20).toFixed(1)} sur 10`;
+                document.getElementById('score').textContent = `${correctAnswersCount}/${answeredQuestionsCount}`;
             });
         });
 
@@ -132,7 +131,12 @@
 });
 
 
-</script>
 
+</script>
+      <br>
+      <br>
+      <button onclick="window.location.href = 'Questions_cours.html'">Retour aux fiches récapitulatives</button>
+      <br>
+      <br>
 </body>
 </html>
