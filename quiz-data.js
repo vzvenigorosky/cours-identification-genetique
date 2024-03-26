@@ -1,48 +1,392 @@
-// quiz-data.js
 const quizData = [
     {
-        question: "Qu'est-ce que l'ADN mitochondrial ?",
-        correctAnswer: "ADN présent dans les mitochondries, hérité de la mère",
-        wrongAnswers: [
-            "ADN présent dans le noyau des cellules",
-            "ADN présent dans les chloroplastes",
-            "ADN hérité du père",
-            "ADN utilisé pour la photosynthèse",
-            "ADN impliqué dans la respiration cellulaire",
-            "ADN trouvé uniquement chez les animaux",
-            "ADN qui détermine le type de sang",
-            "ADN qui code pour les protéines virales"
+        question: "Question 1 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
         ]
     },
-
-  {
-    question: "Quelle est la fonction principale de l'ADN ?",
-    correctAnswer: "Stockage de l'information génétique",
-    wrongAnswers: [
-        "Production d'énergie cellulaire",
-        "Transport de l'oxygène dans le sang",
-        "Digestion des aliments",
-        "Régulation de la température corporelle",
-        "Transmission des signaux nerveux",
-        "Protection contre les maladies",
-        "Absorption des nutriments",
-        "Élimination des déchets corporels"
-    ]
-},
-{
-    question: "Qu'est-ce qu'une cellule ?",
-    correctAnswer: "L'unité de base de la vie",
-    wrongAnswers: [
-        "Un type de molécule organique",
-        "Une structure trouvée uniquement dans les plantes",
-        "Un composant du sang qui transporte l'oxygène",
-        "Une partie du cerveau responsable de la mémoire",
-        "Une entité qui cause des maladies",
-        "Un outil utilisé en biotechnologie",
-        "Un terme pour décrire une réaction chimique",
-        "Le processus par lequel l'énergie solaire est convertie en énergie chimique"
-    ]
-}
-
-    // Add more questions with their correct and wrong answers
+    {
+        question: "Question 2 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+        {
+        question: "Question 3 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 4 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 5 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 6 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 7 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 8 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 9 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 10 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 11 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 12 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 13 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 14 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 15 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 16 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 17 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 18 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 19 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 20 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 21 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 22 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 23 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 24 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 25 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 26 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 27 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 28 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 29 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
+	    {
+        question: "Question 30 ?",
+        answers: [
+            { text: "Bonne réponse", correct: true },
+            { text: "Mauvaise réponse 1", correct: false },
+            { text: "Mauvaise réponse 2", correct: false },
+            { text: "Mauvaise réponse 3", correct: false },
+            { text: "Mauvaise réponse 4", correct: false },
+			{ text: "Mauvaise réponse 5", correct: false },
+			{ text: "Mauvaise réponse 6", correct: false },
+			{ text: "Mauvaise réponse 7", correct: false },
+        ]
+    },
 ];
