@@ -3,7 +3,7 @@ const quizData = [
         question: "Que signifie l'abréviation ADN ?",
         answers: [
             { text: "Acide DésoxyriboNucléique", correct: true },
-            { text: "Acide Déribonucléique", correct: false }, // Close
+            { text: "Acide DériboNucléique", correct: false }, // Close
             { text: "Agent de Défense Nucléaire", correct: false },
             { text: "Acide Dihydroxy Nucléaire", correct: false },
             { text: "Assemblage Désoxyribonucléique", correct: false }, // Close
