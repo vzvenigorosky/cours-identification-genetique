@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exercices d'Identification Génétique - Master</title>
     <style>
-        /* --- VZVENIGOROSKY THEME (Consistent with modules) --- */
+        /* --- VZVENIGOROSKY THEME --- */
         :root {
-            --primary-color: #159957; /* Cayman Green */
-            --secondary-color: #155799; /* Cayman Blue */
+            --primary-color: #159957;
+            --secondary-color: #155799;
             --text-color: #606c71;
             --header-color: #1e6bb8;
             --bg-color: #fdfdfd;
@@ -25,24 +25,45 @@
             background-color: var(--bg-color);
         }
 
-        /* --- HEADER HERO SECTION --- */
+        /* --- NAVIGATION --- */
+        .nav-bar {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px 20px 0 20px;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            text-decoration: none;
+            color: var(--secondary-color);
+            font-weight: bold;
+            border: 1px solid #ccc;
+            padding: 8px 15px;
+            border-radius: 4px;
+            background: white;
+            transition: all 0.2s;
+        }
+        .back-btn:hover {
+            background: #f6f8fa;
+            border-color: var(--header-color);
+        }
+
+        /* --- HERO SECTION --- */
         .hero {
-            background-image: linear-gradient(120deg, var(--secondary-color), var(--primary-color));
-            color: white;
-            padding: 3rem 2rem;
             text-align: center;
-            margin-bottom: 40px;
+            padding: 2rem 1rem 3rem 1rem;
         }
 
         .hero h1 {
             margin: 0;
             font-size: 2.5rem;
             font-weight: 700;
+            color: var(--secondary-color);
         }
 
         .hero p {
             font-size: 1.2rem;
-            opacity: 0.9;
+            opacity: 0.8;
             margin-top: 10px;
             max-width: 800px;
             margin-left: auto;
@@ -51,71 +72,112 @@
 
         /* --- CONTAINER --- */
         .container {
-            max-width: 1100px;
+            max-width: 1000px; /* Slightly narrower for list view */
             margin: 0 auto;
-            padding: 0 20px 40px 20px;
+            padding: 0 20px 60px 20px;
         }
 
-        /* --- GRID LAYOUT --- */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
+        /* --- LAYOUT (LIST VIEW) --- */
+        .list-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        /* --- EXERCISE CARDS --- */
+        /* --- EXERCISE CARDS (ROW STYLE) --- */
         .card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 25px;
             transition: transform 0.2s, box-shadow 0.2s;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            box-sizing: border-box; /* Fix padding affecting width */
+            
+            /* Horizontal Layout */
+            display: grid;
+            grid-template-columns: 80px 1fr 180px; /* Icon | Content | Button */
+            gap: 25px;
+            align-items: center;
         }
 
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
             border-color: var(--header-color);
         }
 
         .card-icon {
-            font-size: 2rem;
-            margin-bottom: 15px;
+            font-size: 2.5rem;
             color: var(--header-color);
+            text-align: center;
+            background: #f0f8ff;
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            border-radius: 50%;
+        }
+
+        .card-content {
+            text-align: left;
         }
 
         .card h3 {
-            margin-top: 0;
+            margin: 0 0 8px 0;
             color: var(--secondary-color);
-            font-size: 1.4rem;
-            margin-bottom: 10px;
+            font-size: 1.3rem;
         }
 
         .card p {
             font-size: 0.95rem;
             color: #555;
-            flex-grow: 1; /* Pushes button to bottom */
-            margin-bottom: 20px;
+            margin: 0;
+        }
+
+        .card-actions {
+            text-align: right;
         }
 
         .card-btn {
-            display: block;
-            text-align: center;
+            display: inline-block;
             background-color: var(--header-color);
             color: white;
             text-decoration: none;
-            padding: 10px 0;
+            padding: 12px 20px;
             border-radius: 5px;
             font-weight: bold;
             transition: background 0.2s;
+            white-space: nowrap;
         }
 
         .card-btn:hover {
             background-color: var(--secondary-color);
+        }
+
+        /* Badge positioning inside content */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            border-radius: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-basic { background: #e1f5fe; color: #0277bd; }
+        .badge-inter { background: #fff3e0; color: #ef6c00; }
+        .badge-adv { background: #fbe9e7; color: #d84315; }
+
+        /* --- RESPONSIVE (MOBILE) --- */
+        @media (max-width: 768px) {
+            .card {
+                grid-template-columns: 1fr; /* Stack vertically */
+                text-align: center;
+                gap: 15px;
+            }
+            .card-icon { margin: 0 auto; }
+            .card-content { text-align: center; }
+            .card-actions { text-align: center; }
+            .card-btn { width: 100%; box-sizing: border-box; }
         }
 
         /* --- FOOTER --- */
@@ -127,22 +189,16 @@
             font-size: 0.9rem;
             color: #999;
         }
-        
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            font-size: 0.8rem;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .badge-basic { background: #e1f5fe; color: #0277bd; }
-        .badge-inter { background: #fff3e0; color: #ef6c00; }
-        .badge-adv { background: #fbe9e7; color: #d84315; }
 
     </style>
 </head>
 <body>
+
+    <!-- Back Button Area -->
+    <div class="nav-bar">
+        <!-- Remplacez 'index.html' par l'URL de votre choix -->
+        <a href="index.html" class="back-btn">← Retour à l'index</a>
+    </div>
 
     <header class="hero">
         <h1>Exercices d'Identification Génétique</h1>
@@ -150,62 +206,81 @@
     </header>
 
     <div class="container">
-        <div class="grid">
+        <div class="list-layout">
 
             <!-- MODULE 1 -->
             <div class="card">
-                <span class="badge badge-basic">Niveau 1 : Fondamentaux</span>
                 <div class="card-icon">🧬</div>
-                <h3>Profils Consensus</h3>
-                <p>
-                    Apprenez à gérer l'ADN dégradé (LCN). Analysez plusieurs réplicats PCR présentant des phénomènes stochastiques (Drop-out, Drop-in) pour construire un profil consensus fiable avant comparaison.
-                </p>
-                <!-- Remplacez le # par le nom de votre fichier (ex: jeu_consensus.html) -->
-                <a href="jeu_consensus.html" class="card-btn">Lancer l'exercice</a>
+                <div class="card-content">
+                    <span class="badge badge-basic">Niveau 1 : Fondamentaux</span>
+                    <h3>Profils Consensus</h3>
+                    <p>
+                        Gestion de l'ADN dégradé (LCN). Analyse de réplicats PCR avec phénomènes stochastiques (Drop-out) pour construire un profil consensus.
+                    </p>
+                </div>
+                <div class="card-actions">
+                    <a href="jeu_consensus.html" class="card-btn">Lancer l'exercice</a>
+                </div>
             </div>
 
             <!-- MODULE 2 -->
             <div class="card">
-                <span class="badge badge-basic">Niveau 1 : Statistiques</span>
                 <div class="card-icon">📊</div>
-                <h3>Correspondance Fortuite</h3>
-                <p>
-                    Maîtrisez le calcul de la probabilité de correspondance (RMP). Sélectionnez les formules correctes (Homozygote/Hétérozygote) et interprétez la rareté d'un profil complet dans une population donnée.
-                </p>
-                <a href="jeu_rmp.html" class="card-btn">Lancer l'exercice</a>
+                <div class="card-content">
+                    <span class="badge badge-basic">Niveau 1 : Statistiques</span>
+                    <h3>Correspondance Fortuite</h3>
+                    <p>
+                        Calcul de la probabilité de correspondance (RMP). Choix des formules (Homozygote/Hétérozygote) et interprétation des fréquences.
+                    </p>
+                </div>
+                <div class="card-actions">
+                    <a href="jeu_rmp.html" class="card-btn">Lancer l'exercice</a>
+                </div>
             </div>
 
             <!-- MODULE 3 -->
             <div class="card">
-                <span class="badge badge-inter">Niveau 2 : Mélanges</span>
                 <div class="card-icon">⚗️</div>
-                <h3>Déconvolution</h3>
-                <p>
-                    Scénario d'agression sexuelle. Isolez le profil de l'agresseur à partir d'un mélange (Victime + Suspect) en soustrayant les allèles connus. Traitez les cas d'exclusion et de compatibilité.
-                </p>
-                <a href="jeu_deconvolution.html" class="card-btn">Lancer l'exercice</a>
+                <div class="card-content">
+                    <span class="badge badge-inter">Niveau 2 : Mélanges</span>
+                    <h3>Déconvolution</h3>
+                    <p>
+                        Scénario d'agression sexuelle. Isolation du profil de l'agresseur dans un mélange (Victime + Suspect) par soustraction.
+                    </p>
+                </div>
+                <div class="card-actions">
+                    <a href="jeu_deconvolution.html" class="card-btn">Lancer l'exercice</a>
+                </div>
             </div>
 
             <!-- MODULE 4 -->
             <div class="card">
-                <span class="badge badge-inter">Niveau 2 : Filiation</span>
                 <div class="card-icon">👪</div>
-                <h3>Paternité & Parenté</h3>
-                <p>
-                    Résolvez des cas de filiation complexes (Trio, Duo, Recherche de père vs oncle). Formulez les bonnes hypothèses (H1/H2), analysez les marqueurs de lignée (Y-STR, mtDNA) et interprétez le LR.
-                </p>
-                <a href="jeu_paternite.html" class="card-btn">Lancer l'exercice</a>
+                <div class="card-content">
+                    <span class="badge badge-inter">Niveau 2 : Filiation</span>
+                    <h3>Paternité & Parenté</h3>
+                    <p>
+                        Cas de filiation complexes (Trio, Duo, Oncle). Formulation d'hypothèses, marqueurs de lignée (Y-STR, mtDNA) et interprétation du LR.
+                    </p>
+                </div>
+                <div class="card-actions">
+                    <a href="jeu_paternite.html" class="card-btn">Lancer l'exercice</a>
+                </div>
             </div>
 
             <!-- MODULE 5 -->
             <div class="card">
-                <span class="badge badge-adv">Niveau 3 : Expert</span>
                 <div class="card-icon">🚢</div>
-                <h3>Atelier DVI (Catastrophe)</h3>
-                <p>
-                    Simulation de catastrophe de masse. Exercez votre esprit critique pour identifier un corps en le comparant à des objets personnels de fiabilité variable (brosse à dents vs peigne). Attention aux contaminations.
-                </p>
-                <a href="jeu_dvi.html" class="card-btn">Lancer l'exercice</a>
+                <div class="card-content">
+                    <span class="badge badge-adv">Niveau 3 : Expert</span>
+                    <h3>Atelier DVI (Catastrophe)</h3>
+                    <p>
+                        Simulation de catastrophe. Identification d'un corps par comparaison avec des objets personnels de fiabilité variable.
+                    </p>
+                </div>
+                <div class="card-actions">
+                    <a href="jeu_dvi.html" class="card-btn">Lancer l'exercice</a>
+                </div>
             </div>
 
         </div>
