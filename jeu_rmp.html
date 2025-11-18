@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcul de Correspondance Fortuite</title>
+    <style>
+        /* --- VZVENIGOROSKY THEME --- */
+        :root {
+            --primary-color: #159957;
+            --secondary-color: #155799;
+            --warn-color: #e36209;
+            --fail-color: #cb2431;
+            --text-color: #606c71;
+            --header-color: #1e6bb8;
+            --bg-color: #fdfdfd;
+            --card-bg: #ffffff;
+            --table-stripe: #f6f8fa;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* --- NAVIGATION --- */
+        .back-link {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: var(--header-color);
+            text-decoration: none;
+            font-weight: bold;
+            border: 1px solid #e1e4e8;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background: white;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .back-link:hover {
+            background-color: #f6f8fa;
+            color: var(--secondary-color);
+            border-color: var(--header-color);
+        }
+
+        h1, h2 { color: var(--header-color); font-weight: 700; margin-top: 20px; }
+        h1 { border-bottom: 2px solid #eaecef; padding-bottom: 10px; font-size: 1.8rem;}
+
+        .game-panel {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 25px;
+            background: var(--card-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        /* --- TABLE STYLES --- */
+        .calc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .calc-table th, .calc-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+        .calc-table th {
+            background-color: var(--table-stripe);
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+        .allele-tag {
+            display: inline-block;
+            background: #eee;
+            color: #333;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+        .freq-sub {
+            font-size: 0.85em;
+            color: #666;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* --- FORMULA BUTTONS --- */
+        .formula-btn {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 0 2px;
+            font-family: "Times New Roman", serif;
+            font-style: italic;
+            font-size: 1.1em;
+            transition: all 0.2s;
+        }
+        .formula-btn:hover { border-color: var(--header-color); background: #f0f8ff; }
+        
+        .formula-btn.selected {
+            background-color: var(--header-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        .error-row { background-color: #fff5f5; }
+
+        /* --- INTERPRETATION --- */
+        .statement-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .statement-text { width: 70%; }
+        .statement-actions { width: 30%; text-align: right; }
+
+        .btn-bool {
+            padding: 5px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background: white;
+            margin-left: 5px;
+        }
+        .btn-bool.active-true { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .btn-bool.active-false { background: var(--fail-color); color: white; border-color: var(--fail-color); }
+
+        /* --- FEEDBACK & RESULTS --- */
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result-fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .global-result {
+            font-family: 'Courier New', monospace;
+            background: #333;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            word-break: break-all;
+        }
+
+        .hidden { display: none; }
+
+        .action-btn {
+            background-image: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            display: block;
+            margin: 20px auto 0;
+        }
+
+        button.secondary { background: #606c71; background-image: none; }
+
+    </style>
+</head>
+<body>
+
+    <a href="accueil-exercices-master.html" class="back-link">← Retour à l'accueil</a>
+
+    <h1>Atelier : Probabilité de Correspondance Fortuite</h1>
+    <p>
+        <strong>Objectif :</strong> Pour chaque locus du profil génétique, sélectionnez la formule correcte (Homozygote vs Hétérozygote), puis analysez la probabilité globale du profil.
+    </p>
+
+    <div class="game-panel" id="panel-calc">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="margin:0;">1. Établissement du Profil</h2>
+            <button class="back-link secondary" onclick="initGame()">Générer Nouveau Profil</button>
+        </div>
+
+        <p style="font-size:0.9em; color:#666;">
+            Sélectionnez la formule statistique appropriée pour chaque marqueur.
+        </p>
+
+        <table class="calc-table">
+            <thead>
+                <tr>
+                    <th>Locus</th>
+                    <th>Génotype</th>
+                    <th>Fréquences</th>
+                    <th>Formule (p² ou 2pq)</th>
+                </tr>
+            </thead>
+            <tbody id="profile-body">
+                </tbody>
+        </table>
+
+        <button class="action-btn" onclick="calculateGlobalProfile()">Calculer la Probabilité Globale</button>
+        <div id="calc-error-msg" class="result-box result-fail"></div>
+    </div>
+
+    <div class="game-panel hidden" id="panel-interpret">
+        <h2>2. Interprétation & Échelle Verbale</h2>
+        
+        <div style="background:#f0f8ff; padding:15px; border-radius:5px; border:1px solid #cce5ff; margin-bottom:20px;">
+            <strong>Résultat global (Règle du produit) :</strong>
+            <div class="global-result" id="math-display"></div>
+            <p style="margin-bottom:0; margin-top:10px;">
+                <strong>Probabilité de correspondance fortuite :</strong> <span id="final-prob-display" style="font-weight:bold; color:var(--secondary-color);"></span>
+            </p>
+            <p style="margin-top:5px; font-size:0.9em; color:#555;">
+                Soit environ 1 personne sur <span id="final-freq-display"></span>
+            </p>
+        </div>
+
+        <p>
+            <strong>Contexte :</strong> <span id="context-desc"></span>
+        </p>
+        <p>Évaluez les affirmations suivantes :</p>
+
+        <div id="statements-container">
+            </div>
+
+        <button class="action-btn" onclick="checkStatements()">Valider l'interprétation</button>
+        <div id="final-feedback" class="result-box"></div>
+    </div>
+
+<script>
+/**
+ * PCF GAME ENGINE (Version 3.0 - Full Profile)
+ */
+
+// Extended list of markers
+const LOCI_DB = [
+    { name: "D3S1358", min: 12, max: 19 },
+    { name: "vWA",     min: 11, max: 21 }, 
+    { name: "D16S539", min: 8,  max: 15 },
+    { name: "CSF1PO",  min: 7,  max: 15 },
+    { name: "TPOX",    min: 6,  max: 13 },
+    { name: "D8S1179", min: 8,  max: 19 },
+    { name: "FGA",     min: 18, max: 30 },
+    { name: "TH01",    min: 6,  max: 10 },
+    { name: "D13S317", min: 8,  max: 15 },
+    { name: "D7S820",  min: 6,  max: 14 }
+];
+
+let currentProfile = []; // Array of locus objects
+let globalStats = {
+    prob: 0,
+    popName: "",
+    popSize: 0,
+    statements: []
+};
+
+// Helpers
+function formatFreq(n) { return n.toFixed(3); }
+function formatSci(n) { return n.toExponential(2).replace("e", " × 10^"); }
+
+// 1. INIT
+function initGame() {
+    // Reset UI
+    document.getElementById("panel-interpret").classList.add("hidden");
+    document.getElementById("calc-error-msg").style.display = "none";
+    document.getElementById("final-feedback").style.display = "none";
+    
+    currentProfile = [];
+    
+    // Randomize Profile Size (4 to 10 markers)
+    const numLoci = Math.floor(Math.random() * (10 - 4 + 1)) + 4;
+    
+    // Shuffle and pick loci
+    const shuffledDB = [...LOCI_DB].sort(() => 0.5 - Math.random());
+    const selectedLoci = shuffledDB.slice(0, numLoci);
+
+    // Generate Data for each locus
+    selectedLoci.forEach(locus => {
+        // Alleles
+        let a1 = Math.floor(Math.random() * (locus.max - locus.min + 1)) + locus.min;
+        let a2 = Math.random() > 0.25 ? Math.floor(Math.random() * (locus.max - locus.min + 1)) + locus.min : a1; // 25% chance homozygote
+        
+        // Frequencies (Simulated)
+        let p = parseFloat((Math.random() * (0.35 - 0.05) + 0.05).toFixed(3));
+        let q = (a1 === a2) ? p : parseFloat((Math.random() * (0.35 - 0.05) + 0.05).toFixed(3));
+
+        currentProfile.push({
+            name: locus.name,
+            a1: Math.min(a1, a2),
+            a2: Math.max(a1, a2),
+            p: p,
+            q: q,
+            isHomozygote: (a1 === a2),
+            userChoice: null // 'p2' or '2pq'
+        });
+    });
+
+    renderTable();
+}
+
+// 2. RENDER TABLE
+function renderTable() {
+    const tbody = document.getElementById("profile-body");
+    tbody.innerHTML = "";
+
+    currentProfile.forEach((loc, index) => {
+        const row = document.createElement("tr");
+        row.id = `row-${index}`;
+        
+        // Locus Name
+        const cellName = document.createElement("td");
+        cellName.innerHTML = `<strong>${loc.name}</strong>`;
+        
+        // Genotype
+        const cellGeno = document.createElement("td");
+        if(loc.isHomozygote) {
+            cellGeno.innerHTML = `<span class="allele-tag">${loc.a1}</span>`;
+        } else {
+            cellGeno.innerHTML = `<span class="allele-tag">${loc.a1}</span><span class="allele-tag">${loc.a2}</span>`;
+        }
+
+        // Frequencies
+        const cellFreq = document.createElement("td");
+        if(loc.isHomozygote) {
+            cellFreq.innerHTML = `<span class="freq-sub">f(${loc.a1}) = ${loc.p}</span>`;
+        } else {
+            cellFreq.innerHTML = `<span class="freq-sub">f(${loc.a1}) = ${loc.p}</span><span class="freq-sub">f(${loc.a2}) = ${loc.q}</span>`;
+        }
+
+        // Formula Selector
+        const cellForm = document.createElement("td");
+        
+        const btnHom = document.createElement("button");
+        btnHom.className = "formula-btn";
+        btnHom.innerHTML = "p²";
+        btnHom.onclick = () => selectFormula(index, 'p2', btnHom, btnHet);
+
+        const btnHet = document.createElement("button");
+        btnHet.className = "formula-btn";
+        btnHet.innerHTML = "2pq";
+        btnHet.onclick = () => selectFormula(index, '2pq', btnHet, btnHom);
+
+        cellForm.appendChild(btnHom);
+        cellForm.appendChild(btnHet);
+
+        row.appendChild(cellName);
+        row.appendChild(cellGeno);
+        row.appendChild(cellFreq);
+        row.appendChild(cellForm);
+        tbody.appendChild(row);
+    });
+}
+
+function selectFormula(index, type, activeBtn, otherBtn) {
+    currentProfile[index].userChoice = type;
+    activeBtn.classList.add("selected");
+    otherBtn.classList.remove("selected");
+    // Remove error highlight if exists
+    document.getElementById(`row-${index}`).classList.remove("error-row");
+}
+
+// 3. CALCULATE
+function calculateGlobalProfile() {
+    const errBox = document.getElementById("calc-error-msg");
+    errBox.style.display = "none";
+    
+    let errors = [];
+    let totalProb = 1;
+    let mathString = "P = ";
+
+    // Validate each row
+    currentProfile.forEach((loc, index) => {
+        if (!loc.userChoice) {
+            errors.push(`Ligne ${loc.name}: Formule non sélectionnée.`);
+            return;
+        }
+
+        let correct = false;
+        let locProb = 0;
+
+        if (loc.isHomozygote) {
+            if (loc.userChoice === 'p2') {
+                correct = true;
+                locProb = loc.p * loc.p;
+                mathString += `(${loc.p}²) × `;
+            } else {
+                errors.push(`${loc.name} est homozygote (un seul allèle), vous devez utiliser p².`);
+                document.getElementById(`row-${index}`).classList.add("error-row");
+            }
+        } else {
+            if (loc.userChoice === '2pq') {
+                correct = true;
+                locProb = 2 * loc.p * loc.q;
+                mathString += `(2×${loc.p}×${loc.q}) × `;
+            } else {
+                errors.push(`${loc.name} est hétérozygote (deux allèles), vous devez utiliser 2pq.`);
+                document.getElementById(`row-${index}`).classList.add("error-row");
+            }
+        }
+
+        if (correct) totalProb *= locProb;
+    });
+
+    if (errors.length > 0) {
+        errBox.innerHTML = "<strong>Erreurs de calcul :</strong><br>" + errors.join("<br>");
+        errBox.style.display = "block";
+        return;
+    }
+
+    // Success phase 1
+    mathString = mathString.slice(0, -3); // remove last " x "
+    globalStats.prob = totalProb;
+    
+    document.getElementById("math-display").innerText = mathString;
+    document.getElementById("final-prob-display").innerText = formatSci(totalProb);
+    
+    let freq = Math.round(1/totalProb);
+    // Handle massive numbers nicely
+    let freqStr = freq > 1e12 ? "10^" + Math.log10(freq).toFixed(1) : freq.toLocaleString("fr-FR");
+    document.getElementById("final-freq-display").innerText = freqStr;
+
+    prepareInterpretation();
+}
+
+// 4. INTERPRETATION
+function prepareInterpretation() {
+    const prob = globalStats.prob;
+    const contexts = [
+        { name: "population mondiale", size: 8000000000 },
+        { name: "population française", size: 67000000 },
+    ];
+    const ctx = contexts[Math.floor(Math.random() * contexts.length)];
+    globalStats.popName = ctx.name;
+    globalStats.popSize = ctx.size;
+
+    document.getElementById("context-desc").innerText = `On considère la ${ctx.name} (env. ${ctx.size.toLocaleString()} individus).`;
+
+    generateStatements(prob, ctx.size);
+
+    document.getElementById("panel-interpret").classList.remove("hidden");
+    document.getElementById("panel-interpret").scrollIntoView({behavior: "smooth"});
+}
+
+function generateStatements(prob, popSize) {
+    const stats = [];
+    const expected = popSize * prob;
+
+    // 1. PROSECUTOR FALLACY (Crucial)
+    stats.push({
+        text: "Puisque la probabilité de correspondance fortuite est infime, il est certain à 99.99% que le suspect est coupable.",
+        isTrue: false,
+        feedback: "Faux ! C'est le 'sophisme du procureur'. Cette probabilité ne concerne que la rareté du profil génétique, pas la culpabilité (qui dépend d'autres éléments de l'enquête)."
+    });
+
+    // 2. INDEPENDENCE (New for Profile Building)
+    stats.push({
+        text: "Pour calculer cette probabilité globale en multipliant les fréquences de chaque locus, nous avons supposé que les marqueurs sont indépendants (équilibre de liaison).",
+        isTrue: true,
+        feedback: "Vrai. C'est la 'Règle du Produit'. Elle ne s'applique que si les locus ne sont pas liés génétiquement."
+    });
+
+    // 3. EXPECTATION
+    if (expected < 0.01) {
+        stats.push({
+            text: `Ce profil est si rare qu'il est statistiquement improbable de le trouver une seconde fois par hasard dans la ${globalStats.popName}.`,
+            isTrue: true,
+            feedback: `Vrai. L'espérance (N × P) est très inférieure à 1 (${formatSci(expected)}).`
+        });
+    } else {
+        // Rare case where prob is high enough or pop large enough
+        stats.push({
+            text: `On pourrait s'attendre à trouver plusieurs personnes avec ce profil dans la ${globalStats.popName}.`,
+            isTrue: (expected > 1),
+            feedback: `Cela dépend de N×P. Ici l'espérance est de ${expected.toFixed(2)}.`
+        });
+    }
+
+    // 4. DEFINITION
+    stats.push({
+        text: "Ce chiffre représente la probabilité qu'une personne prise au hasard dans la population possède exactement le même profil génétique.",
+        isTrue: true,
+        feedback: "Vrai. C'est la définition exacte de la probabilité de correspondance fortuite."
+    });
+
+    globalStats.statements = stats.sort(() => Math.random() - 0.5);
+
+    const container = document.getElementById("statements-container");
+    container.innerHTML = "";
+    globalStats.statements.forEach((st, index) => {
+        st.userAnswer = null; // reset
+        const row = document.createElement("div");
+        row.className = "statement-row";
+        row.innerHTML = `
+            <div class="statement-text">${st.text}</div>
+            <div class="statement-actions" id="actions-${index}">
+                <button class="btn-bool" onclick="setStatementAnswer(${index}, true)">Vrai</button>
+                <button class="btn-bool" onclick="setStatementAnswer(${index}, false)">Faux</button>
+            </div>
+            <div class="hidden" id="feedback-${index}" style="width:100%; font-size:0.9em; margin-top:5px; font-style:italic; padding:5px;"></div>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function setStatementAnswer(index, val) {
+    globalStats.statements[index].userAnswer = val;
+    const parent = document.getElementById(`actions-${index}`);
+    const btns = parent.getElementsByTagName("button");
+    btns[0].classList.remove("active-true");
+    btns[1].classList.remove("active-false");
+
+    if (val) btns[0].classList.add("active-true");
+    else btns[1].classList.add("active-false");
+}
+
+function checkStatements() {
+    let allCorrect = true;
+    let missing = false;
+
+    globalStats.statements.forEach((st, index) => {
+        if (st.userAnswer === null) {
+            missing = true;
+            return;
+        }
+        const isCorrect = (st.userAnswer === st.isTrue);
+        if (!isCorrect) allCorrect = false;
+
+        const fbDiv = document.getElementById(`feedback-${index}`);
+        fbDiv.innerHTML = (isCorrect ? "✅ " : "❌ ") + st.feedback;
+        fbDiv.classList.remove("hidden");
+        fbDiv.style.backgroundColor = isCorrect ? "#e6fffa" : "#fff5f5";
+        fbDiv.style.color = isCorrect ? "var(--primary-color)" : "var(--fail-color)";
+    });
+
+    if (missing) {
+        alert("Répondez à toutes les questions.");
+        return;
+    }
+
+    const finalDiv = document.getElementById("final-feedback");
+    if (allCorrect) {
+        finalDiv.className = "result-box result-success";
+        finalDiv.innerHTML = "<strong>Excellent !</strong> Vous avez correctement construit le profil, calculé la probabilité cumulée et interprété sa signification statistique.";
+    } else {
+        finalDiv.className = "result-box result-fail";
+        finalDiv.innerHTML = "<strong>Erreurs d'interprétation.</strong> Relisez les feedbacks pour comprendre la nuance entre probabilité de correspondance et culpabilité.";
+    }
+    finalDiv.style.display = "block";
+}
+
+// Start
+window.onload = initGame;
+
+</script>
+</body>
+</html>

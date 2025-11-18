@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu d'Identification : Scénarios Multiples</title>
+    <style>
+        /* --- VZVENIGOROSKY THEME --- */
+        :root {
+            --primary-color: #159957; /* Cayman Green */
+            --secondary-color: #155799; /* Cayman Blue */
+            --warn-color: #e36209;
+            --fail-color: #cb2431;
+            --text-color: #606c71;
+            --header-color: #1e6bb8;
+            --bg-color: #fdfdfd;
+            --table-stripe: #f6f8fa;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* --- NAVIGATION --- */
+        .back-link {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: var(--header-color);
+            text-decoration: none;
+            font-weight: bold;
+            border: 1px solid #e1e4e8;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background: white;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .back-link:hover {
+            background-color: #f6f8fa;
+            color: var(--secondary-color);
+            border-color: var(--header-color);
+        }
+
+        h1, h2, h3 {
+            color: var(--header-color);
+            margin-top: 10px;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+
+        h1 { font-size: 2rem; border-bottom: 2px solid #eaecef; padding-bottom: 10px; }
+        
+        .scenario-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+        .badge-high { background-color: #d73a49; } /* Red */
+        .badge-low { background-color: #28a745; } /* Green */
+        .badge-contam { background-color: #6f42c1; } /* Purple */
+
+        .game-panel {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        /* --- TABLES --- */
+        .epg-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .epg-table th, .epg-table td {
+            padding: 10px;
+            border: 1px solid #dfe2e5;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .epg-table th {
+            background-color: var(--table-stripe);
+            font-weight: 600;
+        }
+
+        /* --- INTERACTIVE ALLELE BUTTONS --- */
+        .allele-btn {
+            display: inline-block;
+            padding: 6px 10px;
+            margin: 2px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 0.9em;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            transition: all 0.1s;
+        }
+
+        .allele-btn:hover {
+            background-color: #e6f7ff;
+            border-color: var(--header-color);
+            transform: translateY(-1px);
+        }
+
+        .allele-btn.selected {
+            background-color: var(--header-color);
+            color: white;
+            border-color: var(--secondary-color);
+        }
+
+        .contaminated-col {
+            background-color: #fff8f8;
+            border-left: 2px solid #e1e4e8;
+        }
+
+        .consensus-slot {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-family: 'Courier New', monospace;
+        }
+
+        /* --- CONTROLS --- */
+        .control-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            align-items: center;
+        }
+
+        button.action-btn {
+            background-image: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button.secondary {
+            background: #606c71;
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result-fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .result-incomplete { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        .radio-group { display: flex; gap: 15px; align-items: center; }
+        .missing-data { color: #ccc; font-style: italic; font-size: 0.8em; }
+
+    </style>
+</head>
+<body>
+
+    <a href="accueil-exercices-master.html" class="back-link">← Retour à l'accueil</a>
+
+    <h1>Atelier : Profils Complexes & Consensus</h1>
+    
+    <div id="scenario-description">
+        </div>
+
+    <div class="game-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>1. Analyse des Échantillons</h2>
+            <button class="action-btn secondary" onclick="initGame()">Nouveau Cas (Aléatoire)</button>
+        </div>
+
+        <table class="epg-table" id="traceTable">
+            <thead>
+                <tr id="tableHeaderRow">
+                    </tr>
+            </thead>
+            <tbody id="traceBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div class="game-panel">
+        <h2>2. Comparaison & Conclusion</h2>
+        
+        <table class="epg-table">
+            <thead>
+                <tr>
+                    <th>Profil de Référence (Individu d'Intérêt)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="refProfileDisplay" style="font-family: 'Courier New', monospace; font-size: 1.1em;">
+                        </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="control-bar">
+            <span><strong>Votre Conclusion :</strong></span>
+            <div class="radio-group">
+                <label><input type="radio" name="verdict" value="match"> Non Exclu (Match)</label>
+                <label><input type="radio" name="verdict" value="exclusion"> Exclu (Non-Match)</label>
+            </div>
+            <button class="action-btn" onclick="checkAnswer()">Valider l'analyse</button>
+        </div>
+
+        <div id="resultMessage" class="result-box"></div>
+    </div>
+
+<script>
+/**
+ * GENETIC IDENTIFICATION GAME ENGINE V2.4
+ * Final Version with Back Button & Nuanced Feedback
+ */
+
+const LOCI = [
+    { name: "D3S1358", min: 12, max: 19 },
+    { name: "vWA",     min: 11, max: 21 }, 
+    { name: "D16S539", min: 8,  max: 15 },
+    { name: "CSF1PO",  min: 7,  max: 15 },
+    { name: "TPOX",    min: 6,  max: 13 },
+    { name: "D8S1179", min: 8,  max: 19 },
+    { name: "FGA",     min: 18, max: 30 } 
+];
+
+// State
+let currentCase = {
+    scenarioType: "", 
+    trueProfile: {}, 
+    contaminantProfile: {}, 
+    replicates: [], 
+    suspectProfile: {},
+    isMatch: false,
+    userConsensus: {}
+};
+
+// --- GENERATORS ---
+
+function generateProfile() {
+    let profile = {};
+    LOCI.forEach(locus => {
+        let a1 = Math.floor(Math.random() * (locus.max - locus.min + 1)) + locus.min;
+        let a2 = Math.floor(Math.random() * (locus.max - locus.min + 1)) + locus.min;
+        profile[locus.name] = [a1, a2].sort((a, b) => a - b);
+    });
+    return profile;
+}
+
+function createDegradedReplicate(profile, baseRisk, sizePenalty) {
+    let replicate = {};
+    LOCI.forEach(locus => {
+        if(Math.random() < (baseRisk * 0.5)) {
+            replicate[locus.name] = [];
+            return;
+        }
+        let observed = [];
+        profile[locus.name].forEach(allele => {
+            let risk = baseRisk + (allele * sizePenalty);
+            if(locus.name === "FGA") risk += 0.10; 
+            if (Math.random() > risk) observed.push(allele);
+        });
+        replicate[locus.name] = [...new Set(observed)].sort((a,b)=>a-b);
+    });
+    return replicate;
+}
+
+function createContaminatedReplicate(mainProfile, contamProfile) {
+    let replicate = {};
+    LOCI.forEach(locus => {
+        let observed = [];
+        // Main Profile (Partial)
+        mainProfile[locus.name].forEach(a => {
+            if(Math.random() > 0.2) observed.push(a); // 20% chance dropout in mix
+        });
+        // Contaminant Profile (Partial)
+        contamProfile[locus.name].forEach(a => {
+            if(Math.random() > 0.2) observed.push(a); 
+        });
+        replicate[locus.name] = [...new Set(observed)].sort((a,b)=>a-b);
+    });
+    return replicate;
+}
+
+// --- INIT ---
+
+function initGame() {
+    currentCase.userConsensus = {};
+    LOCI.forEach(l => currentCase.userConsensus[l.name] = new Set());
+    document.getElementById("resultMessage").style.display = "none";
+    const radios = document.getElementsByName("verdict");
+    for(let r of radios) r.checked = false;
+
+    currentCase.trueProfile = generateProfile();
+    const rand = Math.random();
+    
+    if(rand < 0.33) currentCase.scenarioType = "low";
+    else if (rand < 0.66) currentCase.scenarioType = "high";
+    else currentCase.scenarioType = "contamination";
+
+    currentCase.replicates = [];
+    
+    if (currentCase.scenarioType === "low") {
+        for(let i=0; i<3; i++) 
+            currentCase.replicates.push(createDegradedReplicate(currentCase.trueProfile, 0.05, 0.01));
+    } else if (currentCase.scenarioType === "high") {
+        for(let i=0; i<3; i++) 
+            currentCase.replicates.push(createDegradedReplicate(currentCase.trueProfile, 0.30, 0.04));
+    } else {
+        currentCase.contaminantProfile = generateProfile();
+        // Clean traces 1 & 2
+        currentCase.replicates.push(createDegradedReplicate(currentCase.trueProfile, 0.20, 0.02));
+        currentCase.replicates.push(createDegradedReplicate(currentCase.trueProfile, 0.20, 0.02));
+        // Mixed trace 3
+        currentCase.replicates.push(createContaminatedReplicate(currentCase.trueProfile, currentCase.contaminantProfile));
+    }
+
+    currentCase.isMatch = Math.random() > 0.5;
+    if (currentCase.isMatch) {
+        currentCase.suspectProfile = JSON.parse(JSON.stringify(currentCase.trueProfile));
+    } else {
+        currentCase.suspectProfile = generateProfile();
+    }
+
+    updateScenarioText();
+    renderTable();
+    renderSuspect();
+}
+
+function updateScenarioText() {
+    const div = document.getElementById("scenario-description");
+    let html = "";
+    if (currentCase.scenarioType === "low") {
+        html = `
+            <span class="scenario-badge badge-low">Niveau 1 : ADN peu dégradé</span>
+            <p><strong>Contexte :</strong> Tache de sang récente. L'ADN est de bonne qualité.</p>
+        `;
+    } else if (currentCase.scenarioType === "high") {
+        html = `
+            <span class="scenario-badge badge-high">Niveau 2 : ADN très dégradé</span>
+            <p><strong>Contexte :</strong> Ossements anciens. Attendez-vous à des pertes d'allèles (Drop-out).</p>
+        `;
+    } else {
+        html = `
+            <span class="scenario-badge badge-contam">Niveau 3 : Mélange / Contamination</span>
+            <p><strong>Contexte :</strong> Cambriolage. 
+            <br>• Colonnes 1 & 2 : Traces faibles mais pures.
+            <br>• Colonne 3 : Objet contaminé (Mélange du profil cible + profil inconnu).</p>
+            <p><strong>Instruction :</strong> Utilisez les traces 1 et 2 pour identifier les allèles du suspect. Vous pouvez essayer d'extraire des allèles supplémentaires de la trace 3, mais attention à ne pas inclure la contamination !</p>
+        `;
+    }
+    div.innerHTML = html;
+}
+
+function renderTable() {
+    const thead = document.getElementById("tableHeaderRow");
+    const tbody = document.getElementById("traceBody");
+    
+    let headers = `<th style="width: 10%;">Locus</th>`;
+    if (currentCase.scenarioType === "contamination") {
+        headers += `
+            <th style="width: 20%;">Trace 1 (Saine)</th>
+            <th style="width: 20%;">Trace 2 (Saine)</th>
+            <th style="width: 20%;" class="contaminated-col">Objet (Contaminé)</th>
+        `;
+    } else {
+        headers += `
+            <th style="width: 20%;">Réplicat 1</th>
+            <th style="width: 20%;">Réplicat 2</th>
+            <th style="width: 20%;">Réplicat 3</th>
+        `;
+    }
+    headers += `<th style="width: 30%; background-color: #e6fffa;">Votre Consensus</th>`;
+    thead.innerHTML = headers;
+
+    tbody.innerHTML = "";
+    LOCI.forEach(locus => {
+        let row = document.createElement("tr");
+        row.innerHTML += `<td><strong>${locus.name}</strong></td>`;
+        currentCase.replicates.forEach((rep, index) => {
+            let cell = document.createElement("td");
+            if(currentCase.scenarioType === "contamination" && index === 2) {
+                cell.className = "contaminated-col";
+            }
+            let alleles = rep[locus.name];
+            if (alleles.length === 0) {
+                cell.innerHTML = "<span class='missing-data'>LD</span>";
+            } else {
+                alleles.forEach(all => {
+                    let btn = document.createElement("button");
+                    btn.className = "allele-btn";
+                    btn.innerText = all;
+                    if (currentCase.userConsensus[locus.name].has(all)) {
+                        btn.classList.add("selected");
+                    }
+                    btn.onclick = () => toggleAllele(locus.name, all);
+                    cell.appendChild(btn);
+                });
+            }
+            row.appendChild(cell);
+        });
+        let consCell = document.createElement("td");
+        consCell.className = "consensus-slot";
+        updateConsensusDisplay(locus.name, consCell);
+        row.appendChild(consCell);
+        tbody.appendChild(row);
+    });
+}
+
+function renderSuspect() {
+    let html = "";
+    LOCI.forEach(l => {
+        let alleles = currentCase.suspectProfile[l.name].join(", ");
+        html += `<span style="display:inline-block; width:130px; border-bottom:1px solid #eee; padding:5px; margin:2px;"><strong>${l.name}</strong><br>${alleles}</span> `;
+    });
+    document.getElementById("refProfileDisplay").innerHTML = html;
+}
+
+function toggleAllele(locusName, alleleVal) {
+    let set = currentCase.userConsensus[locusName];
+    if (set.has(alleleVal)) set.delete(alleleVal);
+    else set.add(alleleVal);
+    renderTable();
+}
+
+function updateConsensusDisplay(locusName, cellElement) {
+    let set = currentCase.userConsensus[locusName];
+    if (set.size === 0) cellElement.innerHTML = "-";
+    else cellElement.innerHTML = Array.from(set).sort((a,b)=>a-b).join(", ");
+}
+
+// --- VALIDATION LOGIC ---
+
+function checkAnswer() {
+    const resultDiv = document.getElementById("resultMessage");
+    const userVerdict = document.querySelector('input[name="verdict"]:checked');
+
+    if (!userVerdict) {
+        alert("Veuillez sélectionner une conclusion.");
+        return;
+    }
+
+    // 1. EMPTY CHECK
+    let totalSelected = 0;
+    LOCI.forEach(l => totalSelected += currentCase.userConsensus[l.name].size);
+    if (totalSelected === 0) {
+        resultDiv.className = "result-box result-incomplete";
+        resultDiv.innerHTML = `<strong>Attention :</strong><br>Vous n'avez pas construit de profil consensus !`;
+        resultDiv.style.display = "block";
+        return;
+    }
+
+    // 2. CONTAMINATION ERROR CHECK (Did they pick contaminants?)
+    let contaminationErrors = [];
+    if (currentCase.scenarioType === "contamination") {
+        LOCI.forEach(l => {
+            let userSet = currentCase.userConsensus[l.name];
+            let contamSet = currentCase.contaminantProfile[l.name];
+            let trueSet = currentCase.trueProfile[l.name]; 
+
+            userSet.forEach(uAllele => {
+                if (contamSet.includes(uAllele) && !trueSet.includes(uAllele)) {
+                    contaminationErrors.push(l.name);
+                }
+            });
+        });
+    }
+
+    if (contaminationErrors.length > 0) {
+        resultDiv.className = "result-box result-fail";
+        resultDiv.innerHTML = `<strong>Erreur - Contamination incluse :</strong><br>Vous avez inclus des allèles contaminants dans votre consensus pour : ${[...new Set(contaminationErrors)].join(", ")}.`;
+        resultDiv.style.display = "block";
+        return;
+    }
+
+    // 3. COMPLETENESS CHECK (Split into Clean vs Mixed)
+    let missedClean = [];
+    let missedMixedOnly = [];
+    
+    LOCI.forEach(l => {
+        let trueAlleles = currentCase.trueProfile[l.name];
+        let userSet = currentCase.userConsensus[l.name];
+
+        trueAlleles.forEach(tVal => {
+            // Check visibility
+            let visibleInClean = false;
+            let visibleInMix = false;
+
+            if(currentCase.scenarioType === "contamination") {
+                if(currentCase.replicates[0][l.name].includes(tVal) || currentCase.replicates[1][l.name].includes(tVal)) visibleInClean = true;
+                if(currentCase.replicates[2][l.name].includes(tVal)) visibleInMix = true;
+            } else {
+                // Normal scenarios
+                currentCase.replicates.forEach(rep => { if(rep[l.name].includes(tVal)) visibleInClean = true; });
+            }
+
+            if (!userSet.has(tVal)) {
+                if (visibleInClean) missedClean.push(l.name);
+                else if (visibleInMix) missedMixedOnly.push(l.name);
+            }
+        });
+    });
+
+    // If missed visible CLEAN alleles -> FAIL/WARNING
+    if (missedClean.length > 0) {
+        resultDiv.className = "result-box result-incomplete";
+        resultDiv.innerHTML = `<strong>Analyse Incomplète :</strong><br>Vous avez manqué des allèles visibles dans les traces saines/réplicats pour les locus : <strong>${[...new Set(missedClean)].join(", ")}</strong>.`;
+        resultDiv.style.display = "block";
+        return;
+    }
+
+    // 4. VERDICT CHECK & FEEDBACK
+    let isCorrectVerdict = false;
+    if (currentCase.isMatch && userVerdict.value === "match") isCorrectVerdict = true;
+    if (!currentCase.isMatch && userVerdict.value === "exclusion") isCorrectVerdict = true;
+
+    if (isCorrectVerdict) {
+        resultDiv.className = "result-box result-success";
+        let msg = `<strong>Excellent !</strong><br>Conclusion correcte. `;
+        
+        // Add nuance for Contamination Scenario
+        if (currentCase.scenarioType === "contamination") {
+            if (missedMixedOnly.length > 0) {
+                msg += `<br><br><em>Note pédagogique :</em> Vous avez adopté une stratégie prudente (A) en utilisant uniquement les traces saines. C'est correct. Notez cependant que les locus <strong>${[...new Set(missedMixedOnly)].join(", ")}</strong> contenaient des allèles valides dans le mélange que vous auriez pu récupérer.`;
+            } else {
+                msg += `<br><br><em>Note pédagogique :</em> Vous avez adopté la stratégie experte (B) ! Vous avez utilisé les traces saines comme ancres et avez réussi à extraire le maximum d'information du mélange.`;
+            }
+        }
+        resultDiv.innerHTML = msg;
+    } else {
+        resultDiv.className = "result-box result-fail";
+        resultDiv.innerHTML = `<strong>Conclusion Incorrecte.</strong><br>Votre consensus est valide (vous avez bien lu le tableau), mais votre déduction est fausse.<br>Réalité : ${currentCase.isMatch ? "C'était un Match." : "C'était une Exclusion."}`;
+    }
+    
+    resultDiv.style.display = "block";
+}
+
+window.onload = initGame;
+
+</script>
+</body>
+</html>

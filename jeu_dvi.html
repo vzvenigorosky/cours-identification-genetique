@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DVI : Analyse Critique de Preuves</title>
+    <style>
+        /* --- THEME --- */
+        :root {
+            --primary-color: #159957;
+            --secondary-color: #155799;
+            --highlight-color: #ffeb3b;
+            --highlight-border: #fbc02d;
+            --text-color: #333;
+            --bg-color: #fdfdfd;
+            --badge-high: #d4edda;
+            --badge-med: #fff3cd;
+            --badge-low: #f8d7da;
+        }
+
+        body {
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-color);
+            margin: 0; padding: 20px;
+            background-color: var(--bg-color);
+            max-width: 1300px; margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-block; margin-bottom: 10px;
+            color: var(--secondary-color); text-decoration: none; font-weight: bold;
+            border: 1px solid #ccc; padding: 5px 10px; border-radius: 4px;
+        }
+
+        h1 { color: var(--secondary-color); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+
+        .game-panel {
+            border: 1px solid #ddd; border-radius: 6px; padding: 20px;
+            background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .instruction-box {
+            background: #e6f7ff; border: 1px solid #b8e7fc; padding: 15px;
+            margin-bottom: 20px; border-radius: 4px;
+        }
+
+        /* --- TABLE --- */
+        .dna-table {
+            width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem;
+            table-layout: fixed;
+        }
+        
+        .dna-table th, .dna-table td {
+            padding: 8px 4px; border: 1px solid #ccc; text-align: center;
+            vertical-align: middle;
+        }
+        
+        .dna-table th { background: #f4f4f4; color: var(--secondary-color); font-size: 0.8rem; }
+
+        .body-row td { 
+            background-color: #fff8e1; border-bottom: 3px solid #999; font-weight: bold;
+        }
+        
+        /* ITEM STYLES */
+        .item-cell { text-align: left !important; padding-left: 8px !important; }
+        .item-name { font-weight: bold; display: block; font-size: 1em; }
+        .item-type { font-size: 0.8em; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px;}
+        
+        .type-intime { background-color: var(--badge-high); color: #155724; border: 1px solid #c3e6cb; }
+        .type-usuel { background-color: var(--badge-med); color: #856404; border: 1px solid #ffeeba; }
+        .type-collectif { background-color: var(--badge-low); color: #721c24; border: 1px solid #f5c6cb; }
+
+        /* --- ALLELE BUTTONS --- */
+        .allele-base {
+            display: inline-block; padding: 3px 6px; margin: 1px;
+            border: 1px solid #bbb; border-radius: 3px;
+            background: white; font-family: monospace; font-size: 1em; font-weight: bold;
+            min-width: 24px;
+        }
+
+        /* Body is Clickable */
+        .is-ref { cursor: pointer; color: #0056b3; border-color: #888; }
+        .is-ref:hover { background: #eee; transform: scale(1.1); }
+
+        /* Items are Inert */
+        .is-item { cursor: default; color: #444; border-color: #e0e0e0; }
+
+        /* Highlight */
+        .highlighted {
+            background-color: var(--highlight-color) !important;
+            border-color: var(--highlight-border) !important;
+            color: black !important;
+            box-shadow: 0 0 5px rgba(255, 235, 59, 0.8);
+            transform: scale(1.15);
+            font-weight: 900;
+            position: relative; z-index: 10;
+        }
+
+        /* --- CONTROLS --- */
+        .decision-grid {
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px;
+            max-width: 900px; margin: 20px auto;
+        }
+        .decision-grid button:nth-last-child(1):nth-child(odd) {
+            grid-column: 1 / span 2;
+            width: 60%; justify-self: center;
+        }
+
+        .btn-decision {
+            padding: 15px; border: none; border-radius: 5px;
+            color: white; font-weight: bold; cursor: pointer; font-size: 1rem;
+            transition: transform 0.1s;
+        }
+        .btn-decision:active { transform: scale(0.98); }
+
+        .btn-strong-yes { background: #28a745; } /* Green */
+        .btn-weak-yes { background: #5a6268; }   /* Grey */
+        .btn-inconclusive { background: #fd7e14; } /* Orange */
+        .btn-strong-no { background: #dc3545; }  /* Red */
+        .btn-weak-no { background: #b02a37; } /* Dark Red */
+        
+        .btn-new { background: #6c757d; color: white; border:none; padding: 8px 12px; border-radius: 4px; cursor: pointer; }
+
+        .result-box {
+            margin-top: 20px; padding: 15px; border-radius: 4px; display: none;
+            text-align: left; border: 1px solid #ccc; background: #f9f9f9;
+        }
+        .res-title { font-weight: bold; font-size: 1.1em; display: block; margin-bottom: 5px; }
+
+    </style>
+</head>
+<body>
+
+<a href="accueil-exercices-master.html" class="back-link">← Retour à l'accueil</a>
+
+<h1>Atelier DVI : Analyse Critique des Objets</h1>
+
+<div class="instruction-box">
+    <strong>Scénario :</strong> Un corps ("X-24") a été repêché (Profil unique).<br>
+    Nous avons collecté des objets au domicile présumé de la victime (<strong id="victim-name-display">...</strong>).<br>
+    <strong>Votre mission :</strong>
+    <ol>
+        <li>Cliquez sur les allèles du <strong>Corps (Ligne Jaune)</strong> pour voir s'ils apparaissent dans les objets.</li>
+        <li>Cochez la case pour les objets où les allèles du corps sont présents.</li>
+        <li><strong>Évaluez la qualité de la preuve</strong> :
+            <ul>
+                <li><strong>Identification Certaine :</strong> Profil complet sur objet intime.</li>
+                <li><strong>Identification Possible :</strong> Profil partiel (Drop-out) OU objet partageable.</li>
+                <li><strong>Décision Impossible :</strong> Profils trop pauvres (1 ou 2 marqueurs).</li>
+                <li><strong>Exclusion :</strong> Incompatibilité (Allèles différents).</li>
+            </ul>
+        </li>
+    </ol>
+</div>
+
+<div class="game-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h2>Tableau de Comparaison</h2>
+        <button class="btn-new" onclick="initGame()">Générer Nouveau Cas</button>
+    </div>
+
+    <table class="dna-table" id="dna-table-container">
+        <thead id="t-head"></thead>
+        <tbody id="t-body"></tbody>
+    </table>
+
+    <div class="decision-grid">
+        <button class="btn-decision btn-strong-yes" onclick="checkAnswer('strong_match')">Identité Confirmée (Confiant)</button>
+        <button class="btn-decision btn-strong-no" onclick="checkAnswer('exclusion')">Exclusion (Confiant)</button>
+        
+        <button class="btn-decision btn-weak-yes" onclick="checkAnswer('weak_match')">Identité Possible (Tentative)</button>
+        <button class="btn-decision btn-weak-no" onclick="checkAnswer('weak_exclude')">Exclusion Probable (Tentative)</button>
+
+        <button class="btn-decision btn-inconclusive" onclick="checkAnswer('inconclusive')">DÉCISION IMPOSSIBLE (Données insuffisantes)</button>
+    </div>
+
+    <div id="result-box" class="result-box"></div>
+</div>
+
+<script>
+/**
+ * DVI ENGINE V11.0 - FIXED LOGIC
+ */
+
+const LOCI = ["D8S1179", "D21S11", "D7S820", "CSF1PO", "D3S1358", "TH01", "vWA"]; 
+
+const NAMES = [
+    "M. Martin", "Mme Dubois", "M. Kowalski", "Mme Nguyen", "M. Rossi", 
+    "M. Schneider", "Mme Leroy", "M. Benali", "Mme Traoré", "M. Müller", 
+    "Mme Cohen", "M. Garcia", "Mme Petit", "M. Fernandez", "Mme O'Connor",
+    "M. Chang", "Mme Diallo", "M. Jensen", "Mme Silva", "M. Ivanov"
+];
+
+// TIER A: High Reliability
+const ITEMS_INTIMATE = [ 
+    { name: "Brosse à dents", type: "Intime (Muqueuses)" }, 
+    { name: "Rasoir manuel", type: "Intime (Sang/Peau)" },
+    { name: "Tête de rasoir électrique", type: "Intime (Peau)" },
+    { name: "Protège-dents", type: "Intime (Salive)" },
+    { name: "Gouttière dentaire", type: "Intime (Salive)" },
+    { name: "Bouchons d'oreilles", type: "Intime (Cérumen)" },
+    { name: "Stick à lèvres", type: "Intime (Muqueuses)" }
+];
+
+// TIER B: Medium Reliability
+const ITEMS_USUAL = [ 
+    { name: "Bonnet en laine", type: "Vêtement (Usuel)" }, 
+    { name: "Écharpe", type: "Vêtement (Usuel)" }, 
+    { name: "Casque audio", type: "Objet (Usuel)" },
+    { name: "Lunettes de vue", type: "Objet (Porté)" },
+    { name: "Montre-bracelet", type: "Bijou (Porté)" },
+    { name: "Gants en cuir", type: "Vêtement (Porté)" },
+    { name: "T-shirt sale (Col)", type: "Vêtement (Usuel)" }
+];
+
+// TIER C: Low Reliability
+const ITEMS_SHARED = [ 
+    { name: "Télécommande TV", type: "Surface (Collectif)" }, 
+    { name: "Poignée de porte", type: "Surface (Collectif)" }, 
+    { name: "Peigne", type: "Hygiène (Partageable)" },
+    { name: "Brosse à cheveux", type: "Hygiène (Partageable)" },
+    { name: "Clés de voiture", type: "Objet (Partageable)" },
+    { name: "Manette de jeu", type: "Objet (Collectif)" },
+    { name: "Coupe-ongles", type: "Hygiène (Mixte)" }
+];
+
+// TIER D: Unusable
+const ITEMS_USELESS = [ 
+    { name: "Pièce de monnaie", type: "Surface (Public)" }, 
+    { name: "Semelle chaussure", type: "Surface (Souillée)" },
+    { name: "Billet de banque", type: "Surface (Public)" },
+    { name: "Ticket de transport", type: "Papier (Public)" }
+];
+
+let currentCase = {
+    scenario: "", 
+    targetProfile: {}, 
+    bodyProfile: {},   
+    items: []
+};
+
+// --- HELPERS ---
+function randAllele() { return Math.floor(Math.random() * (16 - 8) + 8); }
+function createProfile() {
+    let p = {};
+    LOCI.forEach(l => p[l] = [randAllele(), randAllele()].sort((a,b)=>a-b));
+    return p;
+}
+function degradeProfile(p, survivalRate) {
+    let newP = {};
+    LOCI.forEach(l => {
+        let alleles = [];
+        p[l].forEach(a => { if(Math.random() < survivalRate) alleles.push(a); });
+        newP[l] = alleles;
+    });
+    return newP;
+}
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// --- INIT ---
+function initGame() {
+    document.getElementById("result-box").style.display = "none";
+    
+    let targetName = NAMES[Math.floor(Math.random() * NAMES.length)];
+    document.getElementById("victim-name-display").innerText = targetName;
+
+    let martin = createProfile();   // Owner
+    let stranger = createProfile(); // Random
+
+    let r = Math.random();
+    
+    if (r < 0.25) currentCase.scenario = "strong_match";
+    else if (r < 0.55) currentCase.scenario = "weak_match";
+    else if (r < 0.75) currentCase.scenario = "inconclusive";
+    else currentCase.scenario = "exclusion";
+
+    // 1. BODY (Toujours profil complet pour la référence)
+    currentCase.bodyProfile = degradeProfile(martin, 1.0); 
+    if(currentCase.scenario.includes("exclusion")) {
+        currentCase.bodyProfile = degradeProfile(stranger, 1.0);
+    }
+    
+    // 2. ITEMS
+    currentCase.items = [];
+    let targetItem = null;
+
+    if (currentCase.scenario === "strong_match") {
+        // Force high quality
+        let bestProf = null;
+        let attempts = 0;
+        while(!bestProf && attempts < 50) {
+            let p = degradeProfile(martin, 0.98);
+            let count = 0; LOCI.forEach(l => count += p[l].length);
+            if(count >= 13) bestProf = p;
+            attempts++;
+        }
+        targetItem = { ...pick(ITEMS_INTIMATE), profile: bestProf || martin, isOwner: true };
+        currentCase.items.push(targetItem);
+    }
+    else if (currentCase.scenario === "weak_match") {
+        if(Math.random() > 0.5) {
+            // Intimate + Dropout
+            targetItem = { ...pick(ITEMS_INTIMATE), profile: degradeProfile(martin, 0.4), isOwner: true };
+        } else {
+            // Shared + Good DNA
+            let pool = Math.random() > 0.5 ? ITEMS_USUAL : ITEMS_SHARED;
+            targetItem = { ...pick(pool), profile: degradeProfile(martin, 0.9), isOwner: true };
+        }
+        currentCase.items.push(targetItem);
+    }
+    else if (currentCase.scenario === "inconclusive") {
+        let pool = Math.random() > 0.5 ? ITEMS_INTIMATE : ITEMS_USUAL;
+        targetItem = { ...pick(pool), profile: degradeProfile(martin, 0.15), isOwner: true };
+        currentCase.items.push(targetItem);
+    }
+    else {
+        // Exclusion
+        targetItem = { ...pick(ITEMS_INTIMATE), profile: degradeProfile(martin, 0.9), isOwner: true };
+        currentCase.items.push(targetItem);
+    }
+
+    // Add noise items
+    let noisePool = Math.random() > 0.5 ? ITEMS_USELESS : ITEMS_SHARED;
+    let noiseItem = { ...pick(noisePool), profile: degradeProfile(stranger, 0.2), isOwner: false };
+    currentCase.items.push(noiseItem);
+    
+    if(Math.random() > 0.5) {
+        let pool2 = Math.random() > 0.5 ? ITEMS_SHARED : ITEMS_USUAL;
+        currentCase.items.push({ ...pick(pool2), profile: degradeProfile(stranger, 0.8), isOwner: false });
+    }
+    
+    currentCase.items.sort(() => 0.5 - Math.random());
+    renderTable();
+}
+
+// --- RENDER ---
+function renderTable() {
+    const thead = document.getElementById("t-head");
+    const tbody = document.getElementById("t-body");
+    
+    thead.innerHTML = "";
+    let rowH = document.createElement("tr");
+    rowH.innerHTML = "<th style='width:200px'>Objet / Source</th>";
+    LOCI.forEach(l => rowH.innerHTML += `<th>${l}</th>`);
+    rowH.innerHTML += "<th style='width:60px'>Présent?</th>";
+    thead.appendChild(rowH);
+
+    tbody.innerHTML = "";
+
+    // BODY ROW
+    let trBody = document.createElement("tr");
+    trBody.className = "body-row";
+    trBody.innerHTML = `<td><span class="item-name">CORPS X-24</span></td>`;
+    LOCI.forEach(l => {
+        let td = document.createElement("td");
+        currentCase.bodyProfile[l].forEach(val => {
+            let div = document.createElement("div");
+            div.className = "allele-base is-ref";
+            div.innerText = val;
+            div.dataset.locus = l; div.dataset.val = val;
+            td.appendChild(div);
+        });
+        trBody.appendChild(td);
+    });
+    trBody.innerHTML += "<td>Ref</td>";
+    tbody.appendChild(trBody);
+
+    // ITEMS
+    currentCase.items.forEach((item, idx) => {
+        let tr = document.createElement("tr");
+        let badgeClass = "type-collectif";
+        if(item.type.includes("Intime")) badgeClass = "type-intime";
+        if(item.type.includes("Usuel")) badgeClass = "type-usuel";
+        tr.innerHTML = `<td class="item-cell"><span class="item-name">${item.name}</span><span class="item-type ${badgeClass}">${item.type}</span></td>`;
+
+        LOCI.forEach(l => {
+            let td = document.createElement("td");
+            let alleles = item.profile[l];
+            if(alleles.length === 0) td.innerHTML = "-";
+            alleles.forEach(val => {
+                let div = document.createElement("div");
+                div.className = "allele-base is-item";
+                div.innerText = val;
+                div.dataset.locus = l; div.dataset.val = val;
+                td.appendChild(div);
+            });
+            tr.appendChild(td);
+        });
+
+        let tdCb = document.createElement("td");
+        tdCb.innerHTML = `<input type="checkbox" id="cb-${idx}">`;
+        tr.appendChild(tdCb);
+        tbody.appendChild(tr);
+    });
+}
+
+// --- CLICK ---
+document.getElementById('dna-table-container').addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('is-ref')) toggleHighlight(e.target);
+});
+
+function toggleHighlight(masterBtn) {
+    let locus = masterBtn.dataset.locus;
+    let val = masterBtn.dataset.val;
+    let turnOn = !masterBtn.classList.contains("highlighted");
+    let selector = `.allele-base[data-locus="${locus}"][data-val="${val}"]`;
+    let matches = document.querySelectorAll(selector);
+    matches.forEach(el => {
+        if(turnOn) el.classList.add("highlighted"); else el.classList.remove("highlighted");
+    });
+}
+
+// --- SCIENTIFIC VALIDATION (Is Subset?) ---
+function isScientificallyCompatible(body, item) {
+    // Returns TRUE if Item alleles are a subset of Body alleles (Inclusion/Consistency)
+    // OR if Item has dropout but no contradictory alleles.
+    // Strictly: Is every allele in Item present in Body?
+    
+    for (let l of LOCI) {
+        let bodyAlleles = body[l];
+        let itemAlleles = item[l];
+        
+        // If Item has data at this locus
+        if (itemAlleles.length > 0) {
+            // Check for contradiction: Item has '14', Body has '12,13' -> Exclusion
+            for (let val of itemAlleles) {
+                if (!bodyAlleles.includes(val)) return false; 
+            }
+        }
+    }
+    return true;
+}
+
+// --- ANSWER CHECK ---
+function checkAnswer(userChoice) {
+    let res = document.getElementById("result-box");
+    let boxHtml = "";
+    let isCorrect = (userChoice === currentCase.scenario);
+    
+    // Relaxed rules for boundary cases
+    if (currentCase.scenario === "exclusion" && userChoice === "weak_exclude") isCorrect = true;
+
+    // 1. CHECKBOX VALIDATION (Scientific)
+    let matchErrors = [];
+    currentCase.items.forEach((item, idx) => {
+        let isChecked = document.getElementById("cb-" + idx).checked;
+        let isCompatible = isScientificallyCompatible(currentCase.bodyProfile, item.profile);
+
+        if (isChecked && !isCompatible) {
+            matchErrors.push(`Erreur : "${item.name}" présente des allèles incompatibles avec le corps.`);
+        }
+        // Note: We do NOT punish missing a match if the profile is very partial (Inconclusive)
+        // unless it's a Strong Match scenario.
+        if (!isChecked && isCompatible && currentCase.scenario === "strong_match") {
+            matchErrors.push(`Oubli : "${item.name}" correspond parfaitement au corps.`);
+        }
+    });
+
+    if (isCorrect) {
+        boxHtml += `<span class="res-title" style="color:green">Correct !</span>`;
+        if (currentCase.scenario === "strong_match") boxHtml += "Profil complet sur objet intime = Identification Certaine.";
+        else if (currentCase.scenario === "weak_match") boxHtml += "C'est une identification possible (Tentative). Le profil match mais présente des limites (Drop-out ou objet usuel).";
+        else if (currentCase.scenario === "inconclusive") boxHtml += "Bien vu. Données insuffisantes pour conclure.";
+        else boxHtml += "Exclusion confirmée.";
+    } else {
+        boxHtml += `<span class="res-title" style="color:red">Incorrect.</span>`;
+        
+        if (currentCase.scenario === "strong_match" && userChoice === "weak_match")
+            boxHtml += "Trop prudent. Vous avez un profil complet sur un objet intime.";
+        else if (currentCase.scenario === "weak_match" && userChoice === "strong_match")
+            boxHtml += "Trop confiant ! Il y a des pertes d'allèles ou l'objet n'est pas assez fiable.";
+        else if (userChoice.includes("match") && !isScientificallyCompatible(currentCase.bodyProfile, currentCase.items[0].profile))
+            boxHtml += "Erreur majeure : Il y a des incompatibilités génétiques (Exclusion).";
+        else
+            boxHtml += "Conclusion inadaptée à la qualité des preuves.";
+    }
+
+    if(matchErrors.length > 0) boxHtml += "<br><small>" + matchErrors.join("<br>") + "</small>";
+
+    res.innerHTML = boxHtml;
+    res.style.display = "block";
+    res.style.borderColor = isCorrect ? "green" : "red";
+}
+
+window.onload = initGame;
+</script>
+
+</body>
+</html>

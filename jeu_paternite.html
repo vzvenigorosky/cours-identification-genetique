@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expertise de Filiation & Parenté</title>
+    <style>
+        /* --- VZVENIGOROSKY THEME --- */
+        :root {
+            --primary-color: #159957;
+            --secondary-color: #155799;
+            --text-color: #606c71;
+            --header-color: #1e6bb8;
+            --bg-color: #fdfdfd;
+            --card-bg: #ffffff;
+            --border-color: #e1e4e8;
+            
+            /* Analysis Colors */
+            --mat-color: #ffb6c1; /* Pink for Mom */
+            --pat-color: #b6e3ff; /* Blue for Dad */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* --- NAVIGATION --- */
+        .back-link {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: var(--header-color);
+            text-decoration: none;
+            font-weight: bold;
+            border: 1px solid #e1e4e8;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background: white;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .back-link:hover {
+            background-color: #f6f8fa;
+            color: var(--secondary-color);
+            border-color: var(--header-color);
+        }
+
+        h1, h2, h3 { color: var(--header-color); font-weight: 700; margin-top: 20px; }
+        h1 { border-bottom: 2px solid #eaecef; padding-bottom: 10px; font-size: 1.8rem;}
+        h3 { border-left: 4px solid var(--primary-color); padding-left: 10px; font-size:1.2rem; color: #2c3e50; }
+
+        .game-panel {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 25px;
+            background: var(--card-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+
+        .scenario-box {
+            background-color: #e6f7ff;
+            border: 1px solid #b8e7fc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        /* --- PROFILE TABLE --- */
+        .profile-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .profile-table th, .profile-table td {
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+            vertical-align: middle;
+        }
+        .profile-table th {
+            background-color: #f6f8fa;
+            color: var(--secondary-color);
+        }
+
+        /* --- ALLELE BUTTONS --- */
+        .allele-btn {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 1px;
+            border: 1px solid #999;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+            min-width: 24px;
+            user-select: none; 
+            transition: all 0.1s;
+        }
+        .allele-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        /* STATES - IMPORTANT: Must match JS class names */
+        .is-mat { background-color: var(--mat-color) !important; border-color: #d68892; color: #721c24; }
+        .is-pat { background-color: var(--pat-color) !important; border-color: #8bbce8; color: #004085; }
+        .is-shared { 
+            background: linear-gradient(to right, var(--mat-color) 50%, var(--pat-color) 50%) !important;
+            border-color: #888; color: #333;
+        }
+        
+        /* --- FORMS --- */
+        .radio-option {
+            display: block;
+            margin-bottom: 8px;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .radio-option:hover { background-color: #f9f9f9; border-color: var(--header-color); }
+        
+        .select-box {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            width: 100%;
+            max-width: 500px;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .conclusion-row {
+            display: flex;
+            gap: 20px;
+            background: #fafbfc;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+            align-items: center;
+        }
+
+        /* --- RESULT --- */
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result-fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .action-btn {
+            background-image: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button.secondary { background: #606c71; background-image: none; }
+
+        .instruction-note {
+            font-size: 0.9em;
+            color: #555;
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ffeeba;
+            margin-bottom: 15px;
+        }
+        
+        .legend-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+            border: 1px solid #999;
+            vertical-align: middle;
+        }
+
+    </style>
+</head>
+<body>
+
+    <a href="accueil-exercices-master.html" class="back-link">← Retour à l'accueil</a>
+
+    <h1>Atelier : Expertise de Filiation & Parenté</h1>
+
+    <div class="game-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>1. Le Dossier</h2>
+            <button class="back-link secondary" onclick="initGame()">Nouveau Cas (Aléatoire)</button>
+        </div>
+        
+        <div class="scenario-box" id="scenario-text"></div>
+
+        <h3>Définition des Hypothèses</h3>
+        <p>Sélectionnez le couple d'hypothèses <strong>le plus rigoureux</strong> pour ce contexte juridique.</p>
+        <div id="hypotheses-container"></div>
+    </div>
+
+    <div class="game-panel">
+        <h2>2. Analyse des Profils (STR Autosomaux)</h2>
+        
+        <div class="instruction-note">
+            <strong>Méthode de traçage (Cliquez sur les allèles de l'Enfant) :</strong><br>
+            <span class="legend-dot" style="background:var(--mat-color)"></span>1 clic : <strong>Maternel</strong> (Vient de la mère)<br>
+            <span class="legend-dot" style="background:var(--pat-color)"></span>2 clics : <strong>Paternel Obligatoire</strong> (L'allèle que le père DOIT avoir)<br>
+            <span class="legend-dot" style="background: linear-gradient(to right, var(--mat-color) 50%, var(--pat-color) 50%)"></span>3 clics : <strong>Partagé</strong> (Ambigu)<br>
+            <span class="legend-dot" style="background:white"></span>4 clics : Reset
+        </div>
+        
+        <table class="profile-table">
+            <thead>
+                <tr id="table-header"></tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+
+        <div class="conclusion-row">
+            <strong>Conclusion Autosomale :</strong>
+            <div id="auto-conclusions-container" style="flex-grow:1;">
+                </div>
+        </div>
+    </div>
+
+    <div class="game-panel">
+        <h2>3. Analyse des Lignées (Uniparental)</h2>
+        <p class="instruction-note">Attention : Ne concluez que sur les marqueurs pertinents pour le type de filiation testée.</p>
+        
+        <div style="display:flex; gap:30px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:300px;">
+                <table class="profile-table">
+                    <tr><th>Individu</th><th>Haplotype Y-STR</th><th>Motif mtDNA</th></tr>
+                    <tbody id="lineage-body"></tbody>
+                </table>
+            </div>
+            <div style="flex:1; background:#fafbfc; padding:15px; border-radius:5px; min-width:300px;">
+                <strong>Conclusion Lignées :</strong><br><br>
+                <label>Compatibilité Y-STR : </label>
+                <select id="y-conclusion" class="select-box" style="margin-bottom:10px;">
+                    <option value="">-- Choisir --</option>
+                    <option value="na">Non Applicable / Non Informatif</option>
+                    <option value="match">Correspondance (Inclusion)</option>
+                    <option value="mismatch">Exclusion</option>
+                </select>
+                
+                <label>Compatibilité mtDNA : </label>
+                <select id="mt-conclusion" class="select-box">
+                    <option value="">-- Choisir --</option>
+                    <option value="na">Non Applicable / Non Informatif</option>
+                    <option value="match">Correspondance (Inclusion)</option>
+                    <option value="mismatch">Exclusion</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-panel">
+        <h2>4. Synthèse & Statistiques</h2>
+        
+        <div style="background:#f0fff4; padding:15px; border:1px solid #bbf; border-radius:5px; margin-bottom:20px;">
+            <strong>Résultats Calculés (Logiciel) :</strong>
+            <div id="stats-display"></div>
+        </div>
+
+        <h3>Interprétation de la force de la preuve</h3>
+        <select id="verbal-select" class="select-box">
+            <option value="">-- Sélectionner l'échelle verbale --</option>
+            <option value="exclusion">Preuve de l'Exclusion (LR = 0)</option>
+            <option value="weak">Preuve Faible (1 < LR < 10)</option>
+            <option value="moderate">Preuve Modérée (10 < LR < 100)</option>
+            <option value="strong">Preuve Forte (100 < LR < 10 000)</option>
+            <option value="extreme">Preuve Extrêmement Forte (LR > 10 000)</option>
+        </select>
+
+        <h3>Probabilité a posteriori (W)</h3>
+        <p style="font-size:0.85em; color:#666;">Avec un prior neutre de 0,5.</p>
+        <select id="w-select" class="select-box">
+            <option value="">-- Sélectionner W --</option>
+            <option value="0">0%</option>
+            <option value="low">Entre 50% et 99%</option>
+            <option value="99"> > 99,9%</option>
+        </select>
+
+        <div style="text-align:center; margin-top:30px;">
+            <button class="action-btn" onclick="checkExpertise()">Valider le Rapport d'Expertise</button>
+        </div>
+        
+        <div id="final-result" class="result-box"></div>
+    </div>
+
+<script>
+/**
+ * GENETIC KINSHIP ENGINE V3.1
+ * Fix: Clickable alleles now use pure DOM creation to prevent event loss.
+ */
+
+// --- DATA ---
+const NAMES_M = ["M. Martin", "M. Bernard", "M. Thomas", "M. Petit", "M. Robert", "M. Richard", "M. Durand", "M. Dubois"];
+const NAMES_F = ["Mme Marie", "Mme Nathalie", "Mme Isabelle", "Mme Sylvie", "Mme Catherine", "Mme Lea", "Mme Camille"];
+const LOCI = ["D8S1179", "D21S11", "D7S820", "CSF1PO", "D3S1358", "TH01", "D13S317", "vWA"]; 
+
+let currentCase = {
+    type: "", // 'trio_std', 'duo_pat', 'two_fathers', 'maternity'
+    mother: null,
+    child: null,
+    testedPeople: [], 
+    lr: 0
+};
+
+// --- FORMATTING UTILS ---
+function formatNumberFR(num) {
+    return num.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+}
+
+// --- GENERATORS ---
+
+function generateProfile() {
+    let p = {};
+    LOCI.forEach(l => {
+        let a1 = Math.floor(Math.random() * (14 - 8) + 8);
+        let a2 = Math.floor(Math.random() * (14 - 8) + 8);
+        p[l] = [a1, a2].sort((a,b)=>a-b);
+    });
+    return p;
+}
+
+function createOffspring(p1, p2) {
+    let child = {};
+    LOCI.forEach(l => {
+        let al1 = p1[l][Math.floor(Math.random()*2)];
+        let al2 = p2[l][Math.floor(Math.random()*2)];
+        child[l] = [al1, al2].sort((a,b)=>a-b);
+    });
+    return child;
+}
+
+// --- INIT GAME ---
+
+function initGame() {
+    // Reset UI
+    document.getElementById("final-result").style.display = "none";
+    document.getElementById("w-select").value = "";
+    document.getElementById("verbal-select").value = "";
+    document.getElementById("y-conclusion").value = "";
+    document.getElementById("mt-conclusion").value = "";
+    
+    // 1. Select Scenario Type
+    const r = Math.random();
+    if (r < 0.40) currentCase.type = "trio_std";      
+    else if (r < 0.60) currentCase.type = "two_fathers"; 
+    else if (r < 0.85) currentCase.type = "duo_pat";     
+    else currentCase.type = "maternity";             
+
+    // 2. Create Bio Parents
+    let bioMomProfile = generateProfile();
+    let bioDadProfile = generateProfile();
+    let childProfile = createOffspring(bioMomProfile, bioDadProfile);
+
+    currentCase.child = { name: "Enfant", profile: childProfile };
+    currentCase.testedPeople = [];
+
+    // 3. Setup Actors based on Scenario
+    if (currentCase.type === "maternity") {
+        let isBio = Math.random() > 0.5;
+        let name = NAMES_F[Math.floor(Math.random() * NAMES_F.length)];
+        let profile = isBio ? bioMomProfile : generateProfile();
+        
+        currentCase.mother = { name: "Mère Inconnue", profile: null }; 
+        currentCase.testedPeople.push({ id: "M1", name: name, isBio: isBio, role: "Mère Présumée", profile: profile });
+    } 
+    else {
+        currentCase.mother = { name: NAMES_F[Math.floor(Math.random() * NAMES_F.length)], profile: bioMomProfile };
+        
+        if (currentCase.type === "two_fathers") {
+            let name1 = NAMES_M[Math.floor(Math.random() * NAMES_M.length)];
+            let name2 = NAMES_M[(NAMES_M.indexOf(name1) + 1) % NAMES_M.length];
+            let outcome = Math.random();
+            let p1 = (outcome < 0.4) ? bioDadProfile : generateProfile();
+            let p2 = (outcome >= 0.4 && outcome < 0.8) ? bioDadProfile : generateProfile();
+            
+            currentCase.testedPeople.push({ id: "P1", name: name1, isBio: (outcome < 0.4), role: "Père Présumé 1", profile: p1 });
+            currentCase.testedPeople.push({ id: "P2", name: name2, isBio: (outcome >= 0.4 && outcome < 0.8), role: "Père Présumé 2", profile: p2 });
+
+        } else {
+            let isBio = Math.random() > 0.5;
+            let name = NAMES_M[Math.floor(Math.random() * NAMES_M.length)];
+            let profile = isBio ? bioDadProfile : generateProfile();
+            currentCase.testedPeople.push({ id: "P1", name: name, isBio: isBio, role: "Père Présumé", profile: profile });
+        }
+    }
+
+    // 4. LR Calculation
+    let anyBio = currentCase.testedPeople.some(p => p.isBio);
+    if (anyBio) currentCase.lr = Math.floor(Math.random() * 5000000) + 50000;
+    else currentCase.lr = 0;
+
+    renderScenario();
+    renderProfiles();
+    renderLineages();
+    renderStats();
+}
+
+function renderScenario() {
+    let div = document.getElementById("scenario-text");
+    let hDiv = document.getElementById("hypotheses-container");
+    let txt = "";
+    let opts = [];
+
+    if (currentCase.type === "maternity") {
+        let m = currentCase.testedPeople[0].name;
+        txt = `<strong>Recherche de Maternité :</strong> Un enfant a été retrouvé sans filiation. ${m} pense être sa mère biologique.`;
+        
+        opts.push({ val: "correct", txt: `H1 : ${m} est la mère de l'enfant / H2 : Une femme inconnue est la mère` });
+        opts.push({ val: "wrong1", txt: `H1 : ${m} est la mère / H2 : ${m} est la tante de l'enfant` });
+        opts.push({ val: "wrong2", txt: `H1 : ${m} est la mère / H2 : L'enfant n'a pas de mère` });
+    } 
+    else if (currentCase.type === "two_fathers") {
+        let p1 = currentCase.testedPeople[0].name;
+        let p2 = currentCase.testedPeople[1].name;
+        txt = `<strong>Paternité (2 Candidats) :</strong> La mère a eu des relations avec ${p1} et ${p2}. Elle veut connaître le père.`;
+
+        opts.push({ val: "correct", txt: `H1 : ${p1} est le père / H2 : ${p2} est le père / H3 : Un inconnu est le père` });
+        opts.push({ val: "wrong_closed", txt: `H1 : ${p1} est le père / H2 : ${p2} est le père (Sans option inconnue)` });
+        opts.push({ val: "wrong_sperm", txt: `H1 : ${p1} est le père / H2 : Mélange de sperme des deux hommes` });
+    } 
+    else {
+        let m = currentCase.mother.name;
+        let p = currentCase.testedPeople[0].name;
+        let ctx = currentCase.type === "duo_pat" ? "(Mère absente)" : `(Mère : ${m})`;
+        txt = `<strong>Recherche de Paternité ${ctx} :</strong> On cherche à déterminer si ${p} est le père biologique de l'enfant.`;
+
+        opts.push({ val: "correct", txt: `H1 : ${p} est le père / H2 : Un homme inconnu est le père` });
+        opts.push({ val: "wrong_brother", txt: `H1 : ${p} est le père / H2 : Le frère de ${p} est le père` });
+        opts.push({ val: "wrong_reverse", txt: `H1 : L'enfant est le père de ${p} / H2 : Non apparentés` });
+        opts.push({ val: "wrong_deficiency", txt: `H1 : ${p} est le père / H2 : Le père de ${p} (grand-père) est le père` });
+        opts.push({ val: "wrong_vague", txt: `H1 : ${p} est apparenté à l'enfant / H2 : ${p} n'est pas apparenté` });
+    }
+
+    opts.sort(() => Math.random() - 0.5);
+    
+    div.innerHTML = txt;
+    hDiv.innerHTML = opts.map(o => `<label class="radio-option"><input type="radio" name="hyp" value="${o.val}"> ${o.txt}</label>`).join("");
+}
+
+// --- TABLE RENDERING (FIXED DOM METHOD) ---
+function renderProfiles() {
+    const thead = document.getElementById("table-header");
+    const tbody = document.getElementById("table-body");
+    
+    // 1. Header
+    thead.innerHTML = ""; // Safe for simple text
+    let trH = document.createElement("tr");
+    
+    let thL = document.createElement("th"); thL.innerText = "Locus"; trH.appendChild(thL);
+    
+    if (currentCase.type !== "duo_pat" && currentCase.type !== "maternity") {
+        let thM = document.createElement("th"); thM.innerText = `Mère (${currentCase.mother.name})`; trH.appendChild(thM);
+    }
+    
+    let thC = document.createElement("th"); thC.innerText = "Enfant"; trH.appendChild(thC);
+    
+    currentCase.testedPeople.forEach(p => {
+        let thP = document.createElement("th"); thP.innerText = p.name; trH.appendChild(thP);
+    });
+    thead.appendChild(trH);
+
+    // 2. Body - Pure DOM to protect Event Listeners
+    tbody.innerHTML = ""; // Clear previous rows
+
+    LOCI.forEach(l => {
+        let tr = document.createElement("tr");
+
+        // Locus Name
+        let tdLoc = document.createElement("td");
+        tdLoc.innerHTML = `<strong>${l}</strong>`;
+        tr.appendChild(tdLoc);
+
+        // Mother
+        if (currentCase.type !== "duo_pat" && currentCase.type !== "maternity") {
+            let tdMom = document.createElement("td");
+            tdMom.innerText = formatAlleles(currentCase.mother.profile[l]);
+            tr.appendChild(tdMom);
+        }
+
+        // Child (Interactive Buttons)
+        let tdChild = document.createElement("td");
+        currentCase.child.profile[l].forEach(al => {
+            let btn = document.createElement("button");
+            btn.className = "allele-btn";
+            btn.innerText = al;
+            // Directly attach listener to element
+            btn.onclick = function() { cycleAllele(this); };
+            tdChild.appendChild(btn);
+        });
+        tr.appendChild(tdChild);
+
+        // Candidates
+        currentCase.testedPeople.forEach(p => {
+            let tdP = document.createElement("td");
+            tdP.innerText = formatAlleles(p.profile[l]);
+            tr.appendChild(tdP);
+        });
+
+        // Append complete row
+        tbody.appendChild(tr);
+    });
+
+    // Conclusions Checkboxes
+    let cDiv = document.getElementById("auto-conclusions-container");
+    cDiv.innerHTML = "";
+    currentCase.testedPeople.forEach(p => {
+        cDiv.innerHTML += `<label style="margin-right:15px;"><input type="checkbox" id="conc-${p.id}"> ${p.name} est compatible (Non Exclu)</label>`;
+    });
+}
+
+function formatAlleles(arr) { return arr.join(", "); }
+
+function cycleAllele(btn) {
+    if (btn.classList.contains("is-mat")) {
+        btn.classList.remove("is-mat"); btn.classList.add("is-pat");
+    } else if (btn.classList.contains("is-pat")) {
+        btn.classList.remove("is-pat"); btn.classList.add("is-shared");
+    } else if (btn.classList.contains("is-shared")) {
+        btn.classList.remove("is-shared");
+    } else {
+        btn.classList.add("is-mat");
+    }
+}
+
+function renderLineages() {
+    let cY = "R1b [13-24-11]";
+    let cMt = "H1 [16519C]";
+    
+    let tbody = document.getElementById("lineage-body");
+    tbody.innerHTML = `<tr><td>Enfant</td><td>${cY}</td><td>${cMt}</td></tr>`;
+
+    currentCase.testedPeople.forEach(p => {
+        let y = p.isBio ? cY : "J2a [12-22-14]";
+        let mt = p.isBio ? cMt : "U5b [16278T]";
+        
+        if (currentCase.type !== "maternity") {
+            // Paternity: Dad Y matches if bio. Dad mtDNA irrelevant
+            mt = "U5b [Différent]"; 
+        } else {
+            // Maternity: Mom Y is N/A. Mom mtDNA matches if bio.
+            y = "N/A (Femme)";
+        }
+        
+        tbody.innerHTML += `<tr><td>${p.name}</td><td>${y}</td><td>${mt}</td></tr>`;
+    });
+}
+
+function renderStats() {
+    let html = "";
+    currentCase.testedPeople.forEach(p => {
+        let val = p.isBio ? formatNumberFR(currentCase.lr) : "0 (Exclusion)";
+        html += `<p>${p.name} : LR = <strong>${val}</strong></p>`;
+    });
+    document.getElementById("stats-display").innerHTML = html;
+}
+
+// --- CHECK ANSWERS ---
+
+function checkExpertise() {
+    let errors = [];
+    
+    // 1. Hypotheses
+    let h = document.querySelector('input[name="hyp"]:checked');
+    if (!h || h.value !== "correct") errors.push("Hypothèses : Choix incorrect ou mal formulé pour ce cas.");
+
+    // 2. Autosomal
+    currentCase.testedPeople.forEach(p => {
+        let chk = document.getElementById(`conc-${p.id}`).checked;
+        if (p.isBio && !chk) errors.push(`Profil : ${p.name} est compatible, il ne fallait pas l'exclure.`);
+        if (!p.isBio && chk) errors.push(`Profil : ${p.name} présente des incompatibilités, il fallait l'exclure.`);
+    });
+
+    // 3. Lineages
+    let yC = document.getElementById("y-conclusion").value;
+    let mtC = document.getElementById("mt-conclusion").value;
+    
+    let hasBio = currentCase.testedPeople.some(p => p.isBio);
+
+    if (currentCase.type === "maternity") {
+        if (yC !== "na") errors.push("Lignées : Le chromosome Y n'est pas pertinent pour une recherche de maternité.");
+        if (hasBio && mtC !== "match") errors.push("Lignées : L'ADN mitochondrial correspond, c'est une inclusion.");
+        if (!hasBio && mtC !== "mismatch") errors.push("Lignées : L'ADN mitochondrial ne correspond pas.");
+    } else {
+        // Paternity
+        if (mtC !== "na") errors.push("Lignées : L'ADN mitochondrial n'est pas transmis par le père. Répondez 'Non Applicable'.");
+        
+        if (hasBio && yC !== "match") errors.push("Lignées : Le chromosome Y correspond (Lignée paternelle).");
+        if (!hasBio && yC !== "mismatch") errors.push("Lignées : Le chromosome Y ne correspond pas.");
+    }
+
+    // 4. Stats
+    let v = document.getElementById("verbal-select").value;
+    let w = document.getElementById("w-select").value;
+
+    if (hasBio) {
+        if (v !== "extreme" && v !== "strong") errors.push("Stats : Avec un LR élevé (>10 000), la preuve est Forte à Extrême.");
+        if (w !== "99") errors.push("Stats : W devrait être > 99,9%.");
+    } else {
+        if (v !== "exclusion") errors.push("Stats : C'est une exclusion (LR=0).");
+        if (w !== "0") errors.push("Stats : W est de 0%.");
+    }
+
+    // Show Result
+    let box = document.getElementById("final-result");
+    if (errors.length === 0) {
+        box.className = "result-box result-success";
+        box.innerHTML = "<strong>Expertise Validée !</strong><br>Raisonnement parfait.";
+    } else {
+        box.className = "result-box result-fail";
+        box.innerHTML = "<strong>Erreurs :</strong><ul>" + errors.map(e => `<li>${e}</li>`).join("") + "</ul>";
+    }
+    box.style.display = "block";
+}
+
+window.onload = initGame;
+
+</script>
+</body>
+</html>
