@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Annales corrigées — Identification génétique</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="annales">
+
+  <main class="wrap narrow">
+    <h1 class="page-title" data-fr="Annales corrigées" data-en="Past exams with corrections"></h1>
+    <p class="page-intro"
+       data-fr="Les sujets d'examens des années précédentes. Certaines questions sont accompagnées d'une explication audio."
+       data-en="Exam papers from previous years. Some questions come with an audio explanation."></p>
+
+    <h2 class="section">Master 1</h2>
+    <div id="list-m1"></div>
+
+    <h2 class="section">Master 2</h2>
+    <div id="list-m2"></div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    // Only audio files that actually exist in the repo are listed.
+    var EXAMS = [
+      { level:"m1", fr:"M1 — UE7 — 2021", en:"M1 — UE7 — 2021",
+        pdf:"Annale_M1_UE7_2021.pdf",
+        audios:[ {src:"Annale_M1_UE7_2021.mp3", fr:"Question d. expliquée", en:"Question d explained"} ] },
+      { level:"m1", fr:"M1 — UE8 — 2021", en:"M1 — UE8 — 2021",
+        pdf:"Annale_M1_UE8_2021.pdf",
+        audios:[ {src:"Annale_M1_UE8_2021_a.mp3", fr:"Question a. expliquée", en:"Question a explained"},
+                 {src:"Annale_M1_UE8_2021_b.mp3", fr:"Question b. expliquée", en:"Question b explained"} ] },
+      { level:"m1", fr:"M1 — UE7 — 2022", en:"M1 — UE7 — 2022",
+        pdf:"Annale_M1_UE7_2022.pdf",
+        audios:[ {src:"Annale_M1_UE7_2022.mp3", fr:"Question c. expliquée", en:"Question c explained"} ] },
+      { level:"m1", fr:"M1 — UE8 — 2022", en:"M1 — UE8 — 2022",
+        pdf:"Annale_M1_UE8_2022.pdf",
+        audios:[ {src:"Annale_M1_UE8_2022_a.mp3", fr:"Question a. expliquée", en:"Question a explained"},
+                 {src:"Annale_M1_UE8_2022_b.mp3", fr:"Question b. expliquée", en:"Question b explained"} ] },
+      { level:"m2", fr:"M2 — 2021", en:"M2 — 2021", pdf:"Annale_M2_2021.pdf", audios:[] },
+      { level:"m2", fr:"M2 — 2022", en:"M2 — 2022", pdf:"Annale_M2_2022.pdf", audios:[] }
+    ];
+
+    function build(container, items) {
+      container.innerHTML = "";
+      items.forEach(function (e) {
+        var audioHTML = e.audios.map(function (a) {
+          return '<p class="audio-label" data-fr="' + a.fr + '" data-en="' + a.en + '"></p>' +
+                 '<audio controls preload="none"><source src="' + a.src + '" type="audio/mpeg"></audio>';
+        }).join("");
+        var d = document.createElement("details");
+        d.className = "collapse";
+        d.innerHTML =
+          '<summary><span data-fr="' + e.fr + '" data-en="' + e.en + '"></span></summary>' +
+          '<div class="body">' +
+            audioHTML +
+            '<p><a class="btn btn-ghost" target="_blank" rel="noopener" href="' + e.pdf + '" ' +
+               'data-fr="Ouvrir le sujet (PDF) ↗" data-en="Open the paper (PDF) ↗"></a></p>' +
+            '<div class="pdf-slot" data-pdf="' + e.pdf + '"></div>' +
+          '</div>';
+        d.addEventListener("toggle", function () {
+          if (d.open) {
+            var slot = d.querySelector(".pdf-slot");
+            if (slot && !slot.dataset.loaded) {
+              slot.dataset.loaded = "1";
+              var emb = document.createElement("embed");
+              emb.src = slot.getAttribute("data-pdf");
+              emb.type = "application/pdf";
+              slot.appendChild(emb);
+            }
+          }
+        });
+        container.appendChild(d);
+      });
+      I18N.apply();
+    }
+
+    build(document.getElementById("list-m1"), EXAMS.filter(function (e) { return e.level === "m1"; }));
+    build(document.getElementById("list-m2"), EXAMS.filter(function (e) { return e.level === "m2"; }));
+  })();
+  </script>
+</body>
+</html>

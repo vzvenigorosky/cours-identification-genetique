@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fiches récapitulatives — Identification génétique</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="fiches">
+
+  <main class="wrap narrow">
+    <h1 class="page-title" data-fr="Fiches récapitulatives" data-en="Revision sheets"></h1>
+    <p class="page-intro"
+       data-fr="Téléchargez la fiche PDF de chaque chapitre et écoutez les explications audio. Toutes les questions des annales ont un équivalent dans ces fiches."
+       data-en="Download the PDF sheet for each chapter and listen to the audio explanations. Every question in the past exams has an equivalent in these sheets."></p>
+
+    <h2 class="section"><span data-fr="Master 1 &amp; Master 2" data-en="Master 1 &amp; Master 2"></span></h2>
+    <div id="list-m12"></div>
+
+    <h2 class="section"><span data-fr="Master 2 uniquement" data-en="Master 2 only"></span></h2>
+    <div id="list-m2"></div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    // Exact asset paths preserved from the original site.
+    var SHEETS = [
+      { fr:"Structure moléculaire de l'ADN", en:"Molecular structure of DNA",
+        pdf:"QC/1 - Structure moléculaire de l'ADN.pdf",
+        mp3:"1 - Structure moléculaire de l'ADN.mp3", level:"m12" },
+      { fr:"Structure du génome humain", en:"Structure of the human genome",
+        pdf:"QC/2 - Structure du génome humain.pdf",
+        mp3:"2 - Structure du génome humain.mp3", level:"m12" },
+      { fr:"Les Short Tandem Repeats (STR)", en:"Short Tandem Repeats (STR)",
+        pdf:"QC/3 - Les Short Tandem Repeats (STR).pdf",
+        mp3:"3 - STR.mp3", level:"m12" },
+      { fr:"Techniques de biologie moléculaire (1) — Extraction",
+        en:"Molecular biology techniques (1) — Extraction",
+        pdf:"QC/4 - Techniques de biologie moléculaire (1) - Extraction.pdf",
+        mp3:"4 - Techniques de biologie moléculaire - Extraction.mp3", level:"m12" },
+      { fr:"Techniques de biologie moléculaire (2) — Amplification",
+        en:"Molecular biology techniques (2) — Amplification",
+        pdf:"QC/5 - Techniques de biologie moléculaire (2) - Amplification.pdf",
+        mp3:"5 - Techniques de biologie moléculaire - Amplification.mp3", level:"m12" },
+      { fr:"Techniques de biologie moléculaire (3) — Lecture et analyse des STR",
+        en:"Molecular biology techniques (3) — Reading and analysing STRs",
+        pdf:"QC/6 - Techniques de biologie moléculaire (3) - Lecture et Analyse des STR.pdf",
+        mp3:"6 - Techniques de biologie moléculaire - Analyse des STR.mp3", level:"m12" },
+      { fr:"Principes de l'identification génétique",
+        en:"Principles of genetic identification",
+        pdf:"QC/7 - Principes de l'identification génétique.pdf",
+        mp3:"7 - Principes de l_identification génétique.mp3", level:"m12" },
+      { fr:"Marqueurs des lignées uniparentales",
+        en:"Uniparental lineage markers",
+        pdf:"QC/8 - Marqueurs des lignées uniparentales.pdf",
+        mp3:"8 - Marqueurs des lignées uniparentales.mp3", level:"m12" },
+      { fr:"La parenté en génétique médico-légale",
+        en:"Kinship in forensic genetics",
+        pdf:"QC/9 - La parenté en génétique médico-légale.pdf",
+        mp3:"9 - La parenté en génétique médico-légale.mp3", level:"m2" },
+      { fr:"Calcul de probabilités de parenté",
+        en:"Computing kinship probabilities",
+        pdf:"QC/10 - Calcul de probabilités de parenté.pdf",
+        mp3:"10 - Calculs de probabilités de parenté.mp3", level:"m2" }
+    ];
+
+    function audioLabel() { return I18N.getLang() === "en" ? "Audio explanation" : "Explication audio"; }
+    function openLabel()  { return I18N.getLang() === "en" ? "Open the PDF in a new tab"  : "Ouvrir le PDF dans un nouvel onglet"; }
+
+    function build(container, items, startIndex) {
+      container.innerHTML = "";
+      items.forEach(function (s, i) {
+        var n = startIndex + i + 1;
+        var d = document.createElement("details");
+        d.className = "collapse";
+        d.innerHTML =
+          '<summary><span class="pill">' + n + '</span>' +
+            '<span data-fr="' + s.fr.replace(/"/g,'&quot;') + '" data-en="' + s.en.replace(/"/g,'&quot;') + '"></span>' +
+          '</summary>' +
+          '<div class="body">' +
+            '<p class="audio-label" data-fr="Explication audio" data-en="Audio explanation"></p>' +
+            '<audio controls preload="none"><source src="' + s.mp3 + '" type="audio/mpeg"></audio>' +
+            '<p><a class="btn btn-ghost" target="_blank" rel="noopener" href="' + s.pdf + '" ' +
+               'data-fr="Ouvrir le PDF ↗" data-en="Open the PDF ↗"></a></p>' +
+            '<div class="pdf-slot" data-pdf="' + s.pdf.replace(/"/g,'&quot;') + '"></div>' +
+          '</div>';
+        // Lazy-load the embedded PDF the first time the block is opened.
+        d.addEventListener("toggle", function () {
+          if (d.open) {
+            var slot = d.querySelector(".pdf-slot");
+            if (slot && !slot.dataset.loaded) {
+              slot.dataset.loaded = "1";
+              var emb = document.createElement("embed");
+              emb.src = slot.getAttribute("data-pdf");
+              emb.type = "application/pdf";
+              slot.appendChild(emb);
+            }
+          }
+        });
+        container.appendChild(d);
+      });
+      I18N.apply();
+    }
+
+    var m12 = SHEETS.filter(function (s) { return s.level === "m12"; });
+    var m2  = SHEETS.filter(function (s) { return s.level === "m2"; });
+    build(document.getElementById("list-m12"), m12, 0);
+    build(document.getElementById("list-m2"),  m2,  m12.length);
+  })();
+  </script>
+</body>
+</html>
