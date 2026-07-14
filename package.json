@@ -1,0 +1,11 @@
+{
+  "name": "cours-identification-genetique",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Static bilingual portal + forensic EPG simulator (GlobalFiler / Yfiler Plus). No build step; package.json only marks assets/epg + tools as ES modules for Node.",
+  "scripts": {
+    "epg": "node tools/epg-cli.mjs",
+    "epg:test": "node tools/epg-selftest.mjs"
+  }
+}
