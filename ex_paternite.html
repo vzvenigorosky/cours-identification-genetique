@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paternité & parenté — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="exercices">
+
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Paternité &amp; parenté" data-en="Paternity &amp; kinship"></h1>
+
+    <div class="panel" id="scenario"></div>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between">
+        <h2 style="margin:0" data-fr="Profils génétiques" data-en="Genetic profiles"></h2>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+      </div>
+      <p class="muted-note"
+         data-fr="À chaque locus, l'enfant hérite d'un allèle de sa mère et d'un allèle de son père. Le père allégué doit pouvoir fournir l'allèle paternel obligatoire."
+         data-en="At each locus, the child inherits one allele from the mother and one from the father. The alleged father must be able to supply the obligate paternal allele."></p>
+      <div class="table-scroll">
+        <table class="data" id="grid"></table>
+      </div>
+      <div class="controls mt">
+        <strong data-fr="Le père allégué est :" data-en="The alleged father is:"></strong>
+        <label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="verdict" value="match">
+          <span data-fr="Non exclu (compatible)" data-en="Not excluded (compatible)"></span></label>
+        <label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="verdict" value="exclusion">
+          <span data-fr="Exclu" data-en="Excluded"></span></label>
+        <button class="btn btn-primary" id="check" data-i18n="common.check"></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/exercises/engine.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var LOCI = Engine.LOCI;
+    var state = {};
+    var fb = document.getElementById("fb");
+    function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
+
+    function excludedAt(l) {
+      var child = state.child[l.name], AF = state.af[l.name];
+      if (state.trio) {
+        var mother = state.mother[l.name];
+        var op = child.filter(function (a) { return mother.indexOf(a) === -1; }); // obligate paternal allele(s)
+        if (op.length) return op.some(function (a) { return AF.indexOf(a) === -1; });
+        return !child.some(function (a) { return AF.indexOf(a) !== -1; }); // ambiguous: needs to share one child allele
+      }
+      return !child.some(function (a) { return AF.indexOf(a) !== -1; }); // duo
+    }
+
+    function newCase() {
+      state = { trio: Math.random() > 0.4 };
+      state.mother = Engine.generateProfile();
+      var trueFather = Engine.generateProfile();
+      state.child = Engine.generateOffspring(state.mother, trueFather);
+      state.af = Math.random() > 0.5 ? JSON.parse(JSON.stringify(trueFather)) : Engine.generateProfile();
+      state.excludedLoci = LOCI.filter(excludedAt).map(function (l) { return l.name; });
+      state.notExcluded = state.excludedLoci.length === 0;
+      Engine.hideFeedback(fb);
+      document.querySelectorAll('input[name="verdict"]').forEach(function (r) { r.checked = false; });
+      render();
+    }
+
+    function render() {
+      document.getElementById("scenario").innerHTML =
+        '<span class="badge badge-2">' + (state.trio ? L("Trio (mère + enfant + père allégué)", "Trio (mother + child + alleged father)")
+                                                       : L("Duo (enfant + père allégué)", "Duo (child + alleged father)")) + "</span>" +
+        "<p style='margin:10px 0 0'>" +
+        L("Déterminez si le père allégué peut être le père biologique de l'enfant.",
+          "Decide whether the alleged father can be the child's biological father.") +
+        (state.trio ? "" : " " + L("Sans la mère, l'allèle paternel est ambigu : le père allégué doit seulement partager un allèle avec l'enfant à chaque locus.",
+                                    "Without the mother, the paternal allele is ambiguous: the alleged father only needs to share one allele with the child at each locus.")) +
+        "</p>";
+
+      var cols = state.trio
+        ? [L("Mère", "Mother"), L("Enfant", "Child"), L("Père allégué", "Alleged father")]
+        : [L("Enfant", "Child"), L("Père allégué", "Alleged father")];
+      var head = "<tr><th>Locus</th>";
+      cols.forEach(function (c) { head += "<th>" + c + "</th>"; });
+      head += "</tr>";
+      var body = "";
+      LOCI.forEach(function (l) {
+        body += "<tr><td><strong>" + l.name + "</strong></td>";
+        if (state.trio) body += '<td class="mono">' + state.mother[l.name].join(", ") + "</td>";
+        body += '<td class="mono">' + state.child[l.name].join(", ") + "</td>";
+        body += '<td class="mono">' + state.af[l.name].join(", ") + "</td>";
+        body += "</tr>";
+      });
+      document.getElementById("grid").innerHTML = head + body;
+    }
+
+    function check() {
+      var picked = document.querySelector('input[name="verdict"]:checked');
+      if (!picked) { Engine.feedback(fb, "warn", "Choisissez une conclusion.", "Choose a conclusion."); return; }
+      var correct = (state.notExcluded && picked.value === "match") || (!state.notExcluded && picked.value === "exclusion");
+      if (correct && state.notExcluded) {
+        Engine.feedback(fb, "success",
+          "<strong>Correct !</strong> Aucune exclusion sur " + LOCI.length + " loci : la compatibilité s'accumule, l'index de paternité (LR) devient élevé et soutient fortement la paternité.",
+          "<strong>Correct!</strong> No exclusion across " + LOCI.length + " loci: compatibility accumulates, the paternity index (LR) becomes large and strongly supports paternity.");
+      } else if (correct) {
+        Engine.feedback(fb, "success",
+          "<strong>Correct !</strong> Exclusion à : " + state.excludedLoci.join(", ") +
+          ". L'allèle paternel obligatoire y est absent du père allégué (LR = 0).",
+          "<strong>Correct!</strong> Exclusion at: " + state.excludedLoci.join(", ") +
+          ". The obligate paternal allele is missing from the alleged father there (LR = 0).");
+      } else {
+        Engine.feedback(fb, "fail",
+          "<strong>Conclusion incorrecte.</strong> En réalité, le père allégué est " +
+          (state.notExcluded ? "non exclu (compatible à tous les loci)." : "exclu (incompatibilité à : " + state.excludedLoci.join(", ") + ")."),
+          "<strong>Wrong conclusion.</strong> In reality, the alleged father is " +
+          (state.notExcluded ? "not excluded (compatible at all loci)." : "excluded (incompatibility at: " + state.excludedLoci.join(", ") + ")."));
+      }
+    }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("check").addEventListener("click", check);
+    document.addEventListener("langchange", function () { render(); Engine.refreshFeedback(fb); });
+
+    newCase();
+  })();
+  </script>
+</body>
+</html>

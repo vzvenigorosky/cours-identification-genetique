@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil consensus — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="exercices">
+
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Profil consensus" data-en="Consensus profile"></h1>
+
+    <div class="panel" id="scenario"></div>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between">
+        <h2 style="margin:0" data-fr="1. Analyse des réplicats" data-en="1. Replicate analysis"></h2>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+      </div>
+      <p class="muted-note"
+         data-fr="Cliquez sur un allèle pour l'ajouter (ou le retirer) de votre profil consensus."
+         data-en="Click an allele to add it to (or remove it from) your consensus profile."></p>
+      <div class="table-scroll">
+        <table class="data" id="grid"></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-fr="2. Comparaison &amp; conclusion" data-en="2. Comparison &amp; conclusion"></h2>
+      <p class="muted-note" data-fr="Profil de référence (individu d'intérêt) :" data-en="Reference profile (person of interest):"></p>
+      <div class="mono" id="refProfile" style="margin-bottom:14px"></div>
+      <div class="controls">
+        <strong data-fr="Votre conclusion :" data-en="Your conclusion:"></strong>
+        <label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="verdict" value="match">
+          <span data-fr="Non exclu (correspondance)" data-en="Not excluded (match)"></span></label>
+        <label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="verdict" value="exclusion">
+          <span data-fr="Exclu (non-correspondance)" data-en="Excluded (non-match)"></span></label>
+        <button class="btn btn-primary" id="check" data-i18n="common.check"></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/exercises/engine.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var LOCI = Engine.LOCI;
+    var state = {};
+    var fb = document.getElementById("fb");
+    function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
+
+    function newCase() {
+      state = { consensus: {}, verdict: null };
+      LOCI.forEach(function (l) { state.consensus[l.name] = new Set(); });
+      state.truth = Engine.generateProfile();
+
+      var r = Math.random();
+      state.type = r < 0.34 ? "low" : (r < 0.67 ? "high" : "mix");
+      state.reps = [];
+      if (state.type === "low") {
+        for (var i = 0; i < 3; i++) state.reps.push(Engine.degradeReplicate(state.truth, 0.05, 0.01));
+      } else if (state.type === "high") {
+        for (var j = 0; j < 3; j++) state.reps.push(Engine.degradeReplicate(state.truth, 0.30, 0.04));
+      } else {
+        state.contam = Engine.generateProfile();
+        state.reps.push(Engine.degradeReplicate(state.truth, 0.18, 0.02));
+        state.reps.push(Engine.degradeReplicate(state.truth, 0.18, 0.02));
+        state.reps.push(Engine.mixReplicate([state.truth, state.contam], 0.2));
+      }
+
+      state.isMatch = Math.random() > 0.5;
+      state.suspect = state.isMatch ? JSON.parse(JSON.stringify(state.truth)) : Engine.generateProfile();
+
+      Engine.hideFeedback(fb);
+      document.querySelectorAll('input[name="verdict"]').forEach(function (r) { r.checked = false; });
+      render();
+    }
+
+    function render() {
+      renderScenario();
+      renderGrid();
+      document.getElementById("refProfile").innerHTML = Engine.fmtProfile(state.suspect);
+    }
+
+    function renderScenario() {
+      var el = document.getElementById("scenario");
+      var badge, txt;
+      if (state.type === "low") {
+        badge = '<span class="badge badge-1">' + L("Niveau 1 : ADN peu dégradé", "Level 1: lightly degraded DNA") + '</span>';
+        txt = L("Tache de sang récente. L'ADN est de bonne qualité, peu de pertes attendues.",
+                "Fresh bloodstain. The DNA is of good quality, few drop-outs expected.");
+      } else if (state.type === "high") {
+        badge = '<span class="badge badge-3">' + L("Niveau 2 : ADN très dégradé", "Level 2: heavily degraded DNA") + '</span>';
+        txt = L("Ossements anciens. Attendez-vous à des pertes d'allèles (drop-out), surtout sur les grands loci.",
+                "Old bones. Expect allele drop-out, especially at the larger loci.");
+      } else {
+        badge = '<span class="badge badge-2">' + L("Niveau 3 : mélange / contamination", "Level 3: mixture / contamination") + '</span>';
+        txt = L("Objet contaminé. Les réplicats 1 &amp; 2 sont purs ; le réplicat 3 est un mélange (cible + profil inconnu). N'incluez pas la contamination dans votre consensus !",
+                "Contaminated item. Replicates 1 &amp; 2 are pure; replicate 3 is a mixture (target + unknown profile). Do not include the contamination in your consensus!");
+      }
+      el.innerHTML = badge + "<p style='margin:10px 0 0'>" + txt + "</p>";
+    }
+
+    function renderGrid() {
+      var head = "<tr><th>Locus</th>";
+      var cols = state.type === "mix"
+        ? [L("Trace 1 (saine)", "Trace 1 (clean)"), L("Trace 2 (saine)", "Trace 2 (clean)"), L("Objet (mélange)", "Item (mixture)")]
+        : [L("Réplicat 1", "Replicate 1"), L("Réplicat 2", "Replicate 2"), L("Réplicat 3", "Replicate 3")];
+      cols.forEach(function (c) { head += "<th>" + c + "</th>"; });
+      head += "<th style='background:#e6fffa'>" + L("Votre consensus", "Your consensus") + "</th></tr>";
+
+      var body = "";
+      LOCI.forEach(function (l) {
+        body += "<tr><td><strong>" + l.name + "</strong></td>";
+        state.reps.forEach(function (rep, idx) {
+          var alleles = rep[l.name];
+          var cell = "";
+          if (!alleles.length) {
+            cell = "<span class='muted-note'>" + L("PD", "DO") + "</span>";
+          } else {
+            alleles.forEach(function (a) {
+              var sel = state.consensus[l.name].has(a) ? " selected" : "";
+              cell += '<button class="allele-btn' + sel + '" data-locus="' + l.name + '" data-allele="' + a + '">' + a + '</button>';
+            });
+          }
+          body += "<td>" + cell + "</td>";
+        });
+        var cons = Array.from(state.consensus[l.name]).sort(function (a, b) { return a - b; });
+        body += '<td class="mono" style="color:var(--green);font-weight:700">' + (cons.length ? cons.join(", ") : "–") + "</td></tr>";
+      });
+
+      var grid = document.getElementById("grid");
+      grid.innerHTML = head + body;
+      grid.querySelectorAll(".allele-btn").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var loc = b.dataset.locus, a = parseInt(b.dataset.allele, 10);
+          var set = state.consensus[loc];
+          if (set.has(a)) set.delete(a); else set.add(a);
+          renderGrid();
+        });
+      });
+    }
+
+    function check() {
+      var picked = document.querySelector('input[name="verdict"]:checked');
+      if (!picked) {
+        Engine.feedback(fb, "warn",
+          "Veuillez choisir une conclusion.", "Please choose a conclusion.");
+        return;
+      }
+      var total = 0;
+      LOCI.forEach(function (l) { total += state.consensus[l.name].size; });
+      if (total === 0) {
+        Engine.feedback(fb, "warn",
+          "Vous n'avez pas construit de profil consensus.", "You have not built a consensus profile.");
+        return;
+      }
+
+      // Contamination inclusion error
+      if (state.type === "mix") {
+        var bad = [];
+        LOCI.forEach(function (l) {
+          state.consensus[l.name].forEach(function (a) {
+            if (state.contam[l.name].indexOf(a) !== -1 && state.truth[l.name].indexOf(a) === -1) bad.push(l.name);
+          });
+        });
+        if (bad.length) {
+          var u = Array.from(new Set(bad)).join(", ");
+          Engine.feedback(fb, "fail",
+            "<strong>Contamination incluse.</strong> Vous avez retenu des allèles du profil contaminant à : " + u + ".",
+            "<strong>Contamination included.</strong> You kept alleles from the contaminant profile at: " + u + ".");
+          return;
+        }
+      }
+
+      // Missed alleles that were clearly visible in clean replicates
+      var missed = [];
+      LOCI.forEach(function (l) {
+        state.truth[l.name].forEach(function (a) {
+          var visibleClean = false;
+          var reps = state.type === "mix" ? [state.reps[0], state.reps[1]] : state.reps;
+          reps.forEach(function (rep) { if (rep[l.name].indexOf(a) !== -1) visibleClean = true; });
+          if (visibleClean && !state.consensus[l.name].has(a)) missed.push(l.name);
+        });
+      });
+      if (missed.length) {
+        var m = Array.from(new Set(missed)).join(", ");
+        Engine.feedback(fb, "warn",
+          "<strong>Analyse incomplète.</strong> Des allèles bien visibles ont été oubliés à : " + m + ".",
+          "<strong>Incomplete analysis.</strong> Clearly visible alleles were missed at: " + m + ".");
+        return;
+      }
+
+      var correct = (state.isMatch && picked.value === "match") || (!state.isMatch && picked.value === "exclusion");
+      if (correct) {
+        Engine.feedback(fb, "success",
+          "<strong>Correct !</strong> " + (state.isMatch ? "Le profil de référence n'est pas exclu." : "Le profil de référence est exclu."),
+          "<strong>Correct!</strong> " + (state.isMatch ? "The reference profile is not excluded." : "The reference profile is excluded."));
+      } else {
+        Engine.feedback(fb, "fail",
+          "<strong>Conclusion incorrecte.</strong> Votre consensus est valide, mais la déduction est fausse. En réalité : " + (state.isMatch ? "correspondance." : "exclusion."),
+          "<strong>Wrong conclusion.</strong> Your consensus is valid, but the deduction is wrong. In reality: " + (state.isMatch ? "match." : "exclusion."));
+      }
+    }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("check").addEventListener("click", check);
+    document.addEventListener("langchange", function () { render(); Engine.refreshFeedback(fb); });
+
+    newCase();
+  })();
+  </script>
+</body>
+</html>

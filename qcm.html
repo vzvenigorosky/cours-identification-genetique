@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QCM d'examen — Identification génétique</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="qcm">
+
+  <main class="wrap narrow">
+    <h1 class="page-title" data-fr="QCM d'examen" data-en="Exam quiz"></h1>
+    <p class="page-intro"
+       data-fr="Comme à l'examen : répondez à toutes les questions, puis validez pour obtenir votre note et la correction."
+       data-en="Just like the exam: answer every question, then submit to get your score and the correction."></p>
+
+    <!-- Setup -->
+    <div class="panel" id="setup">
+      <div class="controls">
+        <label><strong data-fr="Niveau :" data-en="Level:"></strong></label>
+        <select id="level" class="input">
+          <option value="m1">Master 1</option>
+          <option value="m2">Master 2</option>
+        </select>
+        <label><strong data-fr="Nombre de questions :" data-en="Number of questions:"></strong></label>
+        <select id="count" class="input">
+          <option value="10">10</option>
+          <option value="15" selected>15</option>
+          <option value="20">20</option>
+        </select>
+        <button id="start" class="btn btn-primary" type="button"
+                data-fr="Commencer le QCM" data-en="Start the quiz"></button>
+      </div>
+      <p class="muted-note mt" id="poolInfo"></p>
+    </div>
+
+    <!-- Quiz -->
+    <div id="quiz" class="hidden">
+      <div class="scorebar">
+        <span id="progress" class="muted-note"></span>
+        <div class="controls">
+          <button id="submit" class="btn btn-primary" type="button"
+                  data-fr="Valider mes réponses" data-en="Submit my answers"></button>
+          <button id="restart" class="btn btn-ghost hidden" type="button"
+                  data-fr="Nouveau QCM" data-en="New quiz"></button>
+        </div>
+      </div>
+      <div id="result" class="feedback"></div>
+      <div id="questions"></div>
+      <div class="controls mt">
+        <button id="submit2" class="btn btn-primary" type="button"
+                data-fr="Valider mes réponses" data-en="Submit my answers"></button>
+        <button id="restart2" class="btn btn-ghost hidden" type="button"
+                data-fr="Nouveau QCM" data-en="New quiz"></button>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/data/mcq.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var state = { questions: [], submitted: false };
+
+    function shuffle(a) {
+      a = a.slice();
+      for (var i = a.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+
+    function pool(level) {
+      // M1 = examinable at M1 (m12). M2 = everything (m12 + m2).
+      return MCQ.filter(function (q) { return level === "m2" ? true : q.level === "m12"; });
+    }
+
+    function updatePoolInfo() {
+      var lvl = document.getElementById("level").value;
+      var n = pool(lvl).length;
+      document.getElementById("poolInfo").textContent =
+        I18N.getLang() === "en"
+          ? "Available questions for this level: " + n
+          : "Questions disponibles pour ce niveau : " + n;
+    }
+
+    function build() {
+      var lvl = document.getElementById("level").value;
+      var want = parseInt(document.getElementById("count").value, 10);
+      var chosen = shuffle(pool(lvl)).slice(0, want);
+      state.questions = chosen.map(function (q) {
+        return { q: q, options: shuffle(q.answers), picked: null };
+      });
+      state.submitted = false;
+      render();
+      document.getElementById("setup").classList.add("hidden");
+      document.getElementById("quiz").classList.remove("hidden");
+      document.getElementById("result").classList.remove("show");
+      toggleRestart(false);
+      window.scrollTo(0, 0);
+    }
+
+    function toggleRestart(show) {
+      ["restart", "restart2"].forEach(function (id) {
+        document.getElementById(id).classList.toggle("hidden", !show);
+      });
+      ["submit", "submit2"].forEach(function (id) {
+        document.getElementById(id).classList.toggle("hidden", show);
+      });
+    }
+
+    function render() {
+      var box = document.getElementById("questions");
+      box.innerHTML = "";
+      state.questions.forEach(function (item, qi) {
+        var el = document.createElement("div");
+        el.className = "mcq-q";
+        var stem = document.createElement("p");
+        stem.className = "stem";
+        stem.textContent = (qi + 1) + ". " + I18N.pick(item.q.q);
+        el.appendChild(stem);
+
+        item.options.forEach(function (opt, oi) {
+          var lab = document.createElement("label");
+          lab.className = "mcq-opt";
+          var input = document.createElement("input");
+          input.type = "radio";
+          input.name = "q" + qi;
+          input.value = oi;
+          input.checked = item.picked === oi;
+          input.disabled = state.submitted;
+          input.addEventListener("change", function () {
+            item.picked = oi;
+            updateProgress();
+          });
+          lab.appendChild(input);
+          lab.appendChild(document.createTextNode(" " + I18N.pick(opt.text)));
+
+          if (state.submitted) {
+            if (opt.correct) lab.classList.add("correct");
+            else if (item.picked === oi) lab.classList.add("incorrect");
+          }
+          el.appendChild(lab);
+        });
+        box.appendChild(el);
+      });
+      updateProgress();
+    }
+
+    function updateProgress() {
+      var answered = state.questions.filter(function (i) { return i.picked !== null; }).length;
+      var total = state.questions.length;
+      var el = document.getElementById("progress");
+      if (state.submitted) {
+        el.textContent = "";
+        return;
+      }
+      el.textContent = I18N.getLang() === "en"
+        ? answered + " / " + total + " answered"
+        : answered + " / " + total + " répondues";
+    }
+
+    function submit() {
+      var unanswered = state.questions.filter(function (i) { return i.picked === null; }).length;
+      if (unanswered > 0 && !state.submitted) {
+        var msg = I18N.getLang() === "en"
+          ? unanswered + " question(s) not answered. Submit anyway?"
+          : unanswered + " question(s) sans réponse. Valider quand même ?";
+        if (!window.confirm(msg)) return;
+      }
+      state.submitted = true;
+      var correct = 0;
+      state.questions.forEach(function (item) {
+        if (item.picked !== null && item.options[item.picked].correct) correct++;
+      });
+      var total = state.questions.length;
+      var pct = Math.round((correct / total) * 100);
+      var res = document.getElementById("result");
+      res.className = "feedback show " + (pct >= 50 ? "success" : "fail");
+      res.innerHTML =
+        "<strong>" + (I18N.getLang() === "en" ? "Score: " : "Note : ") +
+        correct + " / " + total + " (" + pct + "%)</strong> — " +
+        (I18N.getLang() === "en"
+          ? "correct answers are shown in green, your wrong choices in red."
+          : "les bonnes réponses sont en vert, vos erreurs en rouge.");
+      render();
+      toggleRestart(true);
+      window.scrollTo(0, 0);
+    }
+
+    function restart() {
+      document.getElementById("setup").classList.remove("hidden");
+      document.getElementById("quiz").classList.add("hidden");
+      updatePoolInfo();
+      window.scrollTo(0, 0);
+    }
+
+    document.getElementById("start").addEventListener("click", build);
+    document.getElementById("level").addEventListener("change", updatePoolInfo);
+    ["submit", "submit2"].forEach(function (id) {
+      document.getElementById(id).addEventListener("click", submit);
+    });
+    ["restart", "restart2"].forEach(function (id) {
+      document.getElementById(id).addEventListener("click", restart);
+    });
+
+    document.addEventListener("langchange", function () {
+      updatePoolInfo();
+      if (!document.getElementById("quiz").classList.contains("hidden")) render();
+    });
+
+    updatePoolInfo();
+  })();
+  </script>
+</body>
+</html>

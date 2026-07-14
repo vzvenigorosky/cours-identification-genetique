@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Correspondance fortuite (RMP) — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="exercices">
+
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Correspondance fortuite (RMP)" data-en="Random match probability (RMP)"></h1>
+
+    <div class="panel">
+      <p class="page-intro" style="margin:0"
+         data-fr="Le profil de la trace correspond à celui du suspect. Quelle est la probabilité qu'un individu pris au hasard présente ce profil ? À chaque locus, choisissez la bonne formule."
+         data-en="The trace profile matches the suspect's. What is the probability that a random individual shows this profile? At each locus, choose the correct formula."></p>
+    </div>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between">
+        <h2 style="margin:0" data-fr="Profil observé" data-en="Observed profile"></h2>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+      </div>
+      <div class="table-scroll">
+        <table class="data" id="grid"></table>
+      </div>
+      <div class="controls mt">
+        <button class="btn btn-primary" id="calc" data-fr="Calculer la fréquence" data-en="Compute the frequency"></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>
+
+    <div class="panel hidden" id="resultPanel">
+      <h2 data-fr="Résultat &amp; interprétation" data-en="Result &amp; interpretation"></h2>
+      <p id="resultLine" style="font-size:1.1rem"></p>
+      <p class="muted-note" data-fr="Choisissez l'interprétation correcte :" data-en="Choose the correct interpretation:"></p>
+      <div id="interp"></div>
+      <div class="feedback" id="fb2"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/exercises/engine.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var SUB = Engine.LOCI.slice(0, 5); // keep it readable
+    var state = {};
+    var fb = document.getElementById("fb");
+    var fb2 = document.getElementById("fb2");
+    function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
+
+    function newCase() {
+      state = { loci: [], choice: {}, interpPicked: null, solved: false };
+      SUB.forEach(function (l) {
+        var homo = Math.random() < 0.4;
+        var a1 = Engine.rint(l.min, l.max);
+        var a2 = homo ? a1 : (function () { var x; do { x = Engine.rint(l.min, l.max); } while (x === a1); return x; })();
+        var p1 = Engine.alleleFreq(), p2 = Engine.alleleFreq();
+        state.loci.push({ name: l.name, homo: (a1 === a2), a: [a1, a2].sort(function (x, y) { return x - y; }), p: [p1, p2] });
+      });
+      state.freq = 1;
+      state.loci.forEach(function (o) { state.freq *= o.homo ? o.p[0] * o.p[0] : 2 * o.p[0] * o.p[1]; });
+      state.N = Math.max(1, Math.round(1 / state.freq));
+      Engine.hideFeedback(fb); Engine.hideFeedback(fb2);
+      document.getElementById("resultPanel").classList.add("hidden");
+      render();
+    }
+
+    function render() {
+      var head = "<tr><th>Locus</th><th>" + L("Génotype", "Genotype") + "</th><th>" +
+                 L("Fréquences", "Frequencies") + "</th><th>" + L("Formule à appliquer", "Formula to apply") + "</th></tr>";
+      var body = "";
+      state.loci.forEach(function (o, i) {
+        var geno = o.homo ? (o.a[0] + " / " + o.a[0]) : (o.a[0] + " / " + o.a[1]);
+        var freqs = o.homo
+          ? "f(" + o.a[0] + ") = " + o.p[0].toFixed(2)
+          : "f(" + o.a[0] + ") = " + o.p[0].toFixed(2) + " ; f(" + o.a[1] + ") = " + o.p[1].toFixed(2);
+        var checkedHomo = state.choice[i] === "homo" ? " checked" : "";
+        var checkedHet = state.choice[i] === "het" ? " checked" : "";
+        body += "<tr><td><strong>" + o.name + "</strong></td>" +
+          '<td class="mono">' + geno + "</td>" +
+          '<td class="mono">' + freqs + "</td>" +
+          '<td style="text-align:left">' +
+            '<label style="display:block"><input type="radio" name="f' + i + '" value="homo"' + checkedHomo + '> ' + L("Homozygote : p²", "Homozygous: p²") + "</label>" +
+            '<label style="display:block"><input type="radio" name="f' + i + '" value="het"' + checkedHet + '> ' + L("Hétérozygote : 2·p·q", "Heterozygous: 2·p·q") + "</label>" +
+          "</td></tr>";
+      });
+      var grid = document.getElementById("grid");
+      grid.innerHTML = head + body;
+      state.loci.forEach(function (o, i) {
+        grid.querySelectorAll('input[name="f' + i + '"]').forEach(function (r) {
+          r.disabled = state.solved;
+          r.addEventListener("change", function () { state.choice[i] = r.value; });
+        });
+      });
+      if (state.solved) renderResult();
+    }
+
+    function calc() {
+      var wrong = [];
+      for (var i = 0; i < state.loci.length; i++) {
+        if (!state.choice[i]) {
+          Engine.feedback(fb, "warn",
+            "Choisissez une formule pour chaque locus.", "Choose a formula for every locus.");
+          return;
+        }
+        var shouldBe = state.loci[i].homo ? "homo" : "het";
+        if (state.choice[i] !== shouldBe) wrong.push(state.loci[i].name);
+      }
+      if (wrong.length) {
+        Engine.feedback(fb, "fail",
+          "<strong>Formule incorrecte</strong> à : " + wrong.join(", ") + ". Rappel : deux allèles identiques ⇒ p² ; deux allèles différents ⇒ 2·p·q.",
+          "<strong>Wrong formula</strong> at: " + wrong.join(", ") + ". Reminder: two identical alleles ⇒ p² ; two different alleles ⇒ 2·p·q.");
+        return;
+      }
+      state.solved = true;
+      Engine.feedback(fb, "success",
+        "<strong>Formules correctes !</strong> Voir le résultat ci-dessous.",
+        "<strong>Formulas correct!</strong> See the result below.");
+      buildInterp();
+      render();
+      document.getElementById("resultPanel").classList.remove("hidden");
+    }
+
+    function renderResult() {
+      document.getElementById("resultLine").innerHTML =
+        L("Fréquence du profil : ", "Profile frequency: ") +
+        '<strong class="mono">' + state.freq.toExponential(2) + "</strong> — " +
+        L("soit environ 1 individu sur ", "i.e. roughly 1 individual in ") +
+        '<strong class="mono">' + state.N.toLocaleString(I18N.getLang() === "en" ? "en-US" : "fr-FR") + "</strong>.";
+    }
+
+    function buildInterp() {
+      var Nstr = state.N.toLocaleString(I18N.getLang() === "en" ? "en-US" : "fr-FR");
+      state.options = Engine.shuffle([
+        { correct: true,
+          fr: "Soit le suspect est à l'origine de la trace, soit une coïncidence rare (≈ 1 sur " + Nstr + ") s'est produite.",
+          en: "Either the suspect is the source of the trace, or a rare coincidence (≈ 1 in " + Nstr + ") has occurred." },
+        { correct: false,
+          fr: "Il est certain à 100 % que le suspect est à l'origine de la trace.",
+          en: "It is 100% certain that the suspect is the source of the trace." },
+        { correct: false,
+          fr: "La probabilité que le suspect soit innocent est de 1 sur " + Nstr + ".",
+          en: "The probability that the suspect is innocent is 1 in " + Nstr + "." }
+      ]);
+      renderResult();
+      var box = document.getElementById("interp");
+      box.innerHTML = "";
+      state.options.forEach(function (opt, i) {
+        var lab = document.createElement("label");
+        lab.className = "mcq-opt";
+        lab.innerHTML = '<input type="radio" name="interp" value="' + i + '"> ' + L(opt.fr, opt.en);
+        lab.querySelector("input").addEventListener("change", function () {
+          if (opt.correct) {
+            Engine.feedback(fb2, "success", "<strong>Exact.</strong> C'est l'interprétation correcte d'une RMP.",
+              "<strong>Correct.</strong> That is the right way to interpret an RMP.");
+          } else {
+            Engine.feedback(fb2, "fail", "<strong>Non.</strong> Attention au sophisme du procureur : la fréquence n'est pas la probabilité d'innocence.",
+              "<strong>No.</strong> Beware the prosecutor's fallacy: the frequency is not the probability of innocence.");
+          }
+        });
+        box.appendChild(lab);
+      });
+    }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("calc").addEventListener("click", calc);
+    document.addEventListener("langchange", function () {
+      render(); Engine.refreshFeedback(fb); Engine.refreshFeedback(fb2);
+      if (state.solved) buildInterp();
+    });
+
+    newCase();
+  })();
+  </script>
+</body>
+</html>

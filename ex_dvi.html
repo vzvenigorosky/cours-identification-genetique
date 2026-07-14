@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atelier DVI — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="exercices">
+
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Atelier DVI (catastrophe)" data-en="DVI workshop (disaster)"></h1>
+
+    <div class="panel" id="scenario"></div>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between">
+        <h2 style="margin:0" data-fr="Profil du corps (dégradé)" data-en="Body profile (degraded)"></h2>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+      </div>
+      <p class="muted-note"
+         data-fr="L'ADN du corps est dégradé : certains allèles ont été perdus (drop-out). Un objet correspond si tous les allèles observés du corps y sont présents."
+         data-en="The body's DNA is degraded: some alleles were lost (drop-out). An item matches if every observed body allele is present in it."></p>
+      <div class="mono" id="body" style="margin-bottom:10px"></div>
+    </div>
+
+    <div class="panel">
+      <h2 data-fr="Objets personnels de référence" data-en="Reference personal items"></h2>
+      <div class="table-scroll">
+        <table class="data" id="grid"></table>
+      </div>
+      <div class="controls mt" id="choices"></div>
+      <div class="controls mt">
+        <button class="btn btn-primary" id="check" data-i18n="common.check"></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/exercises/engine.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var LOCI = Engine.LOCI;
+    var state = {};
+    var fb = document.getElementById("fb");
+    function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
+
+    var ITEM_NAMES = [
+      { fr: "Brosse à dents", en: "Toothbrush" },
+      { fr: "Rasoir", en: "Razor" },
+      { fr: "Bijou personnel", en: "Personal jewellery" }
+    ];
+
+    function compatible(profile) {
+      return LOCI.every(function (l) {
+        return state.bodyObs[l.name].every(function (a) { return profile[l.name].indexOf(a) !== -1; });
+      });
+    }
+    function excludingLoci(profile) {
+      return LOCI.filter(function (l) {
+        return !state.bodyObs[l.name].every(function (a) { return profile[l.name].indexOf(a) !== -1; });
+      }).map(function (l) { return l.name; });
+    }
+
+    function newCase() {
+      state = { picked: null };
+      var bodyTrue = Engine.generateProfile();
+      state.bodyObs = Engine.degradeReplicate(bodyTrue, 0.22, 0.02);
+      // Guarantee at least a few observed alleles so the case is solvable.
+      var seen = 0; LOCI.forEach(function (l) { seen += state.bodyObs[l.name].length; });
+      if (seen < 6) return newCase();
+
+      state.hasMatch = Math.random() > 0.25;
+      state.matchIndex = state.hasMatch ? Engine.rint(0, ITEM_NAMES.length - 1) : -1;
+      state.items = ITEM_NAMES.map(function (nm, i) {
+        return { name: nm, profile: (i === state.matchIndex) ? JSON.parse(JSON.stringify(bodyTrue)) : Engine.generateProfile() };
+      });
+      state.correct = state.hasMatch ? String(state.matchIndex) : "none";
+      Engine.hideFeedback(fb);
+      render();
+    }
+
+    function render() {
+      document.getElementById("scenario").innerHTML =
+        '<span class="badge badge-3">' + L("Identification de victime de catastrophe (DVI)", "Disaster victim identification (DVI)") + "</span>" +
+        "<p style='margin:10px 0 0'>" +
+        L("Un corps non identifié doit être rapproché des objets personnels de disparus. Déterminez à quel objet le corps correspond — ou si aucun ne correspond.",
+          "An unidentified body must be matched to the personal items of missing people. Determine which item the body matches — or whether none matches.") + "</p>";
+
+      document.getElementById("body").innerHTML = Engine.fmtProfile(state.bodyObs);
+
+      var head = "<tr><th>Locus</th>";
+      state.items.forEach(function (it) { head += "<th>" + L(it.name.fr, it.name.en) + "</th>"; });
+      head += "</tr>";
+      var body = "";
+      LOCI.forEach(function (l) {
+        body += "<tr><td><strong>" + l.name + "</strong></td>";
+        state.items.forEach(function (it) { body += '<td class="mono">' + it.profile[l.name].join(", ") + "</td>"; });
+        body += "</tr>";
+      });
+      document.getElementById("grid").innerHTML = head + body;
+
+      var box = document.getElementById("choices");
+      box.innerHTML = "<strong>" + L("Le corps correspond à :", "The body matches:") + "</strong> ";
+      state.items.forEach(function (it, i) {
+        box.innerHTML += '<label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="dvi" value="' + i + '"> ' + L(it.name.fr, it.name.en) + "</label>";
+      });
+      box.innerHTML += '<label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="dvi" value="none"> ' + L("Aucun objet", "No item") + "</label>";
+    }
+
+    function check() {
+      var picked = document.querySelector('input[name="dvi"]:checked');
+      if (!picked) { Engine.feedback(fb, "warn", "Faites un choix.", "Make a choice."); return; }
+      if (picked.value === state.correct) {
+        if (state.correct === "none") {
+          Engine.feedback(fb, "success",
+            "<strong>Correct !</strong> Aucun objet n'explique le profil du corps : l'identification échoue avec ces références.",
+            "<strong>Correct!</strong> No item explains the body profile: identification fails with these references.");
+        } else {
+          Engine.feedback(fb, "success",
+            "<strong>Correct !</strong> Tous les allèles observés du corps sont présents dans « " +
+            L(state.items[+state.correct].name.fr, state.items[+state.correct].name.en) + " » : compatibilité malgré la dégradation.",
+            "<strong>Correct!</strong> Every observed body allele is present in “" +
+            L(state.items[+state.correct].name.fr, state.items[+state.correct].name.en) + "”: compatible despite degradation.");
+        }
+        return;
+      }
+      // Wrong: explain
+      if (picked.value === "none") {
+        Engine.feedback(fb, "fail",
+          "<strong>Non.</strong> Un objet était pourtant compatible : « " + L(state.items[+state.correct].name.fr, state.items[+state.correct].name.en) + " ».",
+          "<strong>No.</strong> One item was in fact compatible: “" + L(state.items[+state.correct].name.fr, state.items[+state.correct].name.en) + "”.");
+      } else {
+        var ex = excludingLoci(state.items[+picked.value].profile);
+        Engine.feedback(fb, "fail",
+          "<strong>Non.</strong> Cet objet est exclu : allèle(s) du corps absent(s) à " + ex.join(", ") + "." +
+          (state.correct === "none" ? " En réalité, aucun objet ne correspond." : ""),
+          "<strong>No.</strong> This item is excluded: body allele(s) missing at " + ex.join(", ") + "." +
+          (state.correct === "none" ? " In reality, no item matches." : ""));
+      }
+    }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("check").addEventListener("click", check);
+    document.addEventListener("langchange", function () { render(); Engine.refreshFeedback(fb); });
+
+    newCase();
+  })();
+  </script>
+</body>
+</html>

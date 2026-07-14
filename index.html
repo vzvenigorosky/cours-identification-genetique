@@ -1,148 +1,93 @@
-<html>
+<!DOCTYPE html>
+<html lang="fr">
 <head>
-  <title>Exercices d'identification génétique pour les étudiants de maîtrise</title>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Open Sans', sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-    .header {
-      background-color: #333;
-      color: #fff;
-      padding: 20px;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 30px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-    .header p {
-      font-size: 20px;
-      margin: 0;
-      font-weight: 400;
-      letter-spacing: 1px;
-    }
-    .nav {
-      background-color: #f5f5f5;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .nav ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: flex;
-    }
-    .nav li {
-      margin: 0 10px;
-    }
-    .nav li a {
-  font-family: 'Roboto', sans-serif;
-  font-size: 20px;
-  font-weight: 700;
-  text-decoration: none;
-  color: #333;
-}
-.nav li a:hover {
-  color: #0088cc;
-}
-.nav li a.active {
-  border-bottom: 2px solid #333;
-}
-    .main {
-      display: flex;
-      justify-content: space-between;
-      padding: 20px;
-    }
-    .content {
-      width: 80%;
-      background-color: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      padding: 20px;
-    }
-    .content h1 {
-      font-size: 36px;
-      font-weight: 700;
-      margin: 0;
-      text-transform: uppercase;
-      color: #333;
-    }
-    .content p {
-      font-size: 20px;
-      font-weight: 400;
-      line-height: 24px;
-      margin: 20px 0;
-      color: #333;
-	  text-align: justify;
-    }
-    .content h2 {
-      font-size: 24px;
-      font-weight: 700;
-      margin: 20px 0;
-      text-transform: uppercase;
-      color: #333;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Identification génétique — Portail étudiant</title>
+  <link rel="stylesheet" href="assets/site.css">
 </head>
-<body>
-  <div class="header">
-    <h1>Exercices d'identification génétique</h1>
-    <p>Pour les étudiants du Master Ethique, Parcours : Médecine légale et criminalistique</p>
-  </div>
-  <div class="nav">
-    <ul>
-      <li><a href="index.html" class="active">Accueil</a></li>
-	  <li><a href="Questions_cours.html">Questions de cours</a></li>
-	  <li><a href="Hypotheses_identification.html">Hypothèses d'identification</a></li>
-    <li><a href="Consensus.html">Profils consensus</a></li>
-      <li><a href="Comparaison_profils.html">Comparaison de profils</a></li>
-      <li><a href="melanges_ADN.html">Mélanges d'ADN</a></li>
-      <li><a href="Tests_paternite.html">Tests de paternité</a></li>
-      <li><a href="Probabilites_parente.html">Probabilités de parenté</a></li>
-      <li><a href="annales_M1.html">Annales M1</a></li>
-      <li><a href="annales_M2.html">Annales M2</a></li>
-   </ul>
-  </div>
-  <div class="main">
+<body data-page="home">
 
-    <div class="content">
-      <h2>Contact</h2>
-      <p>N'hésitez pas à me contacter à <strong>zvenigorosky@unistra.fr</strong> si vous avez des questions ou si vous remarquez une erreur dans les exercices.</p>
-      <p>N'hésitez pas non plus à me dire que tout marche bien !</p>
-	  <h2><a href="accueil-exercices-master.html">NOUVEAUX EXERCICES !!!</a></h2>
-      <p>Commencez par ici si vous voulez vous entraîner.</p>
-      <h2><a href="#FAQ">FAQ (Foire Aux Questions)</a></h2>
-      <p>Les réponses aux questions que vous me posez le plus souvent. N'hésitez pas à poser de nouvelles questions, je mettrai à jour cette section.</p>
-      <h2><a href="Questions_cours.html">Questions de cours (et fiches récapitulatives)</a></h2>
-      <p>Concernant les différents chapitres. Vous y trouverez aussi les fiches récapitulatives et leurs explications.</p>
-      <h2><a href="Hypotheses_identification.html">Hypothèses d'identification</a></h2>
-      <p>Exercices de formulation d'hypothèses d'identification à partir de données génétiques.</p>
-      <h2><a href="Consensus.html">Profils consensus</a></h2>
-      <p>Dans cette section, vous trouverez des exercices de constitution de profils consensus.</p>
-      <h2><a href="Comparaison_profils.html">Comparaison de profils</a></h2>
-      <p>Exercices de comparaison de profils traces et de profils d'individus d'intérêt.</p>
-      <h2><a href="melanges_ADN.html">Mélanges d'ADN</a></h2>
-      <p>Exercices de comparaison d'un profil trace mélangé et de profils d'individus d'intérêt.</p>
-      <h2><a href="Tests_paternite.html">Tests de paternité</a></h2>
-      <p>Exercices de détermination de la probabilité qu'un individu soit le père biologique d'un enfant.</p>
-      <h2><a href="Probabilites_parente.html">Probabilités de parenté</a></h2>
-      <p>Exercices de tests de parenté entre différents individus.</p>
-      <h2><a href="annales_M1.html">Annales M1</a></h2>
-      <h2><a href="annales_M2.html">Annales M2</a></h2>
-      <br>
-      <h1 id="FAQ">FAQ (Foire Aux Questions)</h1>
-      <h2>Sera-t-il nécessaire de calculer des fréquences à l'examen ?</h2>
-      <p>Non, les calculs seraient trop longs. Je peux par contre vous demander de retrouver des fréquences dans un tableau ou sur un graphique.</p>
-      <h2>Sera-t-il nécessaire de calculer des LR à l'examen ?</h2>
-      <p>Non, les calculs seraient trop longs. Je vous demanderai plutôt de comparer des LR entre eux.</p>
+  <header class="hero">
+    <h1 data-fr="Identification génétique médico-légale"
+        data-en="Forensic genetic identification"></h1>
+    <p data-fr="Fiches de cours, annales corrigées, exercices générés et QCM d'examen — pour les étudiants du Master."
+       data-en="Revision sheets, past exams with corrections, generated exercises and exam-style quizzes — for Master's students."></p>
+  </header>
+
+  <main class="wrap">
+
+    <div class="grid">
+      <a class="card" href="fiches.html">
+        <span class="ico">📄</span>
+        <h3 data-fr="Fiches récapitulatives" data-en="Revision sheets"></h3>
+        <p data-fr="Les fiches PDF de chaque chapitre, accompagnées des explications audio."
+           data-en="The PDF summary sheet for each chapter, with audio explanations."></p>
+        <span class="go" data-fr="Ouvrir →" data-en="Open →"></span>
+      </a>
+
+      <a class="card" href="questions.html">
+        <span class="ico">💬</span>
+        <h3 data-fr="Questions de cours" data-en="Course questions"></h3>
+        <p data-fr="Des cartes question/réponse par chapitre pour réviser l'essentiel."
+           data-en="Flashcard-style question/answer cards by chapter to revise the essentials."></p>
+        <span class="go" data-fr="Réviser →" data-en="Revise →"></span>
+      </a>
+
+      <a class="card" href="exercices.html">
+        <span class="ico">🧪</span>
+        <h3 data-fr="Exercices" data-en="Exercises"></h3>
+        <p data-fr="Des cas générés aléatoirement : consensus, RMP, mélanges, parenté, DVI."
+           data-en="Randomly generated cases: consensus, RMP, mixtures, kinship, DVI."></p>
+        <span class="go" data-fr="S'entraîner →" data-en="Practise →"></span>
+      </a>
+
+      <a class="card" href="qcm.html">
+        <span class="ico">📝</span>
+        <h3 data-fr="QCM d'examen" data-en="Exam quiz"></h3>
+        <p data-fr="Un questionnaire à choix multiples type examen : on répond à tout, puis on corrige."
+           data-en="An exam-style multiple-choice quiz: answer everything, then get the correction."></p>
+        <span class="go" data-fr="Composer →" data-en="Take it →"></span>
+      </a>
+
+      <a class="card" href="annales.html">
+        <span class="ico">🗂️</span>
+        <h3 data-fr="Annales corrigées" data-en="Past exams"></h3>
+        <p data-fr="Les sujets d'examens des années précédentes, avec corrections audio."
+           data-en="Exam papers from previous years, with audio corrections."></p>
+        <span class="go" data-fr="Consulter →" data-en="Browse →"></span>
+      </a>
     </div>
-  </div>
+
+    <h2 class="section" data-fr="Foire aux questions" data-en="Frequently asked questions"></h2>
+
+    <details class="collapse">
+      <summary data-fr="Faudra-t-il calculer des fréquences à l'examen ?"
+               data-en="Will I need to compute frequencies in the exam?"></summary>
+      <div class="body">
+        <p data-fr="Non, les calculs seraient trop longs. Je peux en revanche vous demander de retrouver des fréquences dans un tableau ou sur un graphique."
+           data-en="No, the calculations would be too long. However, I may ask you to read frequencies from a table or a graph."></p>
+      </div>
+    </details>
+
+    <details class="collapse">
+      <summary data-fr="Faudra-t-il calculer des LR à l'examen ?"
+               data-en="Will I need to compute LRs in the exam?"></summary>
+      <div class="body">
+        <p data-fr="Non, les calculs seraient trop longs. Je vous demanderai plutôt de comparer des LR entre eux."
+           data-en="No, the calculations would be too long. I will rather ask you to compare LRs with one another."></p>
+      </div>
+    </details>
+
+    <div class="panel mt">
+      <h2 data-fr="Une erreur ? Une question ?" data-en="Found a mistake? A question?"></h2>
+      <p data-fr-html="N'hésitez pas à me contacter à <strong>zvenigorosky@unistra.fr</strong> si vous avez des questions ou si vous remarquez une erreur — et n'hésitez pas non plus à me dire que tout marche bien !"
+         data-en-html="Feel free to contact me at <strong>zvenigorosky@unistra.fr</strong> with any question or if you spot a mistake — and do tell me when everything works well, too!"></p>
+    </div>
+
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/layout.js"></script>
 </body>
 </html>
-

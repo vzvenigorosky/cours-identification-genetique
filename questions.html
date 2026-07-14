@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Questions de cours — Identification génétique</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="questions">
+
+  <main class="wrap narrow">
+    <h1 class="page-title" data-fr="Questions de cours" data-en="Course questions"></h1>
+    <p class="page-intro"
+       data-fr="Révisez chapitre par chapitre. Choisissez un thème, réfléchissez à la réponse, puis dévoilez-la. Toutes les questions des annales ont un équivalent ici."
+       data-en="Revise chapter by chapter. Pick a topic, think of the answer, then reveal it. Every past-exam question has an equivalent here."></p>
+
+    <div class="panel">
+      <div class="controls">
+        <label for="topic"><strong data-fr="Chapitre :" data-en="Chapter:"></strong></label>
+        <select id="topic" class="input"></select>
+        <button id="revealAll" class="btn btn-ghost" type="button"
+                data-fr="Tout afficher" data-en="Reveal all"></button>
+        <button id="hideAll" class="btn btn-ghost" type="button"
+                data-fr="Tout masquer" data-en="Hide all"></button>
+        <span id="count" class="muted-note"></span>
+      </div>
+    </div>
+
+    <div id="cards"></div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/data/flashcards.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var topicSel = document.getElementById("topic");
+    var cardsBox = document.getElementById("cards");
+    var countEl  = document.getElementById("count");
+
+    function currentTopic() {
+      return FLASHCARDS.find(function (t) { return t.id === topicSel.value; }) || FLASHCARDS[0];
+    }
+
+    function fillTopics() {
+      var keep = topicSel.value;
+      topicSel.innerHTML = "";
+      FLASHCARDS.forEach(function (t) {
+        var o = document.createElement("option");
+        o.value = t.id;
+        o.textContent = I18N.pick(t.title) + (t.level === "m2" ? " (M2)" : "");
+        topicSel.appendChild(o);
+      });
+      if (keep) topicSel.value = keep;
+    }
+
+    function render() {
+      var t = currentTopic();
+      cardsBox.innerHTML = "";
+      t.cards.forEach(function (c) {
+        var el = document.createElement("div");
+        el.className = "flashcard";
+        var q = document.createElement("p"); q.className = "q"; q.textContent = I18N.pick(c.q);
+        var a = document.createElement("p"); a.className = "a"; a.textContent = I18N.pick(c.a);
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "btn btn-ghost reveal-btn";
+        b.textContent = I18N.t("common.reveal");
+        b.addEventListener("click", function () {
+          var open = el.classList.toggle("reveal");
+          b.textContent = open ? I18N.t("common.hide") : I18N.t("common.reveal");
+        });
+        el.appendChild(q); el.appendChild(b); el.appendChild(a);
+        cardsBox.appendChild(el);
+      });
+      countEl.textContent = t.cards.length + (I18N.getLang() === "en" ? " cards" : " cartes");
+    }
+
+    document.getElementById("revealAll").addEventListener("click", function () {
+      cardsBox.querySelectorAll(".flashcard").forEach(function (el) {
+        el.classList.add("reveal");
+        var b = el.querySelector(".reveal-btn"); if (b) b.textContent = I18N.t("common.hide");
+      });
+    });
+    document.getElementById("hideAll").addEventListener("click", function () {
+      cardsBox.querySelectorAll(".flashcard").forEach(function (el) {
+        el.classList.remove("reveal");
+        var b = el.querySelector(".reveal-btn"); if (b) b.textContent = I18N.t("common.reveal");
+      });
+    });
+
+    topicSel.addEventListener("change", render);
+    document.addEventListener("langchange", function () { fillTopics(); render(); });
+
+    fillTopics();
+    render();
+  })();
+  </script>
+</body>
+</html>

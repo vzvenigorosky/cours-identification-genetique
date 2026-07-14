@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Déconvolution de mélange — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="exercices">
+
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Déconvolution de mélange" data-en="Mixture deconvolution"></h1>
+
+    <div class="panel" id="scenario"></div>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between">
+        <h2 style="margin:0" data-fr="1. Attribuez les allèles de l'agresseur" data-en="1. Attribute the assailant's alleles"></h2>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+      </div>
+      <p class="muted-note"
+         data-fr="Dans la colonne « Mélange », cliquez les allèles qui ne peuvent pas provenir de la victime : ils appartiennent forcément à l'agresseur."
+         data-en="In the “Mixture” column, click the alleles that cannot come from the victim: they must belong to the assailant."></p>
+      <div class="table-scroll">
+        <table class="data" id="grid"></table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 data-fr="2. Comparaison au suspect" data-en="2. Comparison with the suspect"></h2>
+      <p class="muted-note" data-fr="Profil du suspect :" data-en="Suspect profile:"></p>
+      <div class="mono" id="suspect" style="margin-bottom:14px"></div>
+      <div class="controls">
+        <strong data-fr="Conclusion :" data-en="Conclusion:"></strong>
+        <label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="verdict" value="match">
+          <span data-fr="Non exclu" data-en="Not excluded"></span></label>
+        <label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="verdict" value="exclusion">
+          <span data-fr="Exclu" data-en="Excluded"></span></label>
+        <button class="btn btn-primary" id="check" data-i18n="common.check"></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/exercises/engine.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var LOCI = Engine.LOCI;
+    var state = {};
+    var fb = document.getElementById("fb");
+    function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
+
+    function newCase() {
+      state = { picked: {} };
+      LOCI.forEach(function (l) { state.picked[l.name] = new Set(); });
+      state.victim = Engine.generateProfile();
+      state.assailant = Engine.generateProfile();
+      state.mix = {}; state.foreign = {};
+      LOCI.forEach(function (l) {
+        state.mix[l.name] = Engine.uniqueSorted(state.victim[l.name].concat(state.assailant[l.name]));
+        state.foreign[l.name] = state.assailant[l.name].filter(function (a) {
+          return state.victim[l.name].indexOf(a) === -1;
+        });
+      });
+      // Suspect: 50% the true assailant, 50% a random innocent.
+      state.suspectIsSource = Math.random() > 0.5;
+      state.suspect = state.suspectIsSource
+        ? JSON.parse(JSON.stringify(state.assailant))
+        : Engine.generateProfile();
+      // Truth: suspect not excluded iff every foreign allele is present in the suspect.
+      state.notExcluded = LOCI.every(function (l) {
+        return state.foreign[l.name].every(function (a) { return state.suspect[l.name].indexOf(a) !== -1; });
+      });
+
+      Engine.hideFeedback(fb);
+      document.querySelectorAll('input[name="verdict"]').forEach(function (r) { r.checked = false; });
+      render();
+    }
+
+    function render() {
+      document.getElementById("scenario").innerHTML =
+        '<span class="badge badge-2">' + L("Scénario d'agression sexuelle", "Sexual-assault scenario") + "</span>" +
+        "<p style='margin:10px 0 0'>" +
+        L("Le prélèvement contient un <strong>mélange</strong> de l'ADN de la victime (profil connu) et de l'agresseur. Isolez le profil de l'agresseur, puis comparez-le au suspect.",
+          "The sample contains a <strong>mixture</strong> of the victim's DNA (known profile) and the assailant's. Isolate the assailant's profile, then compare it with the suspect.") + "</p>";
+
+      var head = "<tr><th>Locus</th><th>" + L("Victime (connue)", "Victim (known)") + "</th><th>" +
+                 L("Mélange", "Mixture") + "</th><th>" + L("Agresseur déduit", "Deduced assailant") + "</th></tr>";
+      var body = "";
+      LOCI.forEach(function (l) {
+        var cell = "";
+        state.mix[l.name].forEach(function (a) {
+          var sel = state.picked[l.name].has(a) ? " selected" : "";
+          cell += '<button class="allele-btn' + sel + '" data-locus="' + l.name + '" data-allele="' + a + '">' + a + "</button>";
+        });
+        var deduced = Array.from(state.picked[l.name]).sort(function (a, b) { return a - b; });
+        body += "<tr><td><strong>" + l.name + "</strong></td>" +
+          '<td class="mono">' + state.victim[l.name].join(", ") + "</td>" +
+          "<td>" + cell + "</td>" +
+          '<td class="mono" style="color:var(--green);font-weight:700">' + (deduced.length ? deduced.join(", ") : "–") + "</td></tr>";
+      });
+      var grid = document.getElementById("grid");
+      grid.innerHTML = head + body;
+      grid.querySelectorAll(".allele-btn").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var loc = b.dataset.locus, a = parseInt(b.dataset.allele, 10);
+          var s = state.picked[loc];
+          if (s.has(a)) s.delete(a); else s.add(a);
+          render();
+        });
+      });
+      document.getElementById("suspect").innerHTML = Engine.fmtProfile(state.suspect);
+    }
+
+    function setEquals(set, arr) {
+      if (set.size !== arr.length) return false;
+      return arr.every(function (a) { return set.has(a); });
+    }
+
+    function check() {
+      // 1. Validate the deconvolution itself.
+      var mis = [], miss = [];
+      LOCI.forEach(function (l) {
+        var foreign = state.foreign[l.name];
+        state.picked[l.name].forEach(function (a) {
+          if (foreign.indexOf(a) === -1) mis.push(l.name); // attributed a victim-explained allele
+        });
+        foreign.forEach(function (a) { if (!state.picked[l.name].has(a)) miss.push(l.name); });
+      });
+      if (mis.length) {
+        Engine.feedback(fb, "fail",
+          "<strong>Mauvaise attribution</strong> à : " + Array.from(new Set(mis)).join(", ") +
+          ". Un allèle déjà présent chez la victime ne peut pas être attribué avec certitude à l'agresseur.",
+          "<strong>Wrong attribution</strong> at: " + Array.from(new Set(mis)).join(", ") +
+          ". An allele already present in the victim cannot be attributed to the assailant with certainty.");
+        return;
+      }
+      if (miss.length) {
+        Engine.feedback(fb, "warn",
+          "<strong>Déconvolution incomplète.</strong> Il reste des allèles « étrangers » non attribués à : " +
+          Array.from(new Set(miss)).join(", ") + ".",
+          "<strong>Incomplete deconvolution.</strong> Some “foreign” alleles are still unattributed at: " +
+          Array.from(new Set(miss)).join(", ") + ".");
+        return;
+      }
+
+      // 2. Validate the verdict.
+      var picked = document.querySelector('input[name="verdict"]:checked');
+      if (!picked) {
+        Engine.feedback(fb, "warn", "Choisissez une conclusion.", "Choose a conclusion.");
+        return;
+      }
+      var correct = (state.notExcluded && picked.value === "match") || (!state.notExcluded && picked.value === "exclusion");
+      if (correct) {
+        Engine.feedback(fb, "success",
+          "<strong>Correct !</strong> " + (state.notExcluded
+            ? "Tous les allèles de l'agresseur sont présents chez le suspect : il n'est pas exclu."
+            : "Au moins un allèle de l'agresseur manque chez le suspect : il est exclu."),
+          "<strong>Correct!</strong> " + (state.notExcluded
+            ? "Every assailant allele is present in the suspect: he is not excluded."
+            : "At least one assailant allele is missing in the suspect: he is excluded."));
+      } else {
+        Engine.feedback(fb, "fail",
+          "<strong>Conclusion incorrecte.</strong> En réalité, le suspect est " + (state.notExcluded ? "non exclu." : "exclu."),
+          "<strong>Wrong conclusion.</strong> In reality, the suspect is " + (state.notExcluded ? "not excluded." : "excluded."));
+      }
+    }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("check").addEventListener("click", check);
+    document.addEventListener("langchange", function () { render(); Engine.refreshFeedback(fb); });
+
+    newCase();
+  })();
+  </script>
+</body>
+</html>
