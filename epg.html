@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratoire EPG — Identification génétique</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .epg-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end; }
+    .ctl label { display: block; font-weight: 700; font-size: .82rem; color: var(--ink); margin-bottom: 5px; }
+    .ctl select, .ctl input { width: 100%; }
+    .art-grid { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+    .art-grid label { font-weight: 600; font-size: .85rem; color: var(--text); display: inline-flex; align-items: center; gap: 5px; }
+    .epg-view { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 8px; }
+    .epg-view svg { display: block; min-width: 900px; }
+    .rangewrap { display: flex; align-items: center; gap: 8px; }
+    .rangewrap output { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .82rem; min-width: 46px; }
+    table.ak { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    table.ak th, table.ak td { border: 1px solid var(--border); padding: 4px 8px; text-align: center; }
+    table.ak th { background: var(--stripe); }
+    table.ak td.loc { text-align: left; font-weight: 700; color: var(--ink); }
+  </style>
+</head>
+<body data-page="epg">
+
+  <main class="wrap">
+    <h1 class="page-title" data-fr="Laboratoire EPG" data-en="EPG lab"></h1>
+    <p class="page-intro"
+       data-fr="Générez des électrophorégrammes réalistes (GlobalFiler / Yfiler Plus) comme à la sortie de GeneMapper : traces propres ou dégradées, mélanges, paires apparentées. Chaque cas est reproductible via sa graine (seed)."
+       data-en="Generate realistic electropherograms (GlobalFiler / Yfiler Plus) as they come out of GeneMapper: clean or degraded traces, mixtures, related pairs. Every case is reproducible from its seed."></p>
+
+    <div class="panel">
+      <div class="epg-controls">
+        <div class="ctl">
+          <label data-fr="Kit" data-en="Kit"></label>
+          <select id="kit" class="input">
+            <option value="globalfiler">GlobalFiler</option>
+            <option value="yfilerplus">Yfiler Plus</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label data-fr="Type de cas" data-en="Case type"></label>
+          <select id="type" class="input"></select>
+        </div>
+        <div class="ctl">
+          <label data-fr="Ratio de mélange" data-en="Mixture ratio"></label>
+          <input id="ratio" class="input" type="text" placeholder="ex. 3:1" />
+        </div>
+        <div class="ctl">
+          <label><span data-fr="Quantité d'ADN (RFU)" data-en="Template (RFU)"></span></label>
+          <div class="rangewrap"><input id="template" type="range" min="200" max="8000" step="100" value="3600"><output id="templateOut"></output></div>
+        </div>
+        <div class="ctl">
+          <label><span data-fr="Dégradation" data-en="Degradation"></span></label>
+          <div class="rangewrap"><input id="degradation" type="range" min="0" max="4" step="0.1" value="0"><output id="degradationOut"></output></div>
+        </div>
+        <div class="ctl">
+          <label data-fr="Graine (seed)" data-en="Seed"></label>
+          <div class="rangewrap"><input id="seed" class="input" type="text" value="1"><button id="dice" class="btn btn-ghost" type="button" title="random">🎲</button></div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px">
+        <label style="font-weight:700;font-size:.82rem;color:var(--ink)" data-fr="Artefacts" data-en="Artifacts"></label>
+        <div class="art-grid" id="artGrid" style="margin-top:6px"></div>
+      </div>
+
+      <div class="controls" style="margin-top:16px">
+        <button id="gen" class="btn btn-primary" data-fr="Générer un cas" data-en="Generate a case"></button>
+        <button id="answerBtn" class="btn btn-ghost" data-fr="Afficher le corrigé" data-en="Show answer key"></button>
+        <span style="flex:1"></span>
+        <button id="dlSvg" class="btn btn-ghost" data-fr="SVG" data-en="SVG"></button>
+        <button id="dlPng" class="btn btn-ghost" data-fr="PNG" data-en="PNG"></button>
+        <button id="dlJson" class="btn btn-ghost" data-fr="Données JSON" data-en="JSON data"></button>
+      </div>
+    </div>
+
+    <div class="epg-view" id="view"></div>
+
+    <div class="panel hidden" id="answer" style="margin-top:18px">
+      <h2 data-fr="Corrigé" data-en="Answer key"></h2>
+      <div id="answerBody"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/layout.js"></script>
+  <script type="module">
+    import { generateCase, CASE_TYPES } from "./assets/epg/index.js";
+
+    const L = (fr, en) => (I18N.getLang() === "en" ? en : fr);
+    const TYPE_LABELS = {
+      clean: ["Trace propre", "Clean single-source"],
+      degraded: ["Trace dégradée", "Degraded single-source"],
+      mixture2: ["Mélange 2 personnes", "2-person mixture"],
+      mixture3: ["Mélange 3 personnes", "3-person mixture"],
+      "parent-child": ["Parent–enfant", "Parent–child"],
+      "full-siblings": ["Frères / sœurs", "Full siblings"],
+      "half-siblings": ["Demi-frères / sœurs", "Half-siblings"],
+      avuncular: ["Oncle–neveu / tante–nièce", "Avuncular"],
+      grandparent: ["Grand-parent–petit-enfant", "Grandparent"],
+      unrelated: ["Non apparentés (piège)", "Unrelated (distractor)"]
+    };
+    const REL_LABELS = {
+      "parent-child": ["Parent–enfant", "Parent–child"],
+      "full-siblings": ["Frères / sœurs", "Full siblings"],
+      "half-siblings": ["Demi-frères / sœurs", "Half-siblings"],
+      avuncular: ["Avunculaire", "Avuncular"],
+      grandparent: ["Grand-parent–petit-enfant", "Grandparent–grandchild"],
+      unrelated: ["Non apparentés", "Unrelated"]
+    };
+    const ART_KEYS = [
+      ["stutter", "Stutter", "Stutter"],
+      ["minusA", "Minus-A (−A)", "Minus-A (−A)"],
+      ["pullup", "Pull-up", "Pull-up"],
+      ["dropin", "Drop-in", "Drop-in"],
+      ["spike", "Pics parasites", "Spikes"],
+      ["blob", "Dye blobs", "Dye blobs"],
+      ["offladder", "Off-ladder", "Off-ladder"],
+      ["noise", "Bruit de fond", "Baseline noise"]
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    let lastCase = null;
+
+    function fillTypes() {
+      const keep = $("type").value;
+      $("type").innerHTML = "";
+      for (const t of CASE_TYPES) {
+        const o = document.createElement("option");
+        o.value = t; o.textContent = L(TYPE_LABELS[t][0], TYPE_LABELS[t][1]);
+        $("type").appendChild(o);
+      }
+      if (keep) $("type").value = keep;
+    }
+    function fillArts() {
+      $("artGrid").innerHTML = "";
+      for (const [k, fr, en] of ART_KEYS) {
+        const lab = document.createElement("label");
+        lab.innerHTML = `<input type="checkbox" data-art="${k}" checked> ${L(fr, en)}`;
+        $("artGrid").appendChild(lab);
+      }
+    }
+    function readArt() {
+      const art = {};
+      document.querySelectorAll("[data-art]").forEach((c) => { art[c.dataset.art] = c.checked; });
+      return art;
+    }
+    function parseRatio(s) {
+      const parts = String(s || "").split(":").map((x) => parseFloat(x.trim())).filter((x) => x > 0);
+      return parts.length >= 2 ? parts : null;
+    }
+
+    function spec() {
+      const type = $("type").value;
+      const s = {
+        kit: $("kit").value, type,
+        seed: $("seed").value.trim() || "1",
+        template: +$("template").value,
+        art: readArt(),
+        width: 1300
+      };
+      const deg = +$("degradation").value;
+      if (deg > 0) s.degradation = deg;
+      const r = parseRatio($("ratio").value);
+      if (r && (type === "mixture2" || type === "mixture3")) s.ratio = r;
+      return s;
+    }
+
+    function generate() {
+      lastCase = generateCase(spec());
+      $("view").innerHTML = lastCase.svg;
+      renderAnswer();
+    }
+
+    function genoTableHTML(kitLoci, contribs, headers) {
+      const loci = Object.keys(contribs[0]);
+      // union of loci across contributors, preserve order of first
+      const all = new Set();
+      contribs.forEach((c) => Object.keys(c).forEach((k) => all.add(k)));
+      let html = '<div class="table-scroll"><table class="ak"><thead><tr><th>Locus</th>';
+      headers.forEach((h) => (html += `<th>${h}</th>`));
+      html += "</tr></thead><tbody>";
+      for (const loc of all) {
+        html += `<tr><td class="loc">${loc}</td>`;
+        contribs.forEach((c) => (html += `<td class="mono">${c[loc] || "–"}</td>`));
+        html += "</tr>";
+      }
+      return html + "</tbody></table></div>";
+    }
+
+    function renderAnswer() {
+      if (!lastCase) return;
+      const ak = lastCase.answerKey;
+      const body = $("answerBody");
+      let html = "";
+      html += `<p><strong>${L("Type", "Type")} :</strong> ${L(TYPE_LABELS[ak.type][0], TYPE_LABELS[ak.type][1])}` +
+              ` &nbsp;•&nbsp; <strong>${L("Graine", "Seed")} :</strong> <span class="mono">${$("seed").value}</span></p>`;
+
+      if (ak.relationship) {
+        html += `<p><strong>${L("Relation", "Relationship")} :</strong> ` +
+                `${L(REL_LABELS[ak.relationship][0], REL_LABELS[ak.relationship][1])} — <em>${ak.note}</em></p>`;
+        if (ak.kinshipSummary) {
+          const k = ak.kinshipSummary;
+          html += `<p class="muted-note">${L("Loci autosomaux partageant ≥1 allèle", "Autosomal loci sharing ≥1 allele")}: ` +
+                  `<strong>${k.lociShared}/${k.lociTotal}</strong> · ` +
+                  `${L("partage complet (2 allèles)", "full sharing (2 alleles)")}: <strong>${k.lociSharingBoth}</strong></p>`;
+        }
+        if (ak.haplotypeMatch) {
+          const h = ak.haplotypeMatch;
+          html += `<p class="muted-note">${L("Loci Y identiques", "Matching Y loci")}: <strong>${h.lociMatching}/${h.lociTotal}</strong>` +
+                  (h.identical ? ` — ${L("haplotype identique", "identical haplotype")}` : "") + `</p>`;
+        }
+        html += genoTableHTML(null, ak.contributors, ["Sample A", "Sample B"]);
+      } else {
+        if (ak.mixtureRatioLabel) {
+          html += `<p><strong>${L("Ratio du mélange", "Mixture ratio")} :</strong> <span class="mono">${ak.mixtureRatioLabel}</span></p>`;
+        }
+        if (ak.degradation != null && ak.type === "degraded") {
+          html += `<p><strong>${L("Dégradation", "Degradation")} :</strong> <span class="mono">${ak.degradation}</span></p>`;
+        }
+        const headers = ak.contributors.map((_, i) => L("Contributeur", "Contributor") + " " + (i + 1));
+        html += genoTableHTML(null, ak.contributors, headers);
+      }
+      body.innerHTML = html;
+    }
+
+    function download(name, blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = name; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    function svgToPng(svgStr) {
+      return new Promise((resolve) => {
+        const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          const scale = 2;
+          const c = document.createElement("canvas");
+          c.width = img.width * scale; c.height = img.height * scale;
+          const ctx = c.getContext("2d");
+          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.setTransform(scale, 0, 0, scale, 0, 0);
+          ctx.drawImage(img, 0, 0);
+          c.toBlob((b) => { resolve(b); URL.revokeObjectURL(url); }, "image/png");
+        };
+        img.src = url;
+      });
+    }
+    function baseName() {
+      return `${lastCase.kit}_${lastCase.type}_seed-${$("seed").value}`;
+    }
+
+    // wiring
+    $("gen").addEventListener("click", generate);
+    $("dice").addEventListener("click", () => { $("seed").value = String(Math.floor(Math.random() * 1e6)); generate(); });
+    $("template").addEventListener("input", () => ($("templateOut").textContent = $("template").value));
+    $("degradation").addEventListener("input", () => ($("degradationOut").textContent = (+$("degradation").value).toFixed(1)));
+    $("answerBtn").addEventListener("click", () => {
+      const a = $("answer"); const hidden = a.classList.toggle("hidden");
+      $("answerBtn").textContent = hidden ? L("Afficher le corrigé", "Show answer key") : L("Masquer le corrigé", "Hide answer key");
+    });
+    $("dlSvg").addEventListener("click", () => lastCase && download(baseName() + ".svg", new Blob([lastCase.svg], { type: "image/svg+xml" })));
+    $("dlJson").addEventListener("click", () => lastCase && download(baseName() + ".json",
+      new Blob([JSON.stringify({ spec: spec(), answerKey: lastCase.answerKey }, null, 2)], { type: "application/json" })));
+    $("dlPng").addEventListener("click", async () => { if (lastCase) download(baseName() + ".png", await svgToPng(lastCase.svg)); });
+
+    document.addEventListener("langchange", () => { fillTypes(); fillArts(); renderAnswer();
+      $("answerBtn").textContent = $("answer").classList.contains("hidden") ? L("Afficher le corrigé", "Show answer key") : L("Masquer le corrigé", "Hide answer key");
+    });
+
+    // init
+    fillTypes(); fillArts();
+    $("templateOut").textContent = $("template").value;
+    $("degradationOut").textContent = (+$("degradation").value).toFixed(1);
+    generate();
+  </script>
+</body>
+</html>
