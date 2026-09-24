@@ -1,0 +1,29 @@
+name: CI
+
+# Runs the EPG core self-tests on every pull request so functional
+# regressions are caught before review. No dependencies to install —
+# the self-test imports only local ES modules and Node built-ins.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  epg-selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: EPG self-tests
+        run: node tools/epg-selftest.mjs
