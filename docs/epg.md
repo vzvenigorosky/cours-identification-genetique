@@ -22,5 +22,15 @@ Allele bins and frequencies are **approximate / European teaching values**, isol
 
 ## CLI usage
 ```
-EPG batch generator  --kit         globalfiler | yfilerplus         (default globalfiler)  --type        clean | degraded | mixture2 | mixture3 | parent-child | full-siblings | half-siblings | avuncular | grandparent | unrelated  --n           number of cases                   (default 10)  --seed        base seed (string or number)      (default 1)  --ratio       mixture ratio e.g. 3:1            (mixtures only)  --template    template RFU                       (optional)  --degradation degradation k 0..4                 (optional)  --width       SVG width px                        (default 1300)  --out         output directory                    (default out)  --png         also rasterise to PNG (Playwright)
+EPG batch generator
+  --kit         globalfiler | yfilerplus         (default globalfiler)
+  --type        clean | degraded | mixture2 | mixture3 | parent-child | full-siblings | half-siblings | avuncular | grandparent | unrelated
+  --n           number of cases                   (default 10)
+  --seed        base seed (string or number)      (default 1)
+  --ratio       mixture ratio e.g. 3:1            (mixtures only)
+  --template    template RFU                       (optional)
+  --degradation degradation k 0..4                 (optional)
+  --width       SVG width px                        (default 1300)
+  --out         output directory                    (default out)
+  --png         also rasterise to PNG (Playwright)
 ```
