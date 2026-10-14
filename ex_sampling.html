@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Échantillonnage de scellés — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .scelle { display:flex; gap:16px; align-items:flex-start; }
+    .scelle .ico { font-size:2.6rem; line-height:1; }
+    .scelle h2 { margin:0 0 4px; color:var(--ink); font-size:1.2rem; }
+    .scelle p  { margin:0; color:var(--muted); }
+    .pal-label { font-weight:700; font-size:.82rem; color:var(--ink); margin:2px 0 8px; }
+    .palette { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+    .chip {
+      border:1px solid var(--border); background:var(--card); color:var(--ink);
+      border-radius:999px; padding:7px 14px; font-size:.9rem; font-weight:600;
+      cursor:pointer; transition:all .12s;
+    }
+    .chip:hover { background:var(--stripe); border-color:var(--accent); }
+    .chip.sel { background:linear-gradient(180deg,var(--green),var(--blue)); color:#fff; border-color:var(--blue); }
+    .fb-line { margin:6px 0; }
+    .fb-line .tag { display:inline-block; min-width:1.2em; font-weight:800; }
+    .t-good { color:var(--success-fg); } .t-ok { color:var(--warn-fg); }
+    .t-bad { color:var(--fail-fg); } .t-neutral { color:var(--muted); }
+  </style>
+</head>
+<body data-page="exercices">
+
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Échantillonnage de scellés" data-en="Sampling sealed evidence"></h1>
+    <p class="page-intro"
+       data-fr="Pour chaque scellé, choisissez le(s) instrument(s) de prélèvement et le(s) test(s) d'orientation adaptés. Plusieurs choix peuvent être corrects — l'important est de rester pertinent et flexible."
+       data-en="For each sealed item, choose the appropriate sampling instrument(s) and orientation test(s). Several choices can be correct — the point is to stay relevant and flexible."></p>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between">
+        <div class="scelle" id="scelle"></div>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="pal-label" data-fr="Instrument(s) de prélèvement" data-en="Sampling instrument(s)"></div>
+      <div class="palette" id="instruments"></div>
+      <div class="pal-label" data-fr="Test(s) d'orientation" data-en="Orientation test(s)"></div>
+      <div class="palette" id="tests"></div>
+      <div class="controls">
+        <button class="btn btn-primary" id="check" data-i18n="common.check"></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/data/sampling.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var S = window.SAMPLING;
+    var fb = document.getElementById("fb");
+    var state = { item: null, instr: new Set(), tests: new Set() };
+    function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
+    function pick(o) { return I18N.pick(o); }
+    function labelOf(list, id) { var e = list.find(function (x) { return x.id === id; }); return e ? pick(e.label) : id; }
+
+    function newCase() {
+      state.item = S.items[Math.floor(Math.random() * S.items.length)];
+      state.instr = new Set(); state.tests = new Set();
+      fb.className = "feedback";
+      render();
+    }
+
+    function render() {
+      var it = state.item;
+      document.getElementById("scelle").innerHTML =
+        '<div class="ico">' + (it.icon || "🧪") + "</div>" +
+        '<div><h2>' + esc(pick(it.title)) + "</h2><p>" + esc(pick(it.desc)) + "</p></div>";
+      renderPalette("instruments", S.instruments, state.instr);
+      renderPalette("tests", S.tests, state.tests);
+    }
+
+    function renderPalette(elId, list, sel) {
+      var box = document.getElementById(elId);
+      box.innerHTML = "";
+      list.forEach(function (opt) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip" + (sel.has(opt.id) ? " sel" : "");
+        b.textContent = pick(opt.label);
+        b.addEventListener("click", function () {
+          if (sel.has(opt.id)) sel.delete(opt.id); else sel.add(opt.id);
+          b.classList.toggle("sel");
+        });
+        box.appendChild(b);
+      });
+    }
+
+    function tier(id, m) {
+      if ((m.bad || []).indexOf(id) !== -1) return "bad";
+      if ((m.good || []).indexOf(id) !== -1) return "good";
+      if ((m.ok || []).indexOf(id) !== -1) return "ok";
+      return "neutral";
+    }
+    function gradeCat(sel, m) {
+      var picked = Array.from(sel);
+      var bad = picked.filter(function (id) { return tier(id, m) === "bad"; });
+      var good = picked.filter(function (id) { return tier(id, m) === "good"; });
+      var missingGood = (m.good || []).filter(function (id) { return !sel.has(id); });
+      return { pass: bad.length === 0 && good.length >= 1, picked: picked, bad: bad, good: good, missingGood: missingGood };
+    }
+
+    function catFeedback(titleFr, titleEn, list, sel, m, res) {
+      var rows = Array.from(sel).map(function (id) {
+        var t = tier(id, m);
+        var mark = t === "good" ? "✓" : t === "ok" ? "~" : t === "bad" ? "✗" : "·";
+        var note = t === "good" ? L("recommandé", "recommended")
+                 : t === "ok" ? L("défendable", "defensible")
+                 : t === "bad" ? L("non indiqué", "not indicated")
+                 : L("inutile ici", "unnecessary here");
+        return '<div class="fb-line"><span class="tag t-' + t + '">' + mark + "</span> " +
+               esc(labelOf(list, id)) + ' <span class="muted-note">(' + note + ")</span></div>";
+      }).join("");
+      if (!sel.size) rows = '<div class="fb-line muted-note">' + L("rien de sélectionné", "nothing selected") + "</div>";
+      var miss = res.missingGood.length
+        ? '<div class="fb-line t-bad">' + L("Il manque un choix recommandé : ", "A recommended choice is missing: ") +
+          res.missingGood.map(function (id) { return esc(labelOf(list, id)); }).join(", ") + "</div>"
+        : "";
+      return "<p><strong>" + L(titleFr, titleEn) + "</strong></p>" + rows + miss;
+    }
+
+    function check() {
+      var it = state.item;
+      var ri = gradeCat(state.instr, it.instruments);
+      var rt = gradeCat(state.tests, it.tests);
+      var ok = ri.pass && rt.pass;
+      fb.className = "feedback show " + (ok ? "success" : "fail");
+      fb.innerHTML =
+        "<p><strong>" + (ok ? L("Correct !", "Correct!") : L("À revoir.", "Needs review.")) + "</strong></p>" +
+        catFeedback("Instruments", "Instruments", S.instruments, state.instr, it.instruments, ri) +
+        catFeedback("Tests d'orientation", "Orientation tests", S.tests, state.tests, it.tests, rt) +
+        '<p class="mt" style="border-top:1px solid var(--border);padding-top:8px"><em>' + esc(pick(it.teach)) + "</em></p>";
+    }
+
+    function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("check").addEventListener("click", check);
+    document.addEventListener("langchange", function () {
+      render();
+      if (fb.classList.contains("show")) check();
+    });
+
+    newCase();
+  })();
+  </script>
+</body>
+</html>
