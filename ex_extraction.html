@@ -3,58 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Extraction, quantification &amp; routage — Exercice</title>
+  <title>Quantification : quels extraits amplifier ? — Exercice</title>
   <link rel="stylesheet" href="assets/site.css">
   <style>
-    .result-grid { display:flex; flex-wrap:wrap; gap:14px; margin:8px 0; }
-    .stat { background:var(--stripe); border:1px solid var(--border); border-radius:8px; padding:8px 14px; }
-    .stat .v { font-size:1.2rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
-    .stat .k { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
-    .frac { border-left:3px solid var(--blue); padding-left:12px; margin:10px 0; }
-    .frac-h { font-size:.8rem; font-weight:700; color:var(--ink); }
-    .step.locked { opacity:.45; pointer-events:none; }
-    .opts { display:flex; flex-wrap:wrap; gap:10px; margin:6px 0 12px; }
+    .req { background:var(--stripe); border:1px solid var(--border); border-radius:8px; padding:12px 14px; font-size:.92rem; color:var(--ink); }
+    .scelle { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin:12px 0; }
+    .scelle h3 { margin:0 0 2px; font-size:1.02rem; color:var(--ink); }
+    .scelle .nat { margin:0 0 8px; color:var(--muted); font-size:.86rem; }
+    .qrow { display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:7px; }
+    .qrow:hover { background:var(--stripe); }
+    .qrow input { flex:none; }
+    .qrow .lab { flex:1 1 auto; }
+    .qrow .val { font-variant-numeric:tabular-nums; font-weight:700; color:var(--ink); min-width:92px; text-align:right; }
+    .qrow .unit { color:var(--muted); font-weight:400; font-size:.8rem; }
+    .qrow.none { border-top:1px dashed var(--border); margin-top:4px; padding-top:10px; }
+    .verdict { font-size:.9rem; margin-top:8px; }
+    .verdict.ok { color:var(--green); }
+    .verdict.ko { color:#a3202c; }
   </style>
 </head>
 <body data-page="exercices">
 
   <main class="wrap narrow">
     <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
-    <h1 class="page-title mt" data-fr="Extraction, quantification &amp; routage" data-en="Extraction, quantification &amp; routing"></h1>
+    <h1 class="page-title mt" data-fr="Quantification : quels extraits amplifier ?" data-en="Quantification: which extracts to amplify?"></h1>
     <p class="page-intro"
-       data-fr="Une trace a été prélevée. Choisissez la méthode d'extraction, lisez la quantification, puis dirigez l'extrait vers les bonnes analyses (STR autosomiques, Y-STR, ADNmt)."
-       data-en="A trace has been sampled. Choose the extraction method, read the quantification, then route the extract to the right analyses (autosomal STR, Y-STR, mtDNA)."></p>
+       data-fr="La réquisition demande des profils STR autosomiques. Les extractions sont faites : pour chaque scellé, lisez la quantification des extraits et choisissez le meilleur à amplifier — ou concluez qu'aucun n'est exploitable."
+       data-en="The requisition asks for autosomal STR profiles. Extractions are done: for each exhibit, read the quantification of its extracts and pick the best one to amplify — or conclude that none is usable."></p>
 
     <div class="panel">
       <div class="controls" style="justify-content:space-between; align-items:flex-start">
-        <div id="scenario"></div>
-        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+        <div class="req" id="requisition" style="flex:1 1 auto"></div>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase" style="flex:none; margin-left:12px"></button>
       </div>
     </div>
 
     <div class="panel">
-      <h2 style="margin-top:0" data-fr="1. Méthode d'extraction" data-en="1. Extraction method"></h2>
-      <p class="muted-note" data-fr="Comment extraire l'ADN de cet échantillon ?" data-en="How should the DNA be extracted from this sample?"></p>
-      <div class="opts" id="extractOpts"></div>
-      <div class="controls">
-        <button class="btn btn-primary" id="checkExtract" data-i18n="common.check"></button>
+      <div id="scelles"></div>
+      <div class="controls mt">
+        <button class="btn btn-primary" id="check" data-i18n="common.check"></button>
       </div>
-      <div class="feedback" id="fbE"></div>
-    </div>
-
-    <div class="panel step locked" id="quantStep">
-      <h2 style="margin-top:0" data-fr="2. Quantification" data-en="2. Quantification"></h2>
-      <div id="quant"></div>
-    </div>
-
-    <div class="panel step locked" id="routeStep">
-      <h2 style="margin-top:0" data-fr="3. Analyses à demander" data-en="3. Analyses to request"></h2>
-      <p class="muted-note" data-fr="Cochez la ou les analyses adaptées à cet extrait." data-en="Tick the analysis or analyses suited to this extract."></p>
-      <div class="opts" id="routeOpts"></div>
-      <div class="controls">
-        <button class="btn btn-primary" id="checkRoutes" data-i18n="common.check"></button>
-      </div>
-      <div class="feedback" id="fbR"></div>
+      <div class="feedback" id="fb"></div>
     </div>
   </main>
 
@@ -65,178 +54,102 @@
   <script>
   (function () {
     var E = window.EXTRACTION;
-    var fbE = document.getElementById("fbE"), fbR = document.getElementById("fbR");
+    var fb = document.getElementById("fb");
     var state = {};
     function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
     function pick(o) { return I18N.pick(o); }
     function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-    function fn(n) { return (Math.round(n * 1000) / 1000).toFixed(3); }
     function rnd(r) { return r[0] + Math.random() * (r[1] - r[0]); }
-    function setEq(set, arr) { return set.size === arr.length && arr.every(function (a) { return set.has(a); }); }
-
-    function genQuant(sc) {
-      var degrad = rnd(sc.degradRange), q = { degrad: degrad };
-      if (sc.sperm) {
-        var f = rnd(sc.fRange), m = rnd(sc.mRange), y = rnd(sc.yRange);
-        q.F = { auto: f, y: 0 }; q.M = { auto: m, y: y };
-        q.auto = f + m; q.y = y;
-      } else {
-        var auto = rnd(sc.autoRange);
-        var male = (sc.maleChance != null && Math.random() < sc.maleChance);
-        q.auto = auto; q.y = male ? auto * (0.85 + Math.random() * 0.1) : 0;
-      }
-      return q;
-    }
-
-    function deriveRoutes(sc, q) {
-      var t = E.thresholds;
-      var nuclearViable = q.auto >= t.autoMin && q.degrad < t.degradMax && sc.kind !== "hairshaft";
-      var routes = new Set();
-      if (!nuclearViable) { routes.add("mtdna"); return { routes: routes, nuclearViable: false }; }
-      routes.add("auto");
-      if (sc.femaleBackground && q.y >= t.yMin) routes.add("ystr");
-      return { routes: routes, nuclearViable: true };
-    }
+    function q3(n) { return Math.round(n * 1000) / 1000; }
 
     function newCase() {
-      var sc = E.scenarios[Math.floor(Math.random() * E.scenarios.length)];
-      var quant = genQuant(sc);
-      var r = deriveRoutes(sc, quant);
-      state = {
-        scenario: sc, quant: quant,
-        correctExtraction: sc.sperm ? "differential" : "classic",
-        correctRoutes: r.routes, nuclearViable: r.nuclearViable,
-        extractionChosen: null, extractionDone: false
+      var n = Engine.rint(E.perCase[0], E.perCase[1]);
+      var chosen = Engine.shuffle(E.scelles.slice()).slice(0, n);
+      state = { scelles: chosen.map(buildScelle), picked: {} };
+      Engine.hideFeedback(fb);
+      render();
+    }
+
+    function buildScelle(tpl) {
+      var depleted = Math.random() < E.pDepleted;
+      var extracts = tpl.sites.map(function (s, i) {
+        var q = depleted ? rnd([0, E.threshold * 0.8]) : rnd(s.range);
+        return { id: tpl.id + "_" + i, label: s.label, q: Math.max(0, q3(q)) };
+      });
+      // best usable extract (quantity ≥ threshold); else "none"
+      var usable = extracts.filter(function (e) { return e.q >= E.threshold; });
+      var best = usable.reduce(function (a, e) { return (!a || e.q > a.q) ? e : a; }, null);
+      return {
+        id: tpl.id, title: tpl.title, nature: tpl.nature,
+        extracts: Engine.shuffle(extracts.slice()), // display order randomised
+        correctId: best ? best.id : "none",
+        bestLabel: best ? best.label : null, bestQ: best ? best.q : null
       };
-      Engine.hideFeedback(fbE); Engine.hideFeedback(fbR);
-      lock("quantStep", true); lock("routeStep", true);
-      renderScenario(); renderExtractOpts(); renderRouteOpts();
     }
 
-    function lock(id, on) { document.getElementById(id).classList.toggle("locked", on); }
-
-    function renderScenario() {
-      var sc = state.scenario;
-      document.getElementById("scenario").innerHTML =
-        '<span class="badge badge-2">' + L("Chaîne casework — étape extraction", "Casework chain — extraction step") + "</span>" +
-        "<h2 style='margin:10px 0 3px'>" + esc(pick(sc.title)) + "</h2>" +
-        "<p class='muted-note' style='margin:0'>" + esc(pick(sc.context)) + "</p>";
-    }
-
-    function renderExtractOpts() {
-      var box = document.getElementById("extractOpts");
-      var opts = [
-        { v: "classic", label: { fr: "Extraction classique (totale)", en: "Classic (total) extraction" } },
-        { v: "differential", label: { fr: "Extraction différentielle", en: "Differential extraction" } }
-      ];
-      box.innerHTML = opts.map(function (o) {
-        return '<label class="mcq-opt" style="display:inline-flex;margin:0">' +
-          '<input type="radio" name="extract" value="' + o.v + '"> ' + esc(pick(o.label)) + "</label>";
+    function render() {
+      document.getElementById("requisition").innerHTML = pick(E.requisition);
+      var box = document.getElementById("scelles");
+      box.innerHTML = state.scelles.map(function (sc, si) {
+        var rows = sc.extracts.map(function (e) {
+          var checked = state.picked[si] === e.id ? " checked" : "";
+          return '<label class="qrow"><input type="radio" name="sc' + si + '" value="' + e.id + '"' + checked + ">" +
+                 '<span class="lab">' + esc(pick(e.label)) + "</span>" +
+                 '<span class="val">' + e.q.toFixed(3) + ' <span class="unit">ng/µL</span></span></label>';
+        }).join("");
+        var noneChecked = state.picked[si] === "none" ? " checked" : "";
+        rows += '<label class="qrow none"><input type="radio" name="sc' + si + '" value="none"' + noneChecked + ">" +
+                '<span class="lab">' + L("Aucun extrait exploitable (quantité insuffisante)", "No usable extract (insufficient quantity)") + "</span></label>";
+        return '<div class="scelle"><h3>' + esc(pick(sc.title)) + '</h3><p class="nat">' + esc(pick(sc.nature)) + "</p>" + rows + "</div>";
       }).join("");
+
+      box.querySelectorAll('input[type="radio"]').forEach(function (r) {
+        r.addEventListener("change", function () {
+          var si = parseInt(r.name.slice(2), 10);
+          state.picked[si] = r.value;
+        });
+      });
     }
 
-    function renderRouteOpts() {
-      var box = document.getElementById("routeOpts");
-      box.innerHTML = E.routes.map(function (rt) {
-        return '<label class="mcq-opt" style="display:inline-flex;margin:0">' +
-          '<input type="checkbox" name="route" value="' + rt.id + '"> ' + esc(pick(rt.label)) + "</label>";
-      }).join("");
-    }
-
-    function renderQuant() {
-      var q = state.quant, sc = state.scenario, diff = state.extractionChosen === "differential";
-      var autoK = L("ADN auto. ng/µL", "Auto. DNA ng/µL"), yK = L("ADN masculin (Y) ng/µL", "Male (Y) DNA ng/µL"),
-          degK = L("Index dégradation", "Degradation index");
-      function tile(v, k) { return '<div class="stat"><div class="v">' + v + '</div><div class="k">' + k + "</div></div>"; }
-      var h = "";
-      if (sc.sperm && diff) {
-        h += '<div class="frac"><div class="frac-h">' + L("Fraction épithéliale (F) — non spermatique", "Epithelial fraction (F) — non-sperm") + "</div>" +
-             '<div class="result-grid">' + tile(fn(q.F.auto), autoK) + tile(fn(q.F.y), yK) + "</div></div>";
-        h += '<div class="frac"><div class="frac-h">' + L("Fraction spermatique (M)", "Sperm fraction (M)") + "</div>" +
-             '<div class="result-grid">' + tile(fn(q.M.auto), autoK) + tile(fn(q.M.y), yK) + "</div></div>";
-        h += '<div class="result-grid">' + tile(q.degrad.toFixed(2), degK) + "</div>";
-      } else {
-        h += '<div class="result-grid">' + tile(fn(q.auto), autoK) + tile(fn(q.y), yK) + tile(q.degrad.toFixed(2), degK) + "</div>";
-        if (sc.sperm && !diff) h += '<p class="muted-note">' + L("Extrait non séparé : les deux contributeurs restent mélangés (l'extraction différentielle les aurait séparés).",
-                                                                 "Unseparated extract: both contributors remain mixed (a differential extraction would have separated them).") + "</p>";
+    function check() {
+      // all scellés must be answered
+      for (var i = 0; i < state.scelles.length; i++) {
+        if (state.picked[i] == null) { Engine.feedback(fb, "warn", "Répondez pour chaque scellé.", "Answer for every exhibit."); return; }
       }
-      document.getElementById("quant").innerHTML = h;
-    }
+      var allOk = true, linesFr = [], linesEn = [];
+      state.scelles.forEach(function (sc, si) {
+        var ok = state.picked[si] === sc.correctId;
+        if (!ok) allOk = false;
+        var titleFr = pick(sc.title), titleEn = L(sc.title.en, sc.title.en); // title label
+        var tagFr = esc(sc.title.fr), tagEn = esc(sc.title.en);
+        var detailFr, detailEn;
+        if (sc.correctId === "none") {
+          detailFr = ok ? "aucun extrait n'atteint le seuil de " + E.threshold + " ng/µL : pas d'amplification, à signaler dans le rapport."
+                        : "aucun extrait n'atteignait le seuil de " + E.threshold + " ng/µL : il ne fallait rien amplifier.";
+          detailEn = ok ? "no extract reaches the " + E.threshold + " ng/µL threshold: no amplification, to report back."
+                        : "no extract reached the " + E.threshold + " ng/µL threshold: nothing should have been amplified.";
+        } else {
+          detailFr = "le meilleur extrait exploitable est « " + esc(sc.bestLabel.fr) + " » (" + sc.bestQ.toFixed(3) + " ng/µL).";
+          detailEn = "the best usable extract is “" + esc(sc.bestLabel.en) + "” (" + sc.bestQ.toFixed(3) + " ng/µL).";
+        }
+        linesFr.push("<li><strong>" + tagFr + "</strong> " + (ok ? "✔ " : "✘ ") + detailFr + "</li>");
+        linesEn.push("<li><strong>" + tagEn + "</strong> " + (ok ? "✔ " : "✘ ") + detailEn + "</li>");
+      });
 
-    function checkExtract() {
-      var picked = document.querySelector('input[name="extract"]:checked');
-      if (!picked) { Engine.feedback(fbE, "warn", "Choisissez une méthode d'extraction.", "Choose an extraction method."); return; }
-      state.extractionChosen = picked.value;
-      state.extractionDone = true;
-      var ok = picked.value === state.correctExtraction;
-      var sc = state.scenario;
-      if (ok) {
-        Engine.feedback(fbE, "success",
-          "<strong>Correct.</strong> " + (sc.sperm
-            ? "Spermatozoïdes présents → l'extraction différentielle sépare la fraction épithéliale (victime) de la fraction spermatique."
-            : "Pas de spermatozoïdes → extraction classique (totale) ; une extraction différentielle n'aurait rien à séparer."),
-          "<strong>Correct.</strong> " + (sc.sperm
-            ? "Spermatozoa present → differential extraction separates the epithelial (victim) fraction from the sperm fraction."
-            : "No spermatozoa → classic (total) extraction; a differential extraction would have nothing to separate."));
-      } else {
-        Engine.feedback(fbE, "fail",
-          "<strong>Méthode inadaptée.</strong> " + (sc.sperm
-            ? "Il y a des spermatozoïdes : sans extraction différentielle, les profils de la victime et de l'agresseur restent mélangés."
-            : "Il n'y a pas de spermatozoïdes : l'extraction différentielle est inutile et fait perdre du matériel. Une extraction classique suffit."),
-          "<strong>Unsuitable method.</strong> " + (sc.sperm
-            ? "Spermatozoa are present: without a differential extraction, the victim's and offender's profiles stay mixed."
-            : "There are no spermatozoa: a differential extraction is pointless and wastes material. A classic extraction is enough."));
-      }
-      renderQuant();
-      lock("quantStep", false); lock("routeStep", false);
-    }
-
-    function checkRoutes() {
-      if (!state.extractionDone) { Engine.feedback(fbR, "warn", "Validez d'abord l'extraction.", "Validate the extraction first."); return; }
-      var picked = new Set();
-      document.querySelectorAll('input[name="route"]:checked').forEach(function (c) { picked.add(c.value); });
-      if (picked.size === 0) { Engine.feedback(fbR, "warn", "Cochez au moins une analyse.", "Tick at least one analysis."); return; }
-
-      var correct = state.correctRoutes;
-      var okSet = setEq(picked, Array.from(correct));
-      var sc = state.scenario, diag = { fr: [], en: [] };
-
-      // per-route diagnostics
-      function has(id) { return picked.has(id); }
-      function want(id) { return correct.has(id); }
-      if (want("mtdna")) {
-        if (!has("mtdna")) diag.fr.push("il fallait passer en ADNmt : l'ADN nucléaire est trop faible/dégradé (ou absent sur une tige pilaire), les STR échoueront"),
-                           diag.en.push("mtDNA was required: the nuclear DNA is too low/degraded (or absent in a hair shaft), STR will fail");
-        if (has("auto")) diag.fr.push("les STR autosomiques échoueront ici"), diag.en.push("autosomal STR will fail here");
-        if (has("ystr")) diag.fr.push("le Y-STR échouera aussi (ADN nucléaire non viable)"), diag.en.push("Y-STR will fail too (nuclear DNA not viable)");
-      } else {
-        if (!has("auto")) diag.fr.push("les STR autosomiques sont la base ici et manquaient"), diag.en.push("autosomal STR is the baseline here and was missing");
-        if (want("ystr") && !has("ystr")) diag.fr.push("le Y-STR était indiqué : contributeur masculin dans un fond féminin"),
-                                          diag.en.push("Y-STR was indicated: a male contributor in a female background");
-        if (!want("ystr") && has("ystr")) diag.fr.push("le Y-STR est inutile ici (source unique / pas de fond féminin)"),
-                                          diag.en.push("Y-STR is unnecessary here (single source / no female background)");
-        if (has("mtdna")) diag.fr.push("l'ADNmt n'est pas nécessaire tant que les STR sont viables (il ne donne qu'une lignée maternelle)"),
-                          diag.en.push("mtDNA isn't needed while STR is viable (it yields only a maternal lineage)");
-      }
-
-      var teach = "<p class='muted-note' style='border-top:1px solid var(--border);padding-top:8px;margin-top:8px'><em>" + esc(pick(sc.teach)) + "</em></p>";
-      if (okSet) {
-        Engine.feedback(fbR, "success", "<strong>Routage correct.</strong> " + esc(pick(sc.teach)), "<strong>Correct routing.</strong> " + esc(pick(sc.teach)));
-      } else {
-        Engine.feedback(fbR, "fail",
-          "<strong>Routage incorrect.</strong> " + diag.fr.join(" ; ") + "." + teach,
-          "<strong>Incorrect routing.</strong> " + diag.en.join("; ") + "." + teach);
-      }
+      var htmlFr = "<p><strong>" + (allOk ? "Correct !" : "À revoir.") + "</strong> " +
+        (allOk ? "Vous avez retenu, pour chaque scellé, l'extrait le plus exploitable (ou aucun à juste titre)."
+               : "Rappel : on amplifie l'extrait le mieux quantifié de chaque scellé, à condition qu'il dépasse le seuil ; sinon on n'amplifie pas.") +
+        "</p><ul style='margin:8px 0 0;padding-left:20px'>" + linesFr.join("") + "</ul>";
+      var htmlEn = "<p><strong>" + (allOk ? "Correct!" : "Review needed.") + "</strong> " +
+        (allOk ? "For each exhibit you kept the most usable extract (or correctly none)."
+               : "Reminder: amplify the best-quantified extract of each exhibit, provided it clears the threshold; otherwise don't amplify.") +
+        "</p><ul style='margin:8px 0 0;padding-left:20px'>" + linesEn.join("") + "</ul>";
+      Engine.feedback(fb, allOk ? "success" : "fail", htmlFr, htmlEn);
     }
 
     document.getElementById("newCase").addEventListener("click", newCase);
-    document.getElementById("checkExtract").addEventListener("click", checkExtract);
-    document.getElementById("checkRoutes").addEventListener("click", checkRoutes);
-    document.addEventListener("langchange", function () {
-      renderScenario(); renderExtractOpts(); renderRouteOpts();
-      if (state.extractionDone) renderQuant();
-      Engine.refreshFeedback(fbE); Engine.refreshFeedback(fbR);
-    });
+    document.getElementById("check").addEventListener("click", check);
+    document.addEventListener("langchange", function () { render(); Engine.refreshFeedback(fb); });
 
     newCase();
   })();
