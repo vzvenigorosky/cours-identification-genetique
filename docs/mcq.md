@@ -1,10 +1,10 @@
 # Quiz question bank
 
 `assets/data/mcq.js` contains 120 bilingual single-answer questions, with four
-choices each. There are 96 M1/M2 (`m12`) questions and 24 M2-only (`m2`) questions.
+choices each. All questions belong to one shared pool, reflecting the combined syllabus.
 The ten topics follow the course sections in `assets/data/flashcards.js`.
-`qcm.html` draws M1 quizzes from `m12`, and M2 quizzes from both levels; it
-shuffles both questions and answers. No UI or sampling-simulator changes are needed.
+`qcm.html` shuffles questions from the full bank and shuffles the answers.
+The number input defaults to 10 and accepts whole numbers from 1 to the bank size.
 
 The expansion adds eight questions per topic (80 total). It combines concepts,
 laboratory scenarios, electropherogram interpretation, and short calculations.
@@ -42,10 +42,10 @@ match is not a conclusion about the activity causing deposition or guilt.
 ## Validation
 
 Run `npm run mcq:test` (or `node tools/mcq-selftest.mjs`). It checks translations,
-unique stems and choices, exactly one Boolean answer key, topic/level coverage,
+unique stems and choices, exactly one Boolean answer key, and topic coverage,
 and selected arithmetic and inheritance examples. It also executes the actual
-inline quiz script against a minimal DOM fixture in both languages, at both
-levels and all three quiz lengths. It checks filtering, randomisation, grading,
+inline quiz script against a minimal DOM fixture in both languages, at five
+quiz lengths, including a custom count of seven and the entire bank. It checks access to all topics, randomisation, grading,
 incomplete submission, language switching, correction, and restarting.
 This is a logic smoke test, not a visual browser-layout test or a substitute for
 scientific review by the course instructor.

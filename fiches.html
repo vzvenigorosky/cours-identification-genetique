@@ -14,11 +14,7 @@
        data-fr="Téléchargez la fiche PDF de chaque chapitre et écoutez les explications audio. Toutes les questions des annales ont un équivalent dans ces fiches."
        data-en="Download the PDF sheet for each chapter and listen to the audio explanations. Every question in the past exams has an equivalent in these sheets."></p>
 
-    <h2 class="section"><span data-fr="Master 1 &amp; Master 2" data-en="Master 1 &amp; Master 2"></span></h2>
-    <div id="list-m12"></div>
-
-    <h2 class="section"><span data-fr="Master 2 uniquement" data-en="Master 2 only"></span></h2>
-    <div id="list-m2"></div>
+    <div id="sheets"></div>
   </main>
 
   <script src="assets/i18n.js"></script>
@@ -29,50 +25,50 @@
     var SHEETS = [
       { fr:"Structure moléculaire de l'ADN", en:"Molecular structure of DNA",
         pdf:"QC/1 - Structure moléculaire de l'ADN.pdf",
-        mp3:"1 - Structure moléculaire de l'ADN.mp3", level:"m12" },
+        mp3:"1 - Structure moléculaire de l'ADN.mp3" },
       { fr:"Structure du génome humain", en:"Structure of the human genome",
         pdf:"QC/2 - Structure du génome humain.pdf",
-        mp3:"2 - Structure du génome humain.mp3", level:"m12" },
+        mp3:"2 - Structure du génome humain.mp3" },
       { fr:"Les Short Tandem Repeats (STR)", en:"Short Tandem Repeats (STR)",
         pdf:"QC/3 - Les Short Tandem Repeats (STR).pdf",
-        mp3:"3 - STR.mp3", level:"m12" },
+        mp3:"3 - STR.mp3" },
       { fr:"Techniques de biologie moléculaire (1) — Extraction",
         en:"Molecular biology techniques (1) — Extraction",
         pdf:"QC/4 - Techniques de biologie moléculaire (1) - Extraction.pdf",
-        mp3:"4 - Techniques de biologie moléculaire - Extraction.mp3", level:"m12" },
+        mp3:"4 - Techniques de biologie moléculaire - Extraction.mp3" },
       { fr:"Techniques de biologie moléculaire (2) — Amplification",
         en:"Molecular biology techniques (2) — Amplification",
         pdf:"QC/5 - Techniques de biologie moléculaire (2) - Amplification.pdf",
-        mp3:"5 - Techniques de biologie moléculaire - Amplification.mp3", level:"m12" },
+        mp3:"5 - Techniques de biologie moléculaire - Amplification.mp3" },
       { fr:"Techniques de biologie moléculaire (3) — Lecture et analyse des STR",
         en:"Molecular biology techniques (3) — Reading and analysing STRs",
         pdf:"QC/6 - Techniques de biologie moléculaire (3) - Lecture et Analyse des STR.pdf",
-        mp3:"6 - Techniques de biologie moléculaire - Analyse des STR.mp3", level:"m12" },
+        mp3:"6 - Techniques de biologie moléculaire - Analyse des STR.mp3" },
       { fr:"Principes de l'identification génétique",
         en:"Principles of genetic identification",
         pdf:"QC/7 - Principes de l'identification génétique.pdf",
-        mp3:"7 - Principes de l_identification génétique.mp3", level:"m12" },
+        mp3:"7 - Principes de l_identification génétique.mp3" },
       { fr:"Marqueurs des lignées uniparentales",
         en:"Uniparental lineage markers",
         pdf:"QC/8 - Marqueurs des lignées uniparentales.pdf",
-        mp3:"8 - Marqueurs des lignées uniparentales.mp3", level:"m12" },
+        mp3:"8 - Marqueurs des lignées uniparentales.mp3" },
       { fr:"La parenté en génétique médico-légale",
         en:"Kinship in forensic genetics",
         pdf:"QC/9 - La parenté en génétique médico-légale.pdf",
-        mp3:"9 - La parenté en génétique médico-légale.mp3", level:"m2" },
+        mp3:"9 - La parenté en génétique médico-légale.mp3" },
       { fr:"Calcul de probabilités de parenté",
         en:"Computing kinship probabilities",
         pdf:"QC/10 - Calcul de probabilités de parenté.pdf",
-        mp3:"10 - Calculs de probabilités de parenté.mp3", level:"m2" }
+        mp3:"10 - Calculs de probabilités de parenté.mp3" }
     ];
 
     function audioLabel() { return I18N.getLang() === "en" ? "Audio explanation" : "Explication audio"; }
     function openLabel()  { return I18N.getLang() === "en" ? "Open the PDF in a new tab"  : "Ouvrir le PDF dans un nouvel onglet"; }
 
-    function build(container, items, startIndex) {
+    function build(container, items) {
       container.innerHTML = "";
       items.forEach(function (s, i) {
-        var n = startIndex + i + 1;
+        var n = i + 1;
         var d = document.createElement("details");
         d.className = "collapse";
         d.innerHTML =
@@ -104,10 +100,7 @@
       I18N.apply();
     }
 
-    var m12 = SHEETS.filter(function (s) { return s.level === "m12"; });
-    var m2  = SHEETS.filter(function (s) { return s.level === "m2"; });
-    build(document.getElementById("list-m12"), m12, 0);
-    build(document.getElementById("list-m2"),  m2,  m12.length);
+    build(document.getElementById("sheets"), SHEETS);
   })();
   </script>
 </body>
