@@ -1,135 +1,165 @@
 /* ============================================================
-   Mini-game 1 (v2) — Interactive sampling of sealed evidence.
-   The student investigates a scellé (visual cues + orientation
-   tests revealing latent stains per zone), then chooses a zone
-   and an instrument to sample. Success = DNA recovered, reported
-   as autosomal + male(Y) ng/µL + a degradation index.
+   Mini-game 1 (v3) — Interactive sampling of real evidence objects.
 
-   Bilingual {fr,en}. Forensic parameters (tool factors, zone
-   richness, thresholds) are DRAFT/tunable, pending validation
-   (issue #12). Data-driven: corrections need no code change.
+   The student is shown a *modelled object* (SVG), not an abstract
+   grid of labelled zones. Biological traces live as "spots" placed
+   on the object in a 400×260 object-coordinate space. The student:
+     1. (optionally) shines a light (ALS/UV) — reveals latent
+        FLUORESCENT spots across the whole object;
+     2. arms an orientation TEST and clicks a point — gets a
+        colour-coded ＋ / － (red = blood, blue = sperm, yellow =
+        saliva);
+     3. arms an INSTRUMENT and clicks a point to SAMPLE — the
+        footprint (dashed circle = swab, disc = punch, cut = scalpel,
+        cut-out = scissors) must land on a DNA-bearing spot.
+   Success = usable DNA recovered, reported as autosomal + male(Y)
+   ng/µL + a degradation index, with differential-vs-feminine-only
+   interpretation.
+
+   Bilingual {fr,en}. Forensic parameters (tool factors, spot
+   richness, thresholds, fractions) are DRAFT/tunable, pending
+   validation (issue #12). Data-driven: corrections need no code
+   change. Coordinates are in the 400×260 object canvas.
+
+   Spot fields:
+     fluid       "blood" | "semen" | "saliva" | "touch" | "none"
+     cx,cy,r     centre + hit/draw radius (object coords)
+     auto        autosomal ng/µL if sampled ideally
+     degrad      degradation index 0 (fresh) → 1 (degraded)
+     visible     drawn (coloured) without any test/light
+     fluorescent revealed by ALS/UV when latent
+     maleMode    "none"  → male = 0 (single feminine-type source)
+                 "always"→ male ≈ auto (semen / male contributor)
+                 "mix"   → male = a clear fraction of auto (mixture)
+                 "random"→ donor sex drawn per case (male 0 or ≈auto)
+     uncertain   (red stain) identity drawn per case: real blood or
+                 a non-biological red (no DNA) — only a test tells.
    ============================================================ */
 window.SAMPLING = {
   threshold: 0.05, // ng/µL autosomal considered "usable DNA recovered"
 
-  instruments: [
-    { id: "swab_dry",  label: { fr: "Écouvillon sec", en: "Dry swab" } },
-    { id: "swab_wet",  label: { fr: "Écouvillon humidifié", en: "Moistened swab" } },
-    { id: "scissors",  label: { fr: "Ciseaux (découpe)", en: "Scissors (cut-out)" } },
-    { id: "scalpel",   label: { fr: "Scalpel", en: "Scalpel" } },
-    { id: "fta_punch", label: { fr: "Puncher FTA", en: "FTA puncher" } },
-    { id: "scraping",  label: { fr: "Grattage", en: "Scraping" } },
-    { id: "tape",      label: { fr: "Tape-lift (ruban)", en: "Tape-lift" } },
-    { id: "forceps",   label: { fr: "Pince / forceps", en: "Forceps" } },
-    { id: "pipette",   label: { fr: "Pipette", en: "Pipette" } }
+  // Fluids that fluoresce under ALS/UV (so a light pass reveals latent ones).
+  fluorescent: { semen: true, saliva: true, blood: false, touch: false, none: false, paint: false },
+
+  // Colour coding requested by the maintainer (test ＋ markers & stains).
+  colors: { blood: "#d64545", semen: "#2f6fb0", saliva: "#d6a516", paint: "#d64545", touch: "#9aa4ad", none: "#9aa4ad" },
+
+  // Lights (whole-object reveal of latent fluorescent spots).
+  lights: [
+    { id: "als", label: { fr: "Forenscope / Crimescope (ALS)", en: "Forenscope / Crimescope (ALS)" } },
+    { id: "uv",  label: { fr: "Lumière UV", en: "UV light" } }
   ],
 
-  // Orientation tests. mode "als" = whole-item reveal of fluorescent latent
-  // stains; mode "chem" = applied to a selected zone, positive for `fluid`.
+  // Orientation tests: arm, then click a point. Positive only where the
+  // matching fluid actually is.
   tests: [
-    { id: "als",         mode: "als",  label: { fr: "Forenscope / Crimescope (ALS)", en: "Forenscope / Crimescope (ALS)" } },
-    { id: "uv",          mode: "als",  label: { fr: "Lumière UV", en: "UV light" } },
-    { id: "peroxtesmo",  mode: "chem", fluid: "blood",  label: { fr: "Peroxtesmo (sang)", en: "Peroxtesmo (blood)" } },
-    { id: "phosphatesmo",mode: "chem", fluid: "semen",  label: { fr: "Phosphatesmo (sperme)", en: "Phosphatesmo (semen)" } },
-    { id: "amylase",     mode: "chem", fluid: "saliva", label: { fr: "Amylase / Phadebas (salive)", en: "Amylase / Phadebas (saliva)" } }
+    { id: "peroxtesmo",   fluid: "blood",  label: { fr: "Peroxtesmo (sang)", en: "Peroxtesmo (blood)" } },
+    { id: "phosphatesmo", fluid: "semen",  label: { fr: "Phosphatesmo (sperme)", en: "Phosphatesmo (semen)" } },
+    { id: "amylase",      fluid: "saliva", label: { fr: "Amylase / Phadebas (salive)", en: "Amylase / Phadebas (saliva)" } }
   ],
 
-  // Fluids that fluoresce under ALS/UV (so an ALS pass reveals latent ones).
-  fluorescent: { semen: true, saliva: true, urine: true, blood: false, touch: false, none: false },
+  // Instruments: arm, then click a point to sample. `footprint` drives the
+  // drawn mark; suitability per substrate is in substrateTools.
+  instruments: [
+    { id: "swab_dry",  footprint: "swab", label: { fr: "Écouvillon sec", en: "Dry swab" } },
+    { id: "swab_wet",  footprint: "swab", label: { fr: "Écouvillon humidifié", en: "Moistened swab" } },
+    { id: "scissors",  footprint: "cut",  label: { fr: "Ciseaux (découpe)", en: "Scissors (cut-out)" } },
+    { id: "scalpel",   footprint: "scalpel", label: { fr: "Scalpel", en: "Scalpel" } },
+    { id: "fta_punch", footprint: "disc", label: { fr: "Puncher FTA", en: "FTA puncher" } },
+    { id: "tape",      footprint: "tape", label: { fr: "Tape-lift (ruban)", en: "Tape-lift" } }
+  ],
 
-  // Instrument suitability per substrate (0–1). Any instrument NOT listed for a
-  // substrate is incompatible (factor 0) — e.g. scissors can't cut a metal blade.
+  // Instrument suitability per substrate (0–1). Any instrument NOT listed is
+  // incompatible (factor 0) — e.g. scissors can't cut a metal blade.
   substrateTools: {
-    fabric: { scissors: 1.0, tape: 0.8, swab_wet: 0.6, scalpel: 0.5, swab_dry: 0.3 },
-    metal:  { swab_wet: 1.0, scraping: 0.7, swab_dry: 0.6, scalpel: 0.4 },
     card:   { fta_punch: 1.0, scissors: 0.7, scalpel: 0.6 },
+    fabric: { scissors: 1.0, tape: 0.8, swab_wet: 0.6, scalpel: 0.5, swab_dry: 0.3 },
+    metal:  { swab_wet: 1.0, swab_dry: 0.6, scalpel: 0.4 },
     paper:  { scissors: 1.0, swab_wet: 0.6, scalpel: 0.5 },
-    hair:   { forceps: 1.0, tape: 0.5 },
-    liquid: { swab_dry: 1.0, pipette: 1.0, swab_wet: 0.8 },
-    nail:   { scraping: 1.0, scissors: 0.6, scalpel: 0.5 }
+    swab:   { scissors: 1.0, scalpel: 0.7, swab_wet: 0.4 },
+    hard:   { swab_wet: 1.0, swab_dry: 0.8, scalpel: 0.3 }
   },
 
-  // Each zone: fluid, auto/male richness (ng/µL if sampled ideally), degrad
-  // index (0 fresh → 1 degraded), visible (shown without a test), x/y/w/h in %
-  // of the schematic inner box.
+  // ---- The modelled objects. `draw` selects an SVG draw routine in the page.
   items: [
-    { id: "knife", icon: "🔪", substrate: "metal",
+    { id: "fta", draw: "fta", substrate: "card",
+      title: { fr: "Carte FTA — référence", en: "FTA card — reference" },
+      context: { fr: "Prélèvement de référence d'un individu connu, sur carte FTA.",
+                 en: "Reference sample from a known individual, on an FTA card." },
+      spots: [
+        { fluid: "blood", cx: 200, cy: 132, r: 46, auto: 5.0, degrad: 0.1, visible: true, fluorescent: false, maleMode: "random", refSample: true }
+      ],
+      teach: { fr: "Échantillon de référence : aucun test d'orientation n'est nécessaire, on poinçonne simplement un disque dans le spot. Selon le donneur, on obtient une fraction féminine seule ou de l'ADN masculin — mais jamais un mélange.",
+               en: "Reference sample: no orientation test is needed — just punch a disc in the spot. Depending on the donor you get a feminine-only fraction or male DNA, but never a mixture." } },
+
+    { id: "shirt", draw: "shirt", substrate: "fabric",
+      title: { fr: "T-shirt (agression)", en: "T-shirt (assault)" },
+      context: { fr: "Vêtement saisi. Une tache peut être invisible à l'œil nu.",
+                 en: "Seized garment. A stain may be invisible to the naked eye." },
+      spots: [
+        { fluid: "semen", cx: 205, cy: 150, r: 34, auto: 3.0, degrad: 0.3, visible: false, fluorescent: true, maleMode: "always" },
+        { fluid: "touch", cx: 205, cy: 74, r: 22, auto: 0.11, degrad: 0.5, visible: false, fluorescent: false, maleMode: "random" }
+      ],
+      teach: { fr: "Le sperme ne se voit pas mais fluoresce : l'ALS le localise, le Phosphatesmo confirme, on découpe la zone aux ciseaux. Fraction masculine nette → extraction différentielle. Le col porte de l'ADN de contact invisible (aucun test, aucune fluorescence) : on y pense par le contexte.",
+               en: "Semen is invisible but fluoresces: ALS locates it, Phosphatesmo confirms, cut the area out with scissors. Clear male fraction → differential extraction. The collar carries invisible touch DNA (no test, no fluorescence): reason it from context." } },
+
+    { id: "sheet", draw: "sheet", substrate: "fabric",
+      title: { fr: "Drap (affaire de viol)", en: "Bedsheet (rape case)" },
+      context: { fr: "Literie saisie. Recherche de taches biologiques.",
+                 en: "Seized bedding. Searching for biological stains." },
+      spots: [
+        { fluid: "semen", cx: 185, cy: 140, r: 36, auto: 3.2, degrad: 0.3, visible: false, fluorescent: true, maleMode: "always" }
+      ],
+      teach: { fr: "Tache latente de sperme : sans lumière on ne voit rien. L'ALS la révèle, le Phosphatesmo confirme, on découpe. ADN masculin élevé → extraction différentielle.",
+               en: "Latent semen stain: nothing shows without light. ALS reveals it, Phosphatesmo confirms, then cut it out. High male DNA → differential extraction." } },
+
+    { id: "underwear", draw: "underwear", substrate: "fabric",
+      title: { fr: "Sous-vêtement (agression)", en: "Underwear (assault)" },
+      context: { fr: "Tache compatible avec un mélange sperme + cellules de la victime.",
+                 en: "Stain compatible with a semen + victim-cell mixture." },
+      spots: [
+        { fluid: "semen", cx: 200, cy: 150, r: 32, auto: 2.6, degrad: 0.4, visible: false, fluorescent: true, maleMode: "mix" }
+      ],
+      teach: { fr: "Mélange : ADN autosomal (victime + agresseur) et une fraction masculine nette → l'extraction différentielle sépare les deux contributeurs à l'étape suivante.",
+               en: "Mixture: autosomal DNA (victim + offender) and a clear male fraction → differential extraction separates the two contributors at the next step." } },
+
+    { id: "saswab", draw: "swab", substrate: "swab", sa: true,
+      title: { fr: "Écouvillon (prélèvement médico-légal)", en: "Swab (forensic medical kit)" },
+      context: { fr: "Écouvillon déjà réalisé par le médecin dans un contexte d'agression sexuelle.",
+                 en: "Swab already taken by the physician in a sexual-assault context." },
+      spots: [
+        { fluid: "semen", cx: 95, cy: 130, r: 26, auto: 2.4, degrad: 0.4, visible: false, fluorescent: true, maleMode: "always" }
+      ],
+      teach: { fr: "Contexte d'AS : il FAUT rechercher la présence de spermatozoïdes (Phosphatesmo / microscopie) avant l'extraction — sinon on passe à côté de la fraction masculine. On sous-échantillonne l'écouvillon, puis extraction différentielle.",
+               en: "SA context: you MUST test for spermatozoa (Phosphatesmo / microscopy) before extraction — otherwise you miss the male fraction. Sub-sample the swab, then differential extraction." } },
+
+    { id: "cig", draw: "cig", substrate: "paper",
+      title: { fr: "Mégot de cigarette", en: "Cigarette butt" },
+      context: { fr: "ADN salivaire de contact sur l'embouchure.", en: "Salivary contact DNA on the mouth end." },
+      spots: [
+        { fluid: "saliva", cx: 110, cy: 130, r: 22, auto: 1.0, degrad: 0.4, visible: false, fluorescent: true, maleMode: "random" }
+      ],
+      teach: { fr: "Salive sur le filtre : l'amylase confirme, l'ALS peut aider. On découpe l'embouchure aux ciseaux. Selon le fumeur, fraction féminine seule ou ADN masculin.",
+               en: "Saliva on the filter: amylase confirms, ALS can help. Cut the mouth end with scissors. Depending on the smoker, feminine-only or male DNA." } },
+
+    { id: "knife", draw: "knife", substrate: "metal",
       title: { fr: "Couteau", en: "Knife" },
       context: { fr: "Coups et blessures. Lame métallique saisie.", en: "Assault. A seized metal blade." },
-      zones: [
-        { id: "blade", label: { fr: "Tache sur la lame", en: "Stain on the blade" }, fluid: "blood", auto: 2.0, male: 1.8, degrad: 0.4, visible: true, x: 8, y: 30, w: 34, h: 24 },
-        { id: "handle", label: { fr: "Manche", en: "Handle" }, fluid: "touch", auto: 0.08, male: 0.06, degrad: 0.5, visible: false, x: 60, y: 34, w: 32, h: 20 },
-        { id: "flat", label: { fr: "Plat de la lame (propre)", en: "Flat of the blade (clean)" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 8, y: 6, w: 50, h: 18 }
+      spots: [
+        { fluid: "blood", cx: 262, cy: 128, r: 20, auto: 2.2, degrad: 0.4, visible: true, fluorescent: false, maleMode: "random" },
+        { fluid: "touch", cx: 118, cy: 130, r: 26, auto: 0.09, degrad: 0.5, visible: false, fluorescent: false, maleMode: "random" }
       ],
-      teach: { fr: "Le sang est visible et non fluorescent : inutile de passer l'ALS, un test peroxydasique confirme. On ne peut pas découper du métal → écouvillon humidifié.",
-               en: "Blood is visible and non-fluorescent: no need for ALS, a peroxidase test confirms. You can't cut metal → moistened swab." } },
+      teach: { fr: "Le sang de la lame est visible et non fluorescent (l'ALS est inutile, le Peroxtesmo confirme). On ne découpe pas le métal → écouvillon humidifié. Le manche porte de l'ADN de contact invisible que rien ne révèle : on le prélève en raisonnant par le contexte.",
+               en: "Blood on the blade is visible and non-fluorescent (ALS is useless, Peroxtesmo confirms). You can't cut metal → moistened swab. The handle carries invisible touch DNA that nothing reveals: sample it by reasoning from context." } },
 
-    { id: "sheet", icon: "🛏️", substrate: "fabric",
-      title: { fr: "Drap (affaire de viol)", en: "Bedsheet (rape case)" },
-      context: { fr: "Literie saisie. Tache invisible à l'œil nu.", en: "Seized bedding. A stain invisible to the naked eye." },
-      zones: [
-        { id: "stain", label: { fr: "Zone latente", en: "Latent area" }, fluid: "semen", auto: 3.0, male: 2.8, degrad: 0.3, visible: false, x: 30, y: 24, w: 34, h: 28 },
-        { id: "clean", label: { fr: "Tissu propre", en: "Clean fabric" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 70, y: 10, w: 24, h: 20 }
+    { id: "redstain", draw: "redstain", substrate: "hard",
+      title: { fr: "Tache rouge sur surface dure", en: "Red stain on a hard surface" },
+      context: { fr: "Trace rouge sur support non poreux. Sang ? Peinture ? Rouille ?",
+                 en: "Red mark on a non-porous surface. Blood? Paint? Rust?" },
+      spots: [
+        { fluid: "blood", cx: 200, cy: 130, r: 40, auto: 3.0, degrad: 0.2, visible: true, fluorescent: false, maleMode: "random", uncertain: true }
       ],
-      teach: { fr: "Le sperme n'est pas visible mais fluoresce : l'ALS localise la tache, le Phosphatesmo confirme. On découpe la zone. ADN masculin élevé (sperme).",
-               en: "Semen is invisible but fluoresces: ALS locates it, Phosphatesmo confirms. Cut out the area. High male DNA (sperm)." } },
-
-    { id: "underwear", icon: "🩲", substrate: "fabric",
-      title: { fr: "Sous-vêtement (agression)", en: "Underwear (assault)" },
-      context: { fr: "Tache compatible avec un mélange sperme + cellules de la victime.", en: "Stain compatible with a semen + victim-cell mixture." },
-      zones: [
-        { id: "stain", label: { fr: "Tache", en: "Stain" }, fluid: "semen", auto: 2.6, male: 1.4, degrad: 0.4, visible: false, x: 32, y: 26, w: 32, h: 26 },
-        { id: "clean", label: { fr: "Tissu propre", en: "Clean fabric" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 8, y: 10, w: 22, h: 18 }
-      ],
-      teach: { fr: "Mélange : ADN autosomal (victime + agresseur) et une fraction masculine nette → une extraction différentielle sera utile à l'étape suivante.",
-               en: "Mixture: autosomal DNA (victim + offender) and a clear male fraction → a differential extraction will help at the next step." } },
-
-    { id: "cig", icon: "🚬", substrate: "paper",
-      title: { fr: "Mégot de cigarette", en: "Cigarette butt" },
-      context: { fr: "ADN salivaire de contact sur le bout.", en: "Salivary contact DNA on the tip." },
-      zones: [
-        { id: "tip", label: { fr: "Bout (embouchure)", en: "Mouth end" }, fluid: "saliva", auto: 0.9, male: 0.8, degrad: 0.4, visible: true, x: 8, y: 26, w: 26, h: 24 },
-        { id: "body", label: { fr: "Corps du mégot", en: "Body of the butt" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 40, y: 28, w: 52, h: 18 }
-      ],
-      teach: { fr: "Salive → amylase. On découpe le bout. L'embouchure est identifiable, l'ALS est optionnel.",
-               en: "Saliva → amylase. Cut the mouth end. The tip is identifiable; ALS is optional." } },
-
-    { id: "collar", icon: "👕", substrate: "fabric",
-      title: { fr: "Col de chemise (ADN de contact)", en: "Shirt collar (touch DNA)" },
-      context: { fr: "Vêtement porté. Pas de tache visible.", en: "Worn garment. No visible stain." },
-      zones: [
-        { id: "collar", label: { fr: "Col", en: "Collar" }, fluid: "touch", auto: 0.12, male: 0.1, degrad: 0.5, visible: false, x: 30, y: 10, w: 40, h: 16 },
-        { id: "front", label: { fr: "Devant", en: "Front" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 24, y: 34, w: 52, h: 22 }
-      ],
-      teach: { fr: "L'ADN de contact est invisible et ne répond à aucun test présomptif ni à l'ALS : on raisonne sur le contexte (zone portée au cou) et on fait un tape-lift.",
-               en: "Touch DNA is invisible and responds to no presumptive test nor ALS: reason from context (worn at the neck) and tape-lift it." } },
-
-    { id: "fta", icon: "🟦", substrate: "card",
-      title: { fr: "Carte FTA — référence", en: "FTA card — reference" },
-      context: { fr: "Prélèvement de référence (sang) d'un individu connu.", en: "Reference blood sample from a known individual." },
-      zones: [
-        { id: "spot", label: { fr: "Spot de sang", en: "Blood spot" }, fluid: "blood", auto: 5.0, male: 0, degrad: 0.1, visible: true, x: 34, y: 20, w: 30, h: 30 }
-      ],
-      teach: { fr: "Échantillon de référence : aucun test d'orientation n'est nécessaire, on poinçonne un disque. (Donneuse féminine : pas d'ADN masculin.)",
-               en: "Reference sample: no orientation test is needed, just punch a disc. (Female donor: no male DNA.)" } },
-
-    { id: "envelope", icon: "✉️", substrate: "paper",
-      title: { fr: "Rabat d'enveloppe", en: "Envelope flap" },
-      context: { fr: "Courrier anonyme. Zone gommée léchée.", en: "Anonymous letter. Licked gummed area." },
-      zones: [
-        { id: "flap", label: { fr: "Rabat gommé", en: "Gummed flap" }, fluid: "saliva", auto: 0.7, male: 0.6, degrad: 0.3, visible: false, x: 20, y: 10, w: 60, h: 18 },
-        { id: "body", label: { fr: "Corps de l'enveloppe", en: "Envelope body" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 20, y: 34, w: 60, h: 22 }
-      ],
-      teach: { fr: "Salive sur la gomme : l'ALS peut la révéler, l'amylase confirme. On découpe le rabat.",
-               en: "Saliva on the gum: ALS can reveal it, amylase confirms. Cut out the flap." } },
-
-    { id: "pool", icon: "🩸", substrate: "liquid",
-      title: { fr: "Flaque de sang liquide", en: "Liquid blood pool" },
-      context: { fr: "Sang encore liquide sur sol non absorbant.", en: "Still-liquid blood on a non-absorbent floor." },
-      zones: [
-        { id: "pool", label: { fr: "Flaque", en: "Pool" }, fluid: "blood", auto: 4.0, male: 3.6, degrad: 0.1, visible: true, x: 26, y: 20, w: 44, h: 28 }
-      ],
-      teach: { fr: "Liquide et abondant → écouvillon sec (ou pipette). Le grattage ne convient pas. Sang → peroxydase, pas d'ALS.",
-               en: "Liquid and abundant → dry swab (or pipette). Scraping is unsuitable. Blood → peroxidase, not ALS." } }
+      teach: { fr: "Une tache rouge n'est pas forcément du sang : on peut l'écouvillonner, mais sans test d'orientation (Peroxtesmo) on ne sait pas si on a prélevé du matériel biologique. Toujours confirmer avant de conclure.",
+               en: "A red stain is not necessarily blood: you can swab it, but without an orientation test (Peroxtesmo) you don't know whether you sampled any biological material. Always confirm before concluding." } }
   ]
 };
