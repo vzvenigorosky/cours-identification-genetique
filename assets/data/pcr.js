@@ -30,8 +30,9 @@ window.PCR = {
   },
 
   // effective-amount mapping (DRAFT)
-  A_OPT: 2000,     // het-peak height at target input, 29 cycles, in-band protocol
-  OVER: 8000,      // a called peak taller than this = over-amplified (fail)
+  A_OPT: 1500,     // het-peak height at target input, 29 cycles, in-band protocol
+  OVER: 7000,      // a called peak taller than this = over-amplified (fail)
+  dispMax: 7000,   // FIXED electropherogram y-ceiling: peaks above it go off-scale
   cycleRef: 29, cycleBase: 1.3, cycleClamp: [0.2, 6],
   degClamp: [0, 4],
 

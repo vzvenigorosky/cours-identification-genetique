@@ -22,10 +22,18 @@ export function renderEPG(kit, sim, opts = {}) {
 
   const xOf = (size) => padL + ((size - X0) / (X1 - X0)) * (W - padL - padR);
 
-  // display y-max from tallest non-saturated true allele (peaks above clip at top)
-  let disp = sim.thresholds.st * 1.3;
-  for (const p of sim.peaks) if (p.kind === "allele" && !p.saturated) disp = Math.max(disp, p.height);
-  disp = Math.max(disp * 1.12, 500);
+  // display y-max. With opts.dispMax, use a FIXED ceiling (like a fixed-scale
+  // GeneMapper view): peaks above it clip/flat-top (off-scale) and small peaks
+  // such as pull-up keep their true proportion. Otherwise auto-scale to the
+  // tallest non-saturated true allele (default; unchanged).
+  let disp;
+  if (opts.dispMax != null) {
+    disp = opts.dispMax;
+  } else {
+    disp = sim.thresholds.st * 1.3;
+    for (const p of sim.peaks) if (p.kind === "allele" && !p.saturated) disp = Math.max(disp, p.height);
+    disp = Math.max(disp * 1.12, 500);
+  }
 
   const parts = [];
   parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${totalH}" width="${W}" height="${totalH}" font-family="Segoe UI, Arial, sans-serif" style="background:#fff">`);
@@ -73,7 +81,9 @@ export function renderEPG(kit, sim, opts = {}) {
       const x = xOf(p.size);
       const yTop = yOf(p.height);
       const op = KIND_OPACITY[p.kind] || 0.5;
-      if (p.saturated) {
+      // off-scale: truly saturated, or (with a fixed ceiling) any peak at/above it
+      const offscale = p.saturated || (opts.dispMax != null && p.height >= disp);
+      if (offscale) {
         // flat-topped
         parts.push(`<path d="M ${(x - 3).toFixed(1)} ${bottom} L ${(x - 2).toFixed(1)} ${(top + 2).toFixed(1)} L ${(x + 2).toFixed(1)} ${(top + 2).toFixed(1)} L ${(x + 3).toFixed(1)} ${bottom} Z" fill="${dye.color}" opacity="${op}"/>`);
       } else {
