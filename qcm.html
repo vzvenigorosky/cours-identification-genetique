@@ -17,11 +17,6 @@
     <!-- Setup -->
     <div class="panel" id="setup">
       <div class="controls">
-        <label><strong data-fr="Niveau :" data-en="Level:"></strong></label>
-        <select id="level" class="input">
-          <option value="m1">Master 1</option>
-          <option value="m2">Master 2</option>
-        </select>
         <label for="count"><strong data-fr="Nombre de questions :" data-en="Number of questions:"></strong></label>
         <input id="count" class="input" type="number" value="10" min="1" step="1" required>
         <button id="start" class="btn btn-primary" type="button"
@@ -68,27 +63,20 @@
       return a;
     }
 
-    function pool(level) {
-      // M1 = examinable at M1 (m12). M2 = everything (m12 + m2).
-      return MCQ.filter(function (q) { return level === "m2" ? true : q.level === "m12"; });
-    }
-
     function updatePoolInfo() {
-      var lvl = document.getElementById("level").value;
-      var n = pool(lvl).length;
+      var n = MCQ.length;
       document.getElementById("count").max = n;
       document.getElementById("poolInfo").textContent =
         I18N.getLang() === "en"
-          ? "Available questions for this level: " + n
-          : "Questions disponibles pour ce niveau : " + n;
+          ? "Available questions: " + n
+          : "Questions disponibles : " + n;
     }
 
     function build() {
-      var lvl = document.getElementById("level").value;
       var count = document.getElementById("count");
       if (!count.reportValidity()) return;
       var want = Number(count.value);
-      var chosen = shuffle(pool(lvl)).slice(0, want);
+      var chosen = shuffle(MCQ).slice(0, want);
       state.questions = chosen.map(function (q) {
         return { q: q, options: shuffle(q.answers), picked: null };
       });
@@ -197,7 +185,6 @@
     }
 
     document.getElementById("start").addEventListener("click", build);
-    document.getElementById("level").addEventListener("change", updatePoolInfo);
     ["submit", "submit2"].forEach(function (id) {
       document.getElementById(id).addEventListener("click", submit);
     });
