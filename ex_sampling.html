@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Échantillonnage de scellés — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .scelle { display:flex; gap:14px; align-items:flex-start; }
+    .scelle .ico { font-size:2.4rem; line-height:1; }
+    .scelle h2 { margin:0 0 3px; color:var(--ink); font-size:1.15rem; }
+    .scelle p  { margin:0; color:var(--muted); font-size:.92rem; }
+    #scene { width:100%; max-width:520px; height:auto; border:1px solid var(--border); border-radius:10px; background:#fbfcfd; display:block; }
+    .zone { cursor:pointer; }
+    .zone-lab { font-size:8px; fill:#57606a; pointer-events:none; }
+    .pal-label { font-weight:700; font-size:.82rem; color:var(--ink); margin:14px 0 8px; }
+    .palette { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip { border:1px solid var(--border); background:var(--card); color:var(--ink); border-radius:999px;
+            padding:6px 13px; font-size:.88rem; font-weight:600; cursor:pointer; transition:all .12s; }
+    .chip:hover { background:var(--stripe); border-color:var(--accent); }
+    .chip.sel { background:linear-gradient(180deg,var(--green),var(--blue)); color:#fff; border-color:var(--blue); }
+    .chip:disabled { opacity:.5; cursor:not-allowed; }
+    .log { font-size:.86rem; color:var(--muted); min-height:1.2em; margin:8px 0 0; }
+    .result-grid { display:flex; flex-wrap:wrap; gap:18px; margin:6px 0 10px; }
+    .stat { background:var(--stripe); border:1px solid var(--border); border-radius:8px; padding:8px 14px; }
+    .stat .v { font-size:1.2rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
+    .stat .k { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+  </style>
+</head>
+<body data-page="exercices">
+
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Échantillonnage de scellés" data-en="Sampling sealed evidence"></h1>
+    <p class="page-intro"
+       data-fr="Observez le scellé, utilisez les tests d'orientation pour révéler les traces, puis choisissez une zone et un instrument pour prélever. Objectif : récupérer de l'ADN exploitable."
+       data-en="Examine the item, use the orientation tests to reveal traces, then choose a zone and an instrument to sample. Goal: recover usable DNA."></p>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between; align-items:flex-start">
+        <div class="scelle" id="scelle"></div>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+      </div>
+      <div style="text-align:center; margin-top:12px">
+        <svg id="scene" viewBox="0 0 300 160" role="img"></svg>
+      </div>
+      <p class="log" id="sel"></p>
+    </div>
+
+    <div class="panel">
+      <div class="pal-label" data-fr="1. Tests d'orientation" data-en="1. Orientation tests"></div>
+      <p class="muted-note" data-fr="L'ALS/UV révèle les fluides fluorescents sur tout l'objet ; les tests chimiques s'appliquent à la zone sélectionnée."
+         data-en="ALS/UV reveals fluorescent fluids across the item; chemical tests apply to the selected zone."></p>
+      <div class="palette" id="tests" style="margin-top:8px"></div>
+      <p class="log" id="testLog"></p>
+
+      <div class="pal-label" data-fr="2. Prélèvement" data-en="2. Sampling"></div>
+      <div class="palette" id="instruments"></div>
+      <div class="controls mt">
+        <button class="btn btn-primary" id="sample" data-fr="Prélever cette zone" data-en="Sample this zone"></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/data/sampling.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var S = window.SAMPLING;
+    var fb = document.getElementById("fb");
+    var state = {};
+    function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
+    function pick(o) { return I18N.pick(o); }
+    function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    var TINT = { blood: "#ef9a9a", semen: "#eef1f4", saliva: "#ffe082", urine: "#fff59d", touch: "#eef1f4", none: "#eef1f4" };
+
+    function newCase() {
+      var item = S.items[Math.floor(Math.random() * S.items.length)];
+      state = { item: item, revealed: {}, chem: {}, selZone: null, selInstr: null };
+      fb.className = "feedback";
+      document.getElementById("testLog").textContent = "";
+      renderHeader();
+      renderScene();
+      renderTests();
+      renderInstruments();
+      updateSel();
+    }
+
+    function renderHeader() {
+      var it = state.item;
+      document.getElementById("scelle").innerHTML =
+        '<div class="ico">' + (it.icon || "🧪") + "</div>" +
+        '<div><h2>' + esc(pick(it.title)) + "</h2><p>" + esc(pick(it.context)) + "</p></div>";
+    }
+
+    // map zone %coords to the 300x160 viewBox inner area [20..280]x[20..140]
+    function mx(x) { return 20 + (x / 100) * 260; }
+    function my(y) { return 20 + (y / 100) * 120; }
+    function mw(w) { return (w / 100) * 260; }
+    function mh(h) { return (h / 100) * 120; }
+
+    function zoneFill(z) {
+      if (z.fluid === "none") return "#eef1f4";
+      if (z.visible) return TINT[z.fluid] || "#eef1f4";
+      if (state.revealed[z.id]) return "#a7f3d0"; // fluoresced
+      return "#eef1f4"; // latent, not revealed
+    }
+
+    function renderScene() {
+      var it = state.item;
+      var svg = '<rect x="8" y="8" width="284" height="144" rx="10" fill="#ffffff" stroke="#cbd3da"/>';
+      it.zones.forEach(function (z) {
+        var fill = zoneFill(z);
+        var selected = state.selZone === z.id;
+        var glow = (!z.visible && state.revealed[z.id]) ? ' stroke="#10b981" stroke-width="2"' :
+                   (selected ? ' stroke="#1e6bb8" stroke-width="2.5"' : ' stroke="#b8c0c8" stroke-width="1"');
+        svg += '<rect class="zone" data-zone="' + z.id + '" x="' + mx(z.x).toFixed(1) + '" y="' + my(z.y).toFixed(1) +
+               '" width="' + mw(z.w).toFixed(1) + '" height="' + mh(z.h).toFixed(1) + '" rx="5" fill="' + fill + '"' + glow + "/>";
+        svg += '<text class="zone-lab" x="' + (mx(z.x) + mw(z.w) / 2).toFixed(1) + '" y="' + (my(z.y) + mh(z.h) / 2 + 3).toFixed(1) +
+               '" text-anchor="middle">' + esc(pick(z.label)) + "</text>";
+        // chem result badge
+        var c = state.chem[z.id];
+        if (c) {
+          var pos = Object.keys(c).some(function (t) { return c[t]; });
+          svg += '<text x="' + (mx(z.x) + mw(z.w) - 6).toFixed(1) + '" y="' + (my(z.y) + 11).toFixed(1) +
+                 '" text-anchor="middle" font-size="11" font-weight="800" fill="' + (pos ? "#12703f" : "#a3202c") + '">' + (pos ? "＋" : "－") + "</text>";
+        }
+      });
+      var scene = document.getElementById("scene");
+      scene.innerHTML = svg;
+      scene.querySelectorAll(".zone").forEach(function (r) {
+        r.addEventListener("click", function () { state.selZone = r.getAttribute("data-zone"); renderScene(); updateSel(); });
+      });
+    }
+
+    function zoneById(id) { return state.item.zones.find(function (z) { return z.id === id; }); }
+
+    function updateSel() {
+      var el = document.getElementById("sel");
+      if (!state.selZone) { el.textContent = L("Cliquez une zone de l'objet pour la sélectionner.", "Click a zone of the item to select it."); return; }
+      el.innerHTML = "<strong>" + L("Zone sélectionnée : ", "Selected zone: ") + "</strong>" + esc(pick(zoneById(state.selZone).label));
+    }
+
+    function renderTests() {
+      var box = document.getElementById("tests");
+      box.innerHTML = "";
+      S.tests.forEach(function (t) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "chip";
+        b.textContent = pick(t.label);
+        b.addEventListener("click", function () { runTest(t); });
+        box.appendChild(b);
+      });
+    }
+
+    function runTest(t) {
+      var log = document.getElementById("testLog");
+      if (t.mode === "als") {
+        var found = [];
+        state.item.zones.forEach(function (z) {
+          if (!z.visible && S.fluorescent[z.fluid]) { state.revealed[z.id] = true; found.push(pick(z.label)); }
+        });
+        renderScene();
+        log.textContent = found.length
+          ? L("ALS : fluorescence détectée — ", "ALS: fluorescence detected — ") + found.join(", ")
+          : L("ALS : aucune zone fluorescente (le sang et l'ADN de contact ne fluorescent pas).",
+              "ALS: no fluorescent zone (blood and touch DNA do not fluoresce).");
+        return;
+      }
+      // chemical: needs a selected zone
+      if (!state.selZone) { log.textContent = L("Sélectionnez d'abord une zone, puis appliquez le test.", "Select a zone first, then apply the test."); return; }
+      var z = zoneById(state.selZone);
+      var positive = z.fluid === t.fluid;
+      state.chem[z.id] = state.chem[z.id] || {};
+      state.chem[z.id][t.id] = positive;
+      renderScene();
+      log.textContent = pick(t.label) + " — " + esc(pick(z.label)) + " : " +
+        (positive ? L("POSITIF", "POSITIVE") : L("négatif", "negative"));
+    }
+
+    function renderInstruments() {
+      var box = document.getElementById("instruments");
+      box.innerHTML = "";
+      S.instruments.forEach(function (ins) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "chip" + (state.selInstr === ins.id ? " sel" : "");
+        b.textContent = pick(ins.label);
+        b.addEventListener("click", function () { state.selInstr = ins.id; renderInstruments(); });
+        box.appendChild(b);
+      });
+    }
+
+    function fnum(n) { return (Math.round(n * 1000) / 1000).toFixed(3); }
+
+    function sample() {
+      if (!state.selZone) { Engineless(L("Choisissez une zone à prélever.", "Choose a zone to sample.")); return; }
+      if (!state.selInstr) { Engineless(L("Choisissez un instrument.", "Choose an instrument.")); return; }
+      var it = state.item, z = zoneById(state.selZone);
+      var tf = (S.substrateTools[it.substrate] || {})[state.selInstr];
+      if (tf == null) tf = 0; // instrument incompatible with this substrate
+      var rand = 0.8 + Math.random() * 0.4;
+      var auto = z.auto * tf * rand;
+      var male = z.male * tf * rand;
+      var degrad = Math.max(0, Math.min(1, z.degrad + (Math.random() - 0.5) * 0.08));
+      var ok = auto >= S.threshold;
+
+      var why = [];
+      // instrument quality
+      if (tf >= 0.8) why.push(L("Bon instrument pour ce support.", "Good instrument for this substrate."));
+      else if (tf >= 0.4) why.push(L("Instrument acceptable mais pas optimal (rendement réduit).", "Acceptable but sub-optimal instrument (reduced yield)."));
+      else why.push(L("Instrument inadapté à ce support → rendement très faible.", "Instrument unsuited to this substrate → very low yield."));
+      // zone content
+      if (z.fluid === "none") why.push(L("Cette zone ne contient pas de matériel biologique.", "This zone holds no biological material."));
+      else if (z.fluid === "touch") why.push(L("ADN de contact : faible quantité attendue.", "Touch DNA: low amount expected."));
+      // male note
+      if (ok && male >= S.threshold) why.push(L("ADN masculin détecté (sperme / contributeur masculin) → pensez à l'extraction différentielle.",
+                                                "Male DNA detected (semen / male contributor) → consider differential extraction."));
+
+      fb.className = "feedback show " + (ok ? "success" : "fail");
+      fb.innerHTML =
+        "<p><strong>" + (ok ? L("ADN récupéré ✔", "DNA recovered ✔") : L("Échec — pas d'ADN exploitable ✘", "Failure — no usable DNA ✘")) + "</strong></p>" +
+        '<div class="result-grid">' +
+          '<div class="stat"><div class="v">' + fnum(auto) + '</div><div class="k">' + L("ADN auto. ng/µL", "Auto. DNA ng/µL") + "</div></div>" +
+          '<div class="stat"><div class="v">' + fnum(male) + '</div><div class="k">' + L("ADN masculin ng/µL", "Male DNA ng/µL") + "</div></div>" +
+          '<div class="stat"><div class="v">' + (auto > 0.001 ? degrad.toFixed(2) : "—") + '</div><div class="k">' + L("Index dégradation", "Degradation index") + "</div></div>" +
+        "</div>" +
+        "<p>" + why.join(" ") + "</p>" +
+        '<p class="muted-note" style="border-top:1px solid var(--border);padding-top:8px"><em>' + esc(pick(it.teach)) + "</em></p>";
+    }
+    function Engineless(msg) { fb.className = "feedback show warn"; fb.innerHTML = "<strong>" + msg + "</strong>"; }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("sample").addEventListener("click", sample);
+    document.addEventListener("langchange", function () {
+      renderHeader(); renderScene(); renderTests(); renderInstruments(); updateSel();
+      if (fb.classList.contains("show")) fb.className = "feedback"; // avoid stale mixed-language result
+    });
+
+    newCase();
+  })();
+  </script>
+</body>
+</html>
