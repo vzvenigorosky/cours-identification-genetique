@@ -5,7 +5,7 @@
    LIZ size-standard strip, and a sample header.  Pure function
    (peaks → SVG string) so it also runs in Node for batch export.
    ============================================================ */
-import { DYES, DYE_ORDER, maxSize } from "./panels.js";
+import { DYES, DYE_ORDER, maxSize, allelesOf, sizeOf } from "./panels.js";
 
 const KIND_OPACITY = { allele: 1, minusA: 0.5, stutter: 0.55, pullup: 0.4, blob: 0.4, spike: 0.5, dropin: 0.85, noise: 0.3 };
 
@@ -80,20 +80,36 @@ export function renderEPG(kit, sim, opts = {}) {
         parts.push(`<path d="M ${(x - 2.6).toFixed(1)} ${bottom} L ${x.toFixed(1)} ${yTop.toFixed(1)} L ${(x + 2.6).toFixed(1)} ${bottom} Z" fill="${dye.color}" opacity="${op}"/>`);
       }
     }
-    // allele-call boxes for called peaks (drawn last, on top).
-    // Allele number + height only; white halo + vertical stagger to avoid collisions.
+    // marker (locus) names across the top of the panel, each centred over
+    // its allele size-range with a thin bracket and a white halo for legibility.
+    kit.loci.filter((l) => l.dye === dyeKey).forEach((l) => {
+      const al = allelesOf(l);
+      const xs = xOf(sizeOf(l, al[0]));
+      const xe = xOf(sizeOf(l, al[al.length - 1]));
+      const xm = (xs + xe) / 2;
+      const w = Math.max(16, l.name.length * 5.4);
+      parts.push(
+        `<line x1="${xs.toFixed(1)}" y1="${(top + 13).toFixed(1)}" x2="${xe.toFixed(1)}" y2="${(top + 13).toFixed(1)}" stroke="#d0d7de" stroke-width="0.75"/>` +
+        `<rect x="${(xm - w / 2).toFixed(1)}" y="${(top + 2).toFixed(1)}" width="${w.toFixed(1)}" height="11" fill="#ffffff" opacity="0.82"/>` +
+        `<text x="${xm.toFixed(1)}" y="${(top + 10).toFixed(1)}" font-size="8" font-weight="600" fill="#57606a" text-anchor="middle">${esc(l.name)}</text>`
+      );
+    });
+
+    // allele-call labels for called peaks (drawn last, on top).
+    // Allele number + RFU placed UNDER the peak, near the baseline (not above).
+    // White halo + vertical stagger lifts crowded neighbours upward.
     let lastLabelX = -99, row = 0;
     for (const p of dpk) {
       if (!p.called) continue;
       const x = xOf(p.size);
       row = (x - lastLabelX < 22) ? (row + 1) % 2 : 0;
       lastLabelX = x;
-      const yA = top + 11 + row * 20;
+      const yA = bottom - 11 - row * 19;        // allele line, just above the baseline
       const label = esc(p.offladder ? "OL" : p.label);
       parts.push(
-        `<rect x="${(x - 9).toFixed(1)}" y="${yA - 8}" width="18" height="17" fill="#ffffff" opacity="0.82"/>` +
-        `<text x="${x.toFixed(1)}" y="${yA}" font-size="8.5" font-weight="700" fill="${dye.color}" text-anchor="middle">${label}</text>` +
-        `<text x="${x.toFixed(1)}" y="${yA + 8}" font-size="7" fill="#8a929a" text-anchor="middle">${p.height}</text>`
+        `<rect x="${(x - 9).toFixed(1)}" y="${(yA - 8).toFixed(1)}" width="18" height="17" fill="#ffffff" opacity="0.82"/>` +
+        `<text x="${x.toFixed(1)}" y="${yA.toFixed(1)}" font-size="8.5" font-weight="700" fill="${dye.color}" text-anchor="middle">${label}</text>` +
+        `<text x="${x.toFixed(1)}" y="${(yA + 8).toFixed(1)}" font-size="7" fill="#8a929a" text-anchor="middle">${p.height}</text>`
       );
     }
   });
