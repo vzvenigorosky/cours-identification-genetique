@@ -36,6 +36,11 @@ window.PCR = {
   cycleRef: 29, cycleBase: 1.3, cycleClamp: [0.2, 6],
   degClamp: [0, 4],
 
+  // GeneMapper-style realism knobs passed to the simulator (DRAFT, issue #12):
+  // call artefacts above threshold (pull-ups labelled PU, imbalanced minor
+  // peaks kept), inject spurious Y-marker calls, and make off-ladder common.
+  sim: { callArtifacts: true, yNoise: true, yNoiseRate: 0.45, olRate: 0.6, olMax: 3 },
+
   // messages for the input decision
   inputMsg: {
     low:  { fr: "Sous-dosage : trop peu d'ADN dans la réaction → signal faible et pertes d'allèles (drop-out).",

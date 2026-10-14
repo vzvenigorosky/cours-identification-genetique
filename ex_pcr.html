@@ -174,7 +174,7 @@
       const c = compute();
       if (c.error) { feedback("warn", { fr: c.error, en: c.error }); return; }
       const sim = simulate(kit, [{ geno: state.profile.geno, amount: c.amount, degradation: c.degradation }],
-                           { rng: makeRng(Math.floor(Math.random() * 1e9)), thresholds: P.thresholds });
+                           Object.assign({ rng: makeRng(Math.floor(Math.random() * 1e9)), thresholds: P.thresholds }, P.sim));
       const r = renderEPG(kit, sim, { sampleLabel: L("Échantillon", "Sample"), title: kit.label, width: 1000, dispMax: P.dispMax });
       document.getElementById("epgWrap").innerHTML = r.svg;
 

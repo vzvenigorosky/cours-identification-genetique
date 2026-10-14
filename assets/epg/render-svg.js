@@ -115,7 +115,7 @@ export function renderEPG(kit, sim, opts = {}) {
       row = (x - lastLabelX < 22) ? (row + 1) % 2 : 0;
       lastLabelX = x;
       const yA = bottom - 11 - row * 19;        // allele line, just above the baseline
-      const label = esc(p.offladder ? "OL" : p.label);
+      const label = esc(p.kind === "pullup" ? "PU" : (p.offladder ? "OL" : (p.label || "OL")));
       parts.push(
         `<rect x="${(x - 9).toFixed(1)}" y="${(yA - 8).toFixed(1)}" width="18" height="17" fill="#ffffff" opacity="0.82"/>` +
         `<text x="${x.toFixed(1)}" y="${yA.toFixed(1)}" font-size="8.5" font-weight="700" fill="${dye.color}" text-anchor="middle">${label}</text>` +

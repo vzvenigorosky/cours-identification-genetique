@@ -140,12 +140,30 @@ export function simulate(kit, contributors, opts = {}) {
     addPeak(peaks, { locus: "", dye, size: rng.int(100, 140), height: rng.range(150, 500), label: "", kind: "blob" });
   }
 
-  // ---- off-ladder: nudge a random called allele off its bin ----
-  if (art.offladder && rng.bool(0.25)) {
+  // ---- Y-marker noise: sporadic peak at a Y locus (a false Y signal, e.g.
+  //      on a female) when enabled. Opt-in (opts.yNoise). ----
+  if (opts.yNoise) {
+    const yl = kit.loci.filter((l) => l.type === "yindel" || l.type === "ystr");
+    for (const l of yl) {
+      if (!rng.bool(opts.yNoiseRate != null ? opts.yNoiseRate : 0.3)) continue;
+      const al = allelesOf(l); if (!al.length) continue;
+      const a = rng.pick(al);
+      addPeak(peaks, { locus: l.name, dye: l.dye, size: sizeOf(l, a),
+                       height: th.at * rng.range(1.2, 2.6), label: fmtAllele(a), kind: "dropin" });
+    }
+  }
+
+  // ---- off-ladder: nudge random called allele(s) off their bin. Rate/count
+  //      tunable (opts.olRate / opts.olMax); defaults reproduce prior behaviour. ----
+  if (art.offladder) {
+    const olRate = opts.olRate != null ? opts.olRate : 0.25;
+    const olMax = opts.olMax != null ? opts.olMax : 1;
     const sexMarkers = new Set(["AMEL", "Yindel"]);
     const callable = peaks.filter((p) => p.kind === "allele" && p.height > th.at && !sexMarkers.has(p.locus));
-    if (callable.length) {
+    for (let i = 0; i < olMax && callable.length; i++) {
+      if (!rng.bool(olRate)) continue;
       const p = rng.pick(callable);
+      if (p.offladder) continue;
       p.size += rng.bool() ? 1 : -1;
       p.offladder = true;
     }
@@ -155,7 +173,13 @@ export function simulate(kit, contributors, opts = {}) {
   for (const p of peaks) {
     if (p.height >= SAT) { p.height = SAT; p.saturated = true; }
     p.height = Math.round(p.height);
-    p.called = p.kind === "allele" && p.height >= th.at;
+    // GeneMapper calls any detected peak above the analytical threshold — not
+    // just true alleles. When opts.callArtifacts is set, artefact peaks above
+    // threshold are called too (flagged in the renderer: PU / OL …), and
+    // imbalance is not auto-filtered. Default off → only true alleles called.
+    p.called = p.height >= th.at && (p.kind === "allele" ||
+      (opts.callArtifacts && (p.kind === "pullup" || p.kind === "dropin" ||
+       p.kind === "spike" || p.kind === "blob" || p.kind === "minusA")));
   }
 
   peaks = peaks.filter((p) => p.height > 8);
