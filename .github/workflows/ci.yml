@@ -27,3 +27,5 @@ jobs:
           node-version: '20'
       - name: EPG self-tests
         run: node tools/epg-selftest.mjs
+      - name: Quiz data and behavior self-tests
+        run: node tools/mcq-selftest.mjs
