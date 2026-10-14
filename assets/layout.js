@@ -12,7 +12,6 @@
     { page: "questions",  href: "questions.html",  key: "nav.questions" },
     { page: "exercices",  href: "exercices.html",  key: "nav.exercices" },
     { page: "qcm",        href: "qcm.html",         key: "nav.qcm" },
-    { page: "epg",        href: "epg.html",         key: "nav.epg" },
     { page: "annales",    href: "annales.html",    key: "nav.annales" }
   ];
 
