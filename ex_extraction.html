@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantification : quels extraits amplifier ? — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .req { background:var(--stripe); border:1px solid var(--border); border-radius:8px; padding:12px 14px; font-size:.92rem; color:var(--ink); }
+    .scelle { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin:12px 0; }
+    .scelle h3 { margin:0 0 2px; font-size:1.02rem; color:var(--ink); }
+    .scelle .nat { margin:0 0 8px; color:var(--muted); font-size:.86rem; }
+    .qrow { display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:7px; }
+    .qrow:hover { background:var(--stripe); }
+    .qrow input { flex:none; }
+    .qrow .lab { flex:1 1 auto; }
+    .qrow .val { font-variant-numeric:tabular-nums; font-weight:700; color:var(--ink); min-width:92px; text-align:right; }
+    .qrow .unit { color:var(--muted); font-weight:400; font-size:.8rem; }
+    .qrow.none { border-top:1px dashed var(--border); margin-top:4px; padding-top:10px; }
+    .verdict { font-size:.9rem; margin-top:8px; }
+    .verdict.ok { color:var(--green); }
+    .verdict.ko { color:#a3202c; }
+  </style>
+</head>
+<body data-page="exercices">
+
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Quantification : quels extraits amplifier ?" data-en="Quantification: which extracts to amplify?"></h1>
+    <p class="page-intro"
+       data-fr="La réquisition demande des profils STR autosomiques. Les extractions sont faites : pour chaque scellé, lisez la quantification des extraits et choisissez le meilleur à amplifier — ou concluez qu'aucun n'est exploitable."
+       data-en="The requisition asks for autosomal STR profiles. Extractions are done: for each exhibit, read the quantification of its extracts and pick the best one to amplify — or conclude that none is usable."></p>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between; align-items:flex-start">
+        <div class="req" id="requisition" style="flex:1 1 auto"></div>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase" style="flex:none; margin-left:12px"></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div id="scelles"></div>
+      <div class="controls mt">
+        <button class="btn btn-primary" id="check" data-i18n="common.check"></button>
+      </div>
+      <div class="feedback" id="fb"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/data/extraction.js"></script>
+  <script src="assets/exercises/engine.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var E = window.EXTRACTION;
+    var fb = document.getElementById("fb");
+    var state = {};
+    function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
+    function pick(o) { return I18N.pick(o); }
+    function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function rnd(r) { return r[0] + Math.random() * (r[1] - r[0]); }
+    function q3(n) { return Math.round(n * 1000) / 1000; }
+
+    function newCase() {
+      var n = Engine.rint(E.perCase[0], E.perCase[1]);
+      var chosen = Engine.shuffle(E.scelles.slice()).slice(0, n);
+      state = { scelles: chosen.map(buildScelle), picked: {} };
+      Engine.hideFeedback(fb);
+      render();
+    }
+
+    function buildScelle(tpl) {
+      var depleted = Math.random() < E.pDepleted;
+      var extracts = tpl.sites.map(function (s, i) {
+        var q = depleted ? rnd([0, E.threshold * 0.8]) : rnd(s.range);
+        return { id: tpl.id + "_" + i, label: s.label, q: Math.max(0, q3(q)) };
+      });
+      // best usable extract (quantity ≥ threshold); else "none"
+      var usable = extracts.filter(function (e) { return e.q >= E.threshold; });
+      var best = usable.reduce(function (a, e) { return (!a || e.q > a.q) ? e : a; }, null);
+      return {
+        id: tpl.id, title: tpl.title, nature: tpl.nature,
+        extracts: Engine.shuffle(extracts.slice()), // display order randomised
+        correctId: best ? best.id : "none",
+        bestLabel: best ? best.label : null, bestQ: best ? best.q : null
+      };
+    }
+
+    function render() {
+      document.getElementById("requisition").innerHTML = pick(E.requisition);
+      var box = document.getElementById("scelles");
+      box.innerHTML = state.scelles.map(function (sc, si) {
+        var rows = sc.extracts.map(function (e) {
+          var checked = state.picked[si] === e.id ? " checked" : "";
+          return '<label class="qrow"><input type="radio" name="sc' + si + '" value="' + e.id + '"' + checked + ">" +
+                 '<span class="lab">' + esc(pick(e.label)) + "</span>" +
+                 '<span class="val">' + e.q.toFixed(3) + ' <span class="unit">ng/µL</span></span></label>';
+        }).join("");
+        var noneChecked = state.picked[si] === "none" ? " checked" : "";
+        rows += '<label class="qrow none"><input type="radio" name="sc' + si + '" value="none"' + noneChecked + ">" +
+                '<span class="lab">' + L("Aucun extrait exploitable (quantité insuffisante)", "No usable extract (insufficient quantity)") + "</span></label>";
+        return '<div class="scelle"><h3>' + esc(pick(sc.title)) + '</h3><p class="nat">' + esc(pick(sc.nature)) + "</p>" + rows + "</div>";
+      }).join("");
+
+      box.querySelectorAll('input[type="radio"]').forEach(function (r) {
+        r.addEventListener("change", function () {
+          var si = parseInt(r.name.slice(2), 10);
+          state.picked[si] = r.value;
+        });
+      });
+    }
+
+    function check() {
+      // all scellés must be answered
+      for (var i = 0; i < state.scelles.length; i++) {
+        if (state.picked[i] == null) { Engine.feedback(fb, "warn", "Répondez pour chaque scellé.", "Answer for every exhibit."); return; }
+      }
+      var allOk = true, linesFr = [], linesEn = [];
+      state.scelles.forEach(function (sc, si) {
+        var ok = state.picked[si] === sc.correctId;
+        if (!ok) allOk = false;
+        var titleFr = pick(sc.title), titleEn = L(sc.title.en, sc.title.en); // title label
+        var tagFr = esc(sc.title.fr), tagEn = esc(sc.title.en);
+        var detailFr, detailEn;
+        if (sc.correctId === "none") {
+          detailFr = ok ? "aucun extrait n'atteint le seuil de " + E.threshold + " ng/µL : pas d'amplification, à signaler dans le rapport."
+                        : "aucun extrait n'atteignait le seuil de " + E.threshold + " ng/µL : il ne fallait rien amplifier.";
+          detailEn = ok ? "no extract reaches the " + E.threshold + " ng/µL threshold: no amplification, to report back."
+                        : "no extract reached the " + E.threshold + " ng/µL threshold: nothing should have been amplified.";
+        } else {
+          detailFr = "le meilleur extrait exploitable est « " + esc(sc.bestLabel.fr) + " » (" + sc.bestQ.toFixed(3) + " ng/µL).";
+          detailEn = "the best usable extract is “" + esc(sc.bestLabel.en) + "” (" + sc.bestQ.toFixed(3) + " ng/µL).";
+        }
+        linesFr.push("<li><strong>" + tagFr + "</strong> " + (ok ? "✔ " : "✘ ") + detailFr + "</li>");
+        linesEn.push("<li><strong>" + tagEn + "</strong> " + (ok ? "✔ " : "✘ ") + detailEn + "</li>");
+      });
+
+      var htmlFr = "<p><strong>" + (allOk ? "Correct !" : "À revoir.") + "</strong> " +
+        (allOk ? "Vous avez retenu, pour chaque scellé, l'extrait le plus exploitable (ou aucun à juste titre)."
+               : "Rappel : on amplifie l'extrait le mieux quantifié de chaque scellé, à condition qu'il dépasse le seuil ; sinon on n'amplifie pas.") +
+        "</p><ul style='margin:8px 0 0;padding-left:20px'>" + linesFr.join("") + "</ul>";
+      var htmlEn = "<p><strong>" + (allOk ? "Correct!" : "Review needed.") + "</strong> " +
+        (allOk ? "For each exhibit you kept the most usable extract (or correctly none)."
+               : "Reminder: amplify the best-quantified extract of each exhibit, provided it clears the threshold; otherwise don't amplify.") +
+        "</p><ul style='margin:8px 0 0;padding-left:20px'>" + linesEn.join("") + "</ul>";
+      Engine.feedback(fb, allOk ? "success" : "fail", htmlFr, htmlEn);
+    }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("check").addEventListener("click", check);
+    document.addEventListener("langchange", function () { render(); Engine.refreshFeedback(fb); });
+
+    newCase();
+  })();
+  </script>
+</body>
+</html>
