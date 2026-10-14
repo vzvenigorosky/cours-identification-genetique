@@ -7,24 +7,27 @@
   <link rel="stylesheet" href="assets/site.css">
   <style>
     .scelle { display:flex; gap:14px; align-items:flex-start; }
-    .scelle .ico { font-size:2.4rem; line-height:1; }
     .scelle h2 { margin:0 0 3px; color:var(--ink); font-size:1.15rem; }
     .scelle p  { margin:0; color:var(--muted); font-size:.92rem; }
-    #scene { width:100%; max-width:520px; height:auto; border:1px solid var(--border); border-radius:10px; background:#fbfcfd; display:block; }
-    .zone { cursor:pointer; }
-    .zone-lab { font-size:8px; fill:#57606a; pointer-events:none; }
-    .pal-label { font-weight:700; font-size:.82rem; color:var(--ink); margin:14px 0 8px; }
+    #scene { width:100%; max-width:560px; height:auto; border:1px solid var(--border); border-radius:10px;
+             background:#f6f8fa; display:block; touch-action:none; }
+    #scene.armed { cursor:crosshair; }
+    .pal-label { font-weight:700; font-size:.82rem; color:var(--ink); margin:14px 0 6px; }
     .palette { display:flex; flex-wrap:wrap; gap:8px; }
     .chip { border:1px solid var(--border); background:var(--card); color:var(--ink); border-radius:999px;
             padding:6px 13px; font-size:.88rem; font-weight:600; cursor:pointer; transition:all .12s; }
     .chip:hover { background:var(--stripe); border-color:var(--accent); }
     .chip.sel { background:linear-gradient(180deg,var(--green),var(--blue)); color:#fff; border-color:var(--blue); }
-    .chip:disabled { opacity:.5; cursor:not-allowed; }
-    .log { font-size:.86rem; color:var(--muted); min-height:1.2em; margin:8px 0 0; }
+    .chip.light.sel { background:#111827; border-color:#111827; }
+    .hint { font-size:.9rem; color:var(--muted); min-height:1.2em; margin:10px 0 0; }
+    .hint strong { color:var(--ink); }
     .result-grid { display:flex; flex-wrap:wrap; gap:18px; margin:6px 0 10px; }
     .stat { background:var(--stripe); border:1px solid var(--border); border-radius:8px; padding:8px 14px; }
     .stat .v { font-size:1.2rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
     .stat .k { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .legend { display:flex; flex-wrap:wrap; gap:14px; margin:8px 0 0; font-size:.78rem; color:var(--muted); }
+    .legend span { display:inline-flex; align-items:center; gap:5px; }
+    .dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
   </style>
 </head>
 <body data-page="exercices">
@@ -33,8 +36,8 @@
     <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
     <h1 class="page-title mt" data-fr="Échantillonnage de scellés" data-en="Sampling sealed evidence"></h1>
     <p class="page-intro"
-       data-fr="Observez le scellé, utilisez les tests d'orientation pour révéler les traces, puis choisissez une zone et un instrument pour prélever. Objectif : récupérer de l'ADN exploitable."
-       data-en="Examine the item, use the orientation tests to reveal traces, then choose a zone and an instrument to sample. Goal: recover usable DNA."></p>
+       data-fr="Un objet réel vous est présenté. Éclairez-le si besoin, choisissez un test puis cliquez un point pour l'appliquer, enfin choisissez un instrument et cliquez où prélever. Objectif : récupérer de l'ADN exploitable."
+       data-en="A real object is shown. Light it if needed, pick a test then click a point to apply it, finally pick an instrument and click where to sample. Goal: recover usable DNA."></p>
 
     <div class="panel">
       <div class="controls" style="justify-content:space-between; align-items:flex-start">
@@ -42,23 +45,27 @@
         <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
       </div>
       <div style="text-align:center; margin-top:12px">
-        <svg id="scene" viewBox="0 0 300 160" role="img"></svg>
+        <svg id="scene" viewBox="0 0 400 260" role="img" aria-label="evidence"></svg>
       </div>
-      <p class="log" id="sel"></p>
+      <div class="legend">
+        <span><i class="dot" style="background:#d64545"></i><span data-fr="Sang" data-en="Blood"></span></span>
+        <span><i class="dot" style="background:#2f6fb0"></i><span data-fr="Sperme" data-en="Semen"></span></span>
+        <span><i class="dot" style="background:#d6a516"></i><span data-fr="Salive" data-en="Saliva"></span></span>
+        <span><i class="dot" style="background:#59d99a"></i><span data-fr="Révélé par la lumière" data-en="Revealed by light"></span></span>
+      </div>
+      <p class="hint" id="hint"></p>
     </div>
 
     <div class="panel">
-      <div class="pal-label" data-fr="1. Tests d'orientation" data-en="1. Orientation tests"></div>
-      <p class="muted-note" data-fr="L'ALS/UV révèle les fluides fluorescents sur tout l'objet ; les tests chimiques s'appliquent à la zone sélectionnée."
-         data-en="ALS/UV reveals fluorescent fluids across the item; chemical tests apply to the selected zone."></p>
-      <div class="palette" id="tests" style="margin-top:8px"></div>
-      <p class="log" id="testLog"></p>
+      <div class="pal-label" data-fr="1. Lumière (révèle les fluides fluorescents)" data-en="1. Light (reveals fluorescent fluids)"></div>
+      <div class="palette" id="lights"></div>
 
-      <div class="pal-label" data-fr="2. Prélèvement" data-en="2. Sampling"></div>
+      <div class="pal-label" data-fr="2. Test d'orientation — puis cliquez un point" data-en="2. Orientation test — then click a point"></div>
+      <div class="palette" id="tests"></div>
+
+      <div class="pal-label" data-fr="3. Instrument de prélèvement — puis cliquez où prélever" data-en="3. Sampling instrument — then click where to sample"></div>
       <div class="palette" id="instruments"></div>
-      <div class="controls mt">
-        <button class="btn btn-primary" id="sample" data-fr="Prélever cette zone" data-en="Sample this zone"></button>
-      </div>
+
       <div class="feedback" id="fb"></div>
     </div>
   </main>
@@ -70,154 +77,269 @@
   (function () {
     var S = window.SAMPLING;
     var fb = document.getElementById("fb");
+    var scene = document.getElementById("scene");
     var state = {};
     function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
     function pick(o) { return I18N.pick(o); }
     function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function fnum(n) { return (Math.round(n * 1000) / 1000).toFixed(3); }
+    function clamp01(n) { return Math.max(0, Math.min(1, n)); }
 
-    var TINT = { blood: "#ef9a9a", semen: "#eef1f4", saliva: "#ffe082", urine: "#fff59d", touch: "#eef1f4", none: "#eef1f4" };
+    /* ---- SVG draw routines for each modelled object (400×260 canvas) ---- */
+    var DRAW = {
+      fta: function () {
+        return '<rect x="50" y="45" width="300" height="170" rx="12" fill="#fdfdfb" stroke="#c7ccd1" stroke-width="2"/>' +
+               '<circle cx="200" cy="132" r="52" fill="none" stroke="#c7ccd1" stroke-width="1.5" stroke-dasharray="4 4"/>' +
+               '<text x="66" y="68" font-size="12" font-weight="700" fill="#9aa4ad">FTA</text>';
+      },
+      shirt: function () {
+        return '<path d="M150 66 C165 82 185 86 200 86 C215 86 235 82 250 66 L288 86 L312 128 L286 150 L258 134 L258 228 L142 228 L142 134 L114 150 L88 128 L112 86 Z" ' +
+               'fill="#eef3f7" stroke="#b9c2cb" stroke-width="2" stroke-linejoin="round"/>' +
+               '<path d="M150 66 C168 92 232 92 250 66" fill="none" stroke="#b9c2cb" stroke-width="1.5"/>';
+      },
+      sheet: function () {
+        var s = '<rect x="48" y="52" width="304" height="156" rx="8" fill="#f3f6f9" stroke="#b9c2cb" stroke-width="2"/>';
+        for (var i = 0; i < 4; i++) {
+          var x = 78 + i * 72;
+          s += '<path d="M' + x + ' 58 q 10 50 0 100 q -10 50 0 100" fill="none" stroke="#dde3e9" stroke-width="2" transform="translate(0,-6)"/>';
+        }
+        return s;
+      },
+      underwear: function () {
+        return '<path d="M118 84 L282 84 L272 150 C258 196 214 196 200 160 C186 196 142 196 128 150 Z" ' +
+               'fill="#eef3f7" stroke="#b9c2cb" stroke-width="2" stroke-linejoin="round"/>' +
+               '<path d="M118 92 L282 92" fill="none" stroke="#cfd8e0" stroke-width="3"/>';
+      },
+      swab: function () {
+        return '<rect x="118" y="125" width="214" height="9" rx="4.5" fill="#d8b98a" stroke="#c6a876"/>' +
+               '<ellipse cx="95" cy="130" rx="31" ry="21" fill="#fbfbf7" stroke="#cfd4d8" stroke-width="1.5"/>' +
+               '<ellipse cx="332" cy="130" rx="7" ry="9" fill="#e7e2d6" stroke="#cfd4d8"/>';
+      },
+      cig: function () {
+        var s = '<rect x="168" y="112" width="164" height="36" rx="5" fill="#fbfbf7" stroke="#e0dcd2" stroke-width="1.5"/>' +
+                '<rect x="70" y="112" width="100" height="36" rx="7" fill="#d8a85f" stroke="#c6974d" stroke-width="1.5"/>';
+        for (var i = 0; i < 5; i++) s += '<circle cx="' + (84 + i * 18) + '" cy="130" r="1.6" fill="#b9823d"/>';
+        s += '<path d="M326 112 q10 18 0 36" fill="#6b6b6b" opacity="0.5"/>';
+        return s;
+      },
+      knife: function () {
+        return '<rect x="58" y="110" width="124" height="42" rx="11" fill="#4b3a2f" stroke="#372a21"/>' +
+               '<circle cx="78" cy="131" r="4" fill="#2c2119"/><circle cx="150" cy="131" r="4" fill="#2c2119"/>' +
+               '<path d="M182 113 L346 131 L182 149 Z" fill="#cdd2d7" stroke="#aab1b8" stroke-width="1.5" stroke-linejoin="round"/>' +
+               '<path d="M182 131 L346 131" stroke="#b4bbc2" stroke-width="1"/>';
+      },
+      redstain: function () {
+        return '<rect x="40" y="40" width="320" height="180" rx="6" fill="#eceff1" stroke="#cfd4d8" stroke-width="1.5"/>' +
+               '<line x1="40" y1="100" x2="360" y2="100" stroke="#e1e5e8"/><line x1="40" y1="160" x2="360" y2="160" stroke="#e1e5e8"/>';
+      }
+    };
 
+    function stainSVG(cx, cy, r, color, op) {
+      op = op == null ? 0.8 : op;
+      return '<g opacity="' + op + '">' +
+        '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + r + '" ry="' + (r * 0.82).toFixed(1) + '" fill="' + color + '"/>' +
+        '<ellipse cx="' + (cx - r * 0.5).toFixed(1) + '" cy="' + (cy + r * 0.34).toFixed(1) + '" rx="' + (r * 0.46).toFixed(1) + '" ry="' + (r * 0.4).toFixed(1) + '" fill="' + color + '"/>' +
+        '<ellipse cx="' + (cx + r * 0.55).toFixed(1) + '" cy="' + (cy - r * 0.24).toFixed(1) + '" rx="' + (r * 0.4).toFixed(1) + '" ry="' + (r * 0.42).toFixed(1) + '" fill="' + color + '"/>' +
+        '</g>';
+    }
+    function glowSVG(cx, cy, r) {
+      return '<g>' +
+        '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + (r * 1.18).toFixed(1) + '" ry="' + (r * 1.0).toFixed(1) + '" fill="#bdf5d6" opacity="0.45"/>' +
+        '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + r + '" ry="' + (r * 0.82).toFixed(1) + '" fill="#e9fff2" opacity="0.55" stroke="#59d99a" stroke-width="1.5" stroke-dasharray="3 3"/>' +
+        '</g>';
+    }
+    function markerSVG(m) {
+      var c = m.positive ? (S.colors[m.fluid] || "#12703f") : "#9aa4ad";
+      var sym = m.positive ? "＋" : "－";
+      return '<circle cx="' + m.x.toFixed(1) + '" cy="' + m.y.toFixed(1) + '" r="10" fill="#ffffff" opacity="0.92" stroke="' + c + '" stroke-width="1.5"/>' +
+        '<text x="' + m.x.toFixed(1) + '" y="' + (m.y + 4).toFixed(1) + '" text-anchor="middle" font-size="13" font-weight="800" fill="' + c + '">' + sym + '</text>';
+    }
+    function footprintSVG(fp, x, y) {
+      x = x.toFixed(1); y = y.toFixed(1);
+      switch (fp) {
+        case "swab": return '<circle cx="' + x + '" cy="' + y + '" r="22" fill="none" stroke="#1e6bb8" stroke-width="2" stroke-dasharray="5 4"/>';
+        case "disc": return '<circle cx="' + x + '" cy="' + y + '" r="13" fill="#1e6bb8" fill-opacity="0.22" stroke="#1e6bb8" stroke-width="2"/>';
+        case "scalpel": return '<path d="M' + (x - 13) + ' ' + (y - 13) + ' L' + (+x + 13) + ' ' + (+y + 13) + '" stroke="#1e6bb8" stroke-width="2.5" stroke-linecap="round"/>' +
+                               '<path d="M' + (+x + 10) + ' ' + (y - 14) + ' l5 -2 -2 5" fill="none" stroke="#1e6bb8" stroke-width="2"/>';
+        case "cut": return '<rect x="' + (x - 24) + '" y="' + (y - 18) + '" width="48" height="36" rx="4" fill="#1e6bb8" fill-opacity="0.1" stroke="#1e6bb8" stroke-width="2" stroke-dasharray="6 4"/>';
+        case "tape": return '<rect x="' + (x - 21) + '" y="' + (y - 14) + '" width="42" height="28" fill="#1e6bb8" fill-opacity="0.12" stroke="#1e6bb8" stroke-width="2" stroke-dasharray="4 3"/>';
+        default: return "";
+      }
+    }
+
+    /* ---- case generation: resolve male fraction & uncertain identities ---- */
+    function resolveMale(sp) {
+      switch (sp.maleMode) {
+        case "always": return sp.auto * (0.85 + Math.random() * 0.1);
+        case "mix":    return sp.auto * (0.4 + Math.random() * 0.2);
+        case "random": return Math.random() < 0.5 ? 0 : sp.auto * (0.8 + Math.random() * 0.15);
+        default:       return 0; // "none"
+      }
+    }
     function newCase() {
       var item = S.items[Math.floor(Math.random() * S.items.length)];
-      state = { item: item, revealed: {}, chem: {}, selZone: null, selInstr: null };
+      var spots = item.spots.map(function (sp) {
+        var s = Object.assign({}, sp);
+        // red stain: one case in two is NOT blood (paint/rust) → no DNA
+        if (s.uncertain && Math.random() < 0.5) { s.fluid = "paint"; s.auto = 0; s.male = 0; s.degrad = 0; s.isBlood = false; }
+        else { s.isBlood = (s.fluid === "blood"); s.male = resolveMale(s); }
+        return s;
+      });
+      state = { item: item, spots: spots, lit: false, revealed: {}, armed: null,
+                markers: [], footprint: null, testedSemen: false, testedBlood: false };
       fb.className = "feedback";
-      document.getElementById("testLog").textContent = "";
-      renderHeader();
-      renderScene();
-      renderTests();
-      renderInstruments();
-      updateSel();
+      renderHeader(); renderScene(); renderPalettes(); setHint();
     }
 
     function renderHeader() {
       var it = state.item;
       document.getElementById("scelle").innerHTML =
-        '<div class="ico">' + (it.icon || "🧪") + "</div>" +
-        '<div><h2>' + esc(pick(it.title)) + "</h2><p>" + esc(pick(it.context)) + "</p></div>";
-    }
-
-    // map zone %coords to the 300x160 viewBox inner area [20..280]x[20..140]
-    function mx(x) { return 20 + (x / 100) * 260; }
-    function my(y) { return 20 + (y / 100) * 120; }
-    function mw(w) { return (w / 100) * 260; }
-    function mh(h) { return (h / 100) * 120; }
-
-    function zoneFill(z) {
-      if (z.fluid === "none") return "#eef1f4";
-      if (z.visible) return TINT[z.fluid] || "#eef1f4";
-      if (state.revealed[z.id]) return "#a7f3d0"; // fluoresced
-      return "#eef1f4"; // latent, not revealed
+        "<div><h2>" + esc(pick(it.title)) + "</h2><p>" + esc(pick(it.context)) + "</p></div>";
     }
 
     function renderScene() {
-      var it = state.item;
-      var svg = '<rect x="8" y="8" width="284" height="144" rx="10" fill="#ffffff" stroke="#cbd3da"/>';
-      it.zones.forEach(function (z) {
-        var fill = zoneFill(z);
-        var selected = state.selZone === z.id;
-        var glow = (!z.visible && state.revealed[z.id]) ? ' stroke="#10b981" stroke-width="2"' :
-                   (selected ? ' stroke="#1e6bb8" stroke-width="2.5"' : ' stroke="#b8c0c8" stroke-width="1"');
-        svg += '<rect class="zone" data-zone="' + z.id + '" x="' + mx(z.x).toFixed(1) + '" y="' + my(z.y).toFixed(1) +
-               '" width="' + mw(z.w).toFixed(1) + '" height="' + mh(z.h).toFixed(1) + '" rx="5" fill="' + fill + '"' + glow + "/>";
-        svg += '<text class="zone-lab" x="' + (mx(z.x) + mw(z.w) / 2).toFixed(1) + '" y="' + (my(z.y) + mh(z.h) / 2 + 3).toFixed(1) +
-               '" text-anchor="middle">' + esc(pick(z.label)) + "</text>";
-        // chem result badge
-        var c = state.chem[z.id];
-        if (c) {
-          var pos = Object.keys(c).some(function (t) { return c[t]; });
-          svg += '<text x="' + (mx(z.x) + mw(z.w) - 6).toFixed(1) + '" y="' + (my(z.y) + 11).toFixed(1) +
-                 '" text-anchor="middle" font-size="11" font-weight="800" fill="' + (pos ? "#12703f" : "#a3202c") + '">' + (pos ? "＋" : "－") + "</text>";
-        }
+      var svg = DRAW[state.item.draw] ? DRAW[state.item.draw]() : "";
+      // biological spots
+      state.spots.forEach(function (s, i) {
+        if (s.fluid === "touch" || s.fluid === "none") return;      // invisible, never drawn
+        if (s.visible) svg += stainSVG(s.cx, s.cy, s.r, S.colors[s.fluid] || "#d64545");
+        else if (s.fluorescent && state.revealed[i]) svg += glowSVG(s.cx, s.cy, s.r);
       });
-      var scene = document.getElementById("scene");
+      state.markers.forEach(function (m) { svg += markerSVG(m); });
+      if (state.footprint) svg += footprintSVG(state.footprint.fp, state.footprint.x, state.footprint.y);
       scene.innerHTML = svg;
-      scene.querySelectorAll(".zone").forEach(function (r) {
-        r.addEventListener("click", function () { state.selZone = r.getAttribute("data-zone"); renderScene(); updateSel(); });
-      });
+      scene.classList.toggle("armed", !!state.armed);
     }
 
-    function zoneById(id) { return state.item.zones.find(function (z) { return z.id === id; }); }
-
-    function updateSel() {
-      var el = document.getElementById("sel");
-      if (!state.selZone) { el.textContent = L("Cliquez une zone de l'objet pour la sélectionner.", "Click a zone of the item to select it."); return; }
-      el.innerHTML = "<strong>" + L("Zone sélectionnée : ", "Selected zone: ") + "</strong>" + esc(pick(zoneById(state.selZone).label));
+    function renderPalettes() {
+      chips("lights", S.lights, "light");
+      chips("tests", S.tests, "test");
+      chips("instruments", S.instruments, "instr");
     }
-
-    function renderTests() {
-      var box = document.getElementById("tests");
+    function chips(boxId, list, kind) {
+      var box = document.getElementById(boxId);
       box.innerHTML = "";
-      S.tests.forEach(function (t) {
+      list.forEach(function (t) {
         var b = document.createElement("button");
-        b.type = "button"; b.className = "chip";
+        b.type = "button";
+        var armed = state.armed && state.armed.kind === kind && state.armed.tool.id === t.id;
+        b.className = "chip " + (kind === "light" ? "light " : "") + (armed || (kind === "light" && state.lit && t._on) ? "sel" : "");
         b.textContent = pick(t.label);
-        b.addEventListener("click", function () { runTest(t); });
+        b.addEventListener("click", function () { onChip(kind, t); });
         box.appendChild(b);
       });
     }
 
-    function runTest(t) {
-      var log = document.getElementById("testLog");
-      if (t.mode === "als") {
+    function onChip(kind, tool) {
+      if (kind === "light") {
+        state.lit = true;
         var found = [];
-        state.item.zones.forEach(function (z) {
-          if (!z.visible && S.fluorescent[z.fluid]) { state.revealed[z.id] = true; found.push(pick(z.label)); }
+        state.spots.forEach(function (s, i) {
+          if (!s.visible && s.fluorescent && S.fluorescent[s.fluid]) { state.revealed[i] = true; found.push(S.colors[s.fluid]); }
         });
         renderScene();
-        log.textContent = found.length
-          ? L("ALS : fluorescence détectée — ", "ALS: fluorescence detected — ") + found.join(", ")
-          : L("ALS : aucune zone fluorescente (le sang et l'ADN de contact ne fluorescent pas).",
-              "ALS: no fluorescent zone (blood and touch DNA do not fluoresce).");
+        setHint(found.length
+          ? L("Lumière : fluorescence détectée — une ou plusieurs traces latentes apparaissent.",
+              "Light: fluorescence detected — one or more latent traces appear.")
+          : L("Lumière : aucune trace fluorescente (le sang et l'ADN de contact ne fluorescent pas).",
+              "Light: no fluorescent trace (blood and touch DNA do not fluoresce)."));
         return;
       }
-      // chemical: needs a selected zone
-      if (!state.selZone) { log.textContent = L("Sélectionnez d'abord une zone, puis appliquez le test.", "Select a zone first, then apply the test."); return; }
-      var z = zoneById(state.selZone);
-      var positive = z.fluid === t.fluid;
-      state.chem[z.id] = state.chem[z.id] || {};
-      state.chem[z.id][t.id] = positive;
-      renderScene();
-      log.textContent = pick(t.label) + " — " + esc(pick(z.label)) + " : " +
-        (positive ? L("POSITIF", "POSITIVE") : L("négatif", "negative"));
+      // toggle-arm a test or an instrument (single armed tool)
+      if (state.armed && state.armed.kind === kind && state.armed.tool.id === tool.id) state.armed = null;
+      else state.armed = { kind: kind, tool: tool };
+      renderPalettes(); renderScene(); setHint();
     }
 
-    function renderInstruments() {
-      var box = document.getElementById("instruments");
-      box.innerHTML = "";
-      S.instruments.forEach(function (ins) {
-        var b = document.createElement("button");
-        b.type = "button"; b.className = "chip" + (state.selInstr === ins.id ? " sel" : "");
-        b.textContent = pick(ins.label);
-        b.addEventListener("click", function () { state.selInstr = ins.id; renderInstruments(); });
-        box.appendChild(b);
+    function setHint(msg) {
+      var el = document.getElementById("hint");
+      if (msg) { el.innerHTML = msg; return; }
+      if (!state.armed) { el.innerHTML = L("Armez un test ou un instrument, puis cliquez sur l'objet.",
+                                           "Arm a test or an instrument, then click the object."); return; }
+      var name = esc(pick(state.armed.tool.label));
+      el.innerHTML = state.armed.kind === "test"
+        ? L("<strong>" + name + "</strong> armé — cliquez un point à tester.", "<strong>" + name + "</strong> armed — click a point to test.")
+        : L("<strong>" + name + "</strong> armé — cliquez où prélever.", "<strong>" + name + "</strong> armed — click where to sample.");
+    }
+
+    function objCoords(evt) {
+      var r = scene.getBoundingClientRect();
+      var cx = (evt.touches ? evt.touches[0].clientX : evt.clientX);
+      var cy = (evt.touches ? evt.touches[0].clientY : evt.clientY);
+      return { x: (cx - r.left) / r.width * 400, y: (cy - r.top) / r.height * 260 };
+    }
+    function findSpot(x, y, tol) {
+      var best = null, bd = 1e9;
+      state.spots.forEach(function (s) {
+        var d = Math.hypot(x - s.cx, y - s.cy);
+        if (d <= s.r + tol && d < bd) { bd = d; best = s; }
       });
+      return best;
     }
 
-    function fnum(n) { return (Math.round(n * 1000) / 1000).toFixed(3); }
+    function onScene(evt) {
+      if (!state.armed) return;
+      evt.preventDefault();
+      var p = objCoords(evt);
+      if (state.armed.kind === "test") applyTest(p);
+      else sampleAt(p);
+    }
 
-    function sample() {
-      if (!state.selZone) { Engineless(L("Choisissez une zone à prélever.", "Choose a zone to sample.")); return; }
-      if (!state.selInstr) { Engineless(L("Choisissez un instrument.", "Choose an instrument.")); return; }
-      var it = state.item, z = zoneById(state.selZone);
-      var tf = (S.substrateTools[it.substrate] || {})[state.selInstr];
-      if (tf == null) tf = 0; // instrument incompatible with this substrate
+    function applyTest(p) {
+      var tool = state.armed.tool;
+      if (tool.fluid === "semen") state.testedSemen = true;
+      if (tool.fluid === "blood") state.testedBlood = true;
+      var sp = findSpot(p.x, p.y, 4);
+      var positive = !!(sp && sp.fluid === tool.fluid && sp.auto > 0);
+      state.markers.push({ x: p.x, y: p.y, fluid: tool.fluid, positive: positive });
+      renderScene();
+      setHint(esc(pick(tool.label)) + " : " +
+        (positive ? "<strong style='color:" + (S.colors[tool.fluid]) + "'>" + L("POSITIF ＋", "POSITIVE ＋") + "</strong>"
+                  : L("négatif －", "negative －")));
+    }
+
+    function sampleAt(p) {
+      var it = state.item, tool = state.armed.tool;
+      state.footprint = { fp: tool.footprint, x: p.x, y: p.y };
+      var sp = findSpot(p.x, p.y, 12);
+      var tf = (S.substrateTools[it.substrate] || {})[tool.id];
+      if (tf == null) tf = 0;
       var rand = 0.8 + Math.random() * 0.4;
-      var auto = z.auto * tf * rand;
-      var male = z.male * tf * rand;
-      var degrad = Math.max(0, Math.min(1, z.degrad + (Math.random() - 0.5) * 0.08));
+      var hasDNA = sp && sp.auto > 0;
+      var auto = (hasDNA && tf > 0) ? sp.auto * tf * rand : 0;
+      var male = (hasDNA && tf > 0) ? sp.male * tf * rand : 0;
+      var degrad = hasDNA ? clamp01(sp.degrad + (Math.random() - 0.5) * 0.08) : 0;
       var ok = auto >= S.threshold;
 
       var why = [];
-      // instrument quality
-      if (tf >= 0.8) why.push(L("Bon instrument pour ce support.", "Good instrument for this substrate."));
+      // instrument fit
+      if (tf === 0) why.push(L("Cet instrument ne convient pas à ce support (p. ex. on ne découpe pas une lame métallique) → aucun prélèvement exploitable.",
+                               "This instrument does not suit this substrate (e.g. you don't cut a metal blade) → no usable sampling."));
+      else if (tf >= 0.8) why.push(L("Bon instrument pour ce support.", "Good instrument for this substrate."));
       else if (tf >= 0.4) why.push(L("Instrument acceptable mais pas optimal (rendement réduit).", "Acceptable but sub-optimal instrument (reduced yield)."));
-      else why.push(L("Instrument inadapté à ce support → rendement très faible.", "Instrument unsuited to this substrate → very low yield."));
-      // zone content
-      if (z.fluid === "none") why.push(L("Cette zone ne contient pas de matériel biologique.", "This zone holds no biological material."));
-      else if (z.fluid === "touch") why.push(L("ADN de contact : faible quantité attendue.", "Touch DNA: low amount expected."));
-      // male note
-      if (ok && male >= S.threshold) why.push(L("ADN masculin détecté (sperme / contributeur masculin) → pensez à l'extraction différentielle.",
-                                                "Male DNA detected (semen / male contributor) → consider differential extraction."));
+      else why.push(L("Instrument peu adapté à ce support → rendement très faible.", "Instrument poorly suited to this substrate → very low yield."));
+
+      // what was under the footprint
+      if (!sp) why.push(L("Le prélèvement est tombé sur une zone propre : aucun matériel biologique.", "The footprint landed on a clean area: no biological material."));
+      else if (sp.fluid === "paint") why.push(L("La tache rouge n'était pas du sang (support non biologique) : rien à extraire. Un test d'orientation l'aurait montré.",
+                                                "The red stain was not blood (non-biological material): nothing to extract. An orientation test would have shown this."));
+      else if (sp.fluid === "touch") why.push(L("ADN de contact : invisible, non révélé par la lumière ni par un test présomptif — faible quantité, à raisonner par le contexte.",
+                                                "Touch DNA: invisible, revealed by neither light nor a presumptive test — low amount, reasoned from context."));
+
+      // fraction / differential interpretation
+      if (ok) {
+        if (male >= S.threshold) why.push(L("Fraction masculine nette → une extraction différentielle est recommandée pour séparer les contributeurs.",
+                                            "Clear male fraction → a differential extraction is recommended to separate the contributors."));
+        else why.push(L("Pas de fraction masculine : source unique de type féminin → extraction différentielle inutile.",
+                        "No male fraction: single feminine-type source → differential extraction unnecessary."));
+      }
+
+      // reminders / context
+      if (it.refSample) why.push(L("Échantillon de référence : aucun test d'orientation n'était nécessaire.", "Reference sample: no orientation test was necessary."));
+      if (it.sa && !state.testedSemen) why.push(L("⚠ Contexte d'agression sexuelle : vous n'avez PAS recherché les spermatozoïdes (Phosphatesmo / microscopie). Il faut le faire avant l'extraction pour ne pas manquer la fraction masculine.",
+                                                  "⚠ Sexual-assault context: you did NOT test for spermatozoa (Phosphatesmo / microscopy). This must be done before extraction so the male fraction isn't missed."));
+      if (it.spots.some(function (s) { return s.uncertain; }) && !state.testedBlood) why.push(L("Vous avez conclu sans confirmer la nature de la tache : sur une tache rouge, confirmez toujours par un test (Peroxtesmo).",
+                                                  "You concluded without confirming the stain's nature: on a red stain, always confirm with a test (Peroxtesmo)."));
 
       fb.className = "feedback show " + (ok ? "success" : "fail");
       fb.innerHTML =
@@ -228,14 +350,14 @@
           '<div class="stat"><div class="v">' + (auto > 0.001 ? degrad.toFixed(2) : "—") + '</div><div class="k">' + L("Index dégradation", "Degradation index") + "</div></div>" +
         "</div>" +
         "<p>" + why.join(" ") + "</p>" +
-        '<p class="muted-note" style="border-top:1px solid var(--border);padding-top:8px"><em>' + esc(pick(it.teach)) + "</em></p>";
+        '<p class="muted-note" style="border-top:1px solid var(--border);padding-top:8px"><em>' + esc(pick(state.item.teach)) + "</em></p>";
+      renderScene();
     }
-    function Engineless(msg) { fb.className = "feedback show warn"; fb.innerHTML = "<strong>" + msg + "</strong>"; }
 
+    scene.addEventListener("click", onScene);
     document.getElementById("newCase").addEventListener("click", newCase);
-    document.getElementById("sample").addEventListener("click", sample);
     document.addEventListener("langchange", function () {
-      renderHeader(); renderScene(); renderTests(); renderInstruments(); updateSel();
+      renderHeader(); renderScene(); renderPalettes(); setHint();
       if (fb.classList.contains("show")) fb.className = "feedback"; // avoid stale mixed-language result
     });
 
