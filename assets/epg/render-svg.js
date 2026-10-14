@@ -80,20 +80,21 @@ export function renderEPG(kit, sim, opts = {}) {
         parts.push(`<path d="M ${(x - 2.6).toFixed(1)} ${bottom} L ${x.toFixed(1)} ${yTop.toFixed(1)} L ${(x + 2.6).toFixed(1)} ${bottom} Z" fill="${dye.color}" opacity="${op}"/>`);
       }
     }
-    // allele-call boxes for called peaks (drawn last, on top).
-    // Allele number + height only; white halo + vertical stagger to avoid collisions.
+    // allele-call labels for called peaks (drawn last, on top).
+    // Allele number + RFU placed UNDER the peak, near the baseline (not above).
+    // White halo + vertical stagger lifts crowded neighbours upward.
     let lastLabelX = -99, row = 0;
     for (const p of dpk) {
       if (!p.called) continue;
       const x = xOf(p.size);
       row = (x - lastLabelX < 22) ? (row + 1) % 2 : 0;
       lastLabelX = x;
-      const yA = top + 11 + row * 20;
+      const yA = bottom - 11 - row * 19;        // allele line, just above the baseline
       const label = esc(p.offladder ? "OL" : p.label);
       parts.push(
-        `<rect x="${(x - 9).toFixed(1)}" y="${yA - 8}" width="18" height="17" fill="#ffffff" opacity="0.82"/>` +
-        `<text x="${x.toFixed(1)}" y="${yA}" font-size="8.5" font-weight="700" fill="${dye.color}" text-anchor="middle">${label}</text>` +
-        `<text x="${x.toFixed(1)}" y="${yA + 8}" font-size="7" fill="#8a929a" text-anchor="middle">${p.height}</text>`
+        `<rect x="${(x - 9).toFixed(1)}" y="${(yA - 8).toFixed(1)}" width="18" height="17" fill="#ffffff" opacity="0.82"/>` +
+        `<text x="${x.toFixed(1)}" y="${yA.toFixed(1)}" font-size="8.5" font-weight="700" fill="${dye.color}" text-anchor="middle">${label}</text>` +
+        `<text x="${x.toFixed(1)}" y="${(yA + 8).toFixed(1)}" font-size="7" fill="#8a929a" text-anchor="middle">${p.height}</text>`
       );
     }
   });
