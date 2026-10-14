@@ -18,7 +18,6 @@
             padding:6px 13px; font-size:.88rem; font-weight:600; cursor:pointer; transition:all .12s; }
     .chip:hover { background:var(--stripe); border-color:var(--accent); }
     .chip.sel { background:linear-gradient(180deg,var(--green),var(--blue)); color:#fff; border-color:var(--blue); }
-    .chip.light.sel { background:#111827; border-color:#111827; }
     .hint { font-size:.9rem; color:var(--muted); min-height:1.2em; margin:10px 0 0; }
     .hint strong { color:var(--ink); }
     .result-grid { display:flex; flex-wrap:wrap; gap:18px; margin:6px 0 10px; }
@@ -36,8 +35,8 @@
     <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
     <h1 class="page-title mt" data-fr="Échantillonnage de scellés" data-en="Sampling sealed evidence"></h1>
     <p class="page-intro"
-       data-fr="Un objet réel vous est présenté. Éclairez-le si besoin, choisissez un test puis cliquez un point pour l'appliquer, enfin choisissez un instrument et cliquez où prélever. Objectif : récupérer de l'ADN exploitable."
-       data-en="A real object is shown. Light it if needed, pick a test then click a point to apply it, finally pick an instrument and click where to sample. Goal: recover usable DNA."></p>
+       data-fr="Un objet réel vous est présenté. Éclairez-le si besoin, testez les traces, puis choisissez un instrument et cliquez où prélever — ou déclarez qu'il n'y a rien d'exploitable. Objectif : récupérer le bon ADN, au bon endroit, de la bonne manière."
+       data-en="A real object is shown. Light it if needed, test the traces, then pick an instrument and click where to sample — or declare that there is nothing exploitable. Goal: recover the right DNA, in the right place, the right way."></p>
 
     <div class="panel">
       <div class="controls" style="justify-content:space-between; align-items:flex-start">
@@ -51,13 +50,14 @@
         <span><i class="dot" style="background:#d64545"></i><span data-fr="Sang" data-en="Blood"></span></span>
         <span><i class="dot" style="background:#2f6fb0"></i><span data-fr="Sperme" data-en="Semen"></span></span>
         <span><i class="dot" style="background:#d6a516"></i><span data-fr="Salive" data-en="Saliva"></span></span>
+        <span><i class="dot" style="background:#b08968"></i><span data-fr="Tache non biologique" data-en="Non-biological stain"></span></span>
         <span><i class="dot" style="background:#59d99a"></i><span data-fr="Révélé par la lumière" data-en="Revealed by light"></span></span>
       </div>
       <p class="hint" id="hint"></p>
     </div>
 
     <div class="panel">
-      <div class="pal-label" data-fr="1. Lumière (révèle les fluides fluorescents)" data-en="1. Light (reveals fluorescent fluids)"></div>
+      <div class="pal-label" data-fr="1. Lumière forensique" data-en="1. Forensic light"></div>
       <div class="palette" id="lights"></div>
 
       <div class="pal-label" data-fr="2. Test d'orientation — puis cliquez un point" data-en="2. Orientation test — then click a point"></div>
@@ -65,6 +65,11 @@
 
       <div class="pal-label" data-fr="3. Instrument de prélèvement — puis cliquez où prélever" data-en="3. Sampling instrument — then click where to sample"></div>
       <div class="palette" id="instruments"></div>
+
+      <div class="controls mt">
+        <button class="btn btn-ghost" id="decline"
+                data-fr="Rien d'exploitable — ne pas prélever" data-en="Nothing exploitable — do not sample"></button>
+      </div>
 
       <div class="feedback" id="fb"></div>
     </div>
@@ -84,6 +89,13 @@
     function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
     function fnum(n) { return (Math.round(n * 1000) / 1000).toFixed(3); }
     function clamp01(n) { return Math.max(0, Math.min(1, n)); }
+    function randInt(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+    function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+    function weightedPick(pool) {
+      var tot = pool.reduce(function (s, e) { return s + (e.weight || 1); }, 0), r = Math.random() * tot;
+      for (var i = 0; i < pool.length; i++) { r -= (pool[i].weight || 1); if (r <= 0) return pool[i]; }
+      return pool[pool.length - 1];
+    }
 
     /* ---- SVG draw routines for each modelled object (400×260 canvas) ---- */
     var DRAW = {
@@ -99,9 +111,10 @@
       },
       sheet: function () {
         var s = '<rect x="48" y="52" width="304" height="156" rx="8" fill="#f3f6f9" stroke="#b9c2cb" stroke-width="2"/>';
+        // gentle fold lines, bounded inside the sheet (y 62 → 202)
         for (var i = 0; i < 4; i++) {
           var x = 78 + i * 72;
-          s += '<path d="M' + x + ' 58 q 10 50 0 100 q -10 50 0 100" fill="none" stroke="#dde3e9" stroke-width="2" transform="translate(0,-6)"/>';
+          s += '<path d="M' + x + ' 62 q 12 35 0 70 q -12 35 0 70" fill="none" stroke="#dde3e9" stroke-width="2"/>';
         }
         return s;
       },
@@ -148,6 +161,10 @@
         '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + r + '" ry="' + (r * 0.82).toFixed(1) + '" fill="#e9fff2" opacity="0.55" stroke="#59d99a" stroke-width="1.5" stroke-dasharray="3 3"/>' +
         '</g>';
     }
+    function touchMissSVG(cx, cy, r) { // shown only when a decline missed touch DNA
+      return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#9aa4ad" fill-opacity="0.18" stroke="#6a737d" stroke-width="1.5" stroke-dasharray="3 3"/>' +
+             '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#6a737d">ADN</text>';
+    }
     function markerSVG(m) {
       var c = m.positive ? (S.colors[m.fluid] || "#12703f") : "#9aa4ad";
       var sym = m.positive ? "＋" : "－";
@@ -167,7 +184,7 @@
       }
     }
 
-    /* ---- case generation: resolve male fraction & uncertain identities ---- */
+    /* ---- case generation ---- */
     function resolveMale(sp) {
       switch (sp.maleMode) {
         case "always": return sp.auto * (0.85 + Math.random() * 0.1);
@@ -178,15 +195,25 @@
     }
     function newCase() {
       var item = S.items[Math.floor(Math.random() * S.items.length)];
-      var spots = item.spots.map(function (sp) {
-        var s = Object.assign({}, sp);
-        // red stain: one case in two is NOT blood (paint/rust) → no DNA
-        if (s.uncertain && Math.random() < 0.5) { s.fluid = "paint"; s.auto = 0; s.male = 0; s.degrad = 0; s.isBlood = false; }
-        else { s.isBlood = (s.fluid === "blood"); s.male = resolveMale(s); }
-        return s;
+      state = { item: item, spots: [], lit: false, revealed: {}, armed: null,
+                markers: [], footprint: null, testedSemen: false, testedBlood: false, showMissed: false };
+
+      var slots = shuffle(item.stainSlots.slice());
+      var n = Math.min(randInt(item.gen.min, item.gen.max), slots.length);
+      for (var k = 0; k < n; k++) {
+        var e = weightedPick(item.stainPool);
+        var sp = Object.assign({}, e, { cx: slots[k].cx, cy: slots[k].cy, r: slots[k].r, kind: "stain" });
+        if (sp.uncertain && Math.random() < 0.5) { sp.fluid = "paint"; sp.auto = 0; sp.male = 0; sp.degrad = 0; }
+        else sp.male = resolveMale(sp);
+        state.spots.push(sp);
+      }
+      (item.touchZones || []).forEach(function (tz) {
+        var sp = Object.assign({}, tz, { fluid: "touch", visible: false, kind: "touch" });
+        sp.male = resolveMale(sp);
+        state.spots.push(sp);
       });
-      state = { item: item, spots: spots, lit: false, revealed: {}, armed: null,
-                markers: [], footprint: null, testedSemen: false, testedBlood: false };
+      state.hasDNA = state.spots.some(function (s) { return s.auto > 0; });
+
       fb.className = "feedback";
       renderHeader(); renderScene(); renderPalettes(); setHint();
     }
@@ -199,11 +226,13 @@
 
     function renderScene() {
       var svg = DRAW[state.item.draw] ? DRAW[state.item.draw]() : "";
-      // biological spots
       state.spots.forEach(function (s, i) {
-        if (s.fluid === "touch" || s.fluid === "none") return;      // invisible, never drawn
+        if (s.fluid === "touch") {
+          if (state.showMissed && s.auto > 0) svg += touchMissSVG(s.cx, s.cy, s.r);
+          return;
+        }
         if (s.visible) svg += stainSVG(s.cx, s.cy, s.r, S.colors[s.fluid] || "#d64545");
-        else if (s.fluorescent && state.revealed[i]) svg += glowSVG(s.cx, s.cy, s.r);
+        else if (state.revealed[i] || (state.showMissed && s.auto > 0)) svg += glowSVG(s.cx, s.cy, s.r);
       });
       state.markers.forEach(function (m) { svg += markerSVG(m); });
       if (state.footprint) svg += footprintSVG(state.footprint.fp, state.footprint.x, state.footprint.y);
@@ -222,8 +251,8 @@
       list.forEach(function (t) {
         var b = document.createElement("button");
         b.type = "button";
-        var armed = state.armed && state.armed.kind === kind && state.armed.tool.id === t.id;
-        b.className = "chip " + (kind === "light" ? "light " : "") + (armed || (kind === "light" && state.lit && t._on) ? "sel" : "");
+        var armed = kind !== "light" && state.armed && state.armed.kind === kind && state.armed.tool.id === t.id;
+        b.className = "chip" + (armed ? " sel" : "");
         b.textContent = pick(t.label);
         b.addEventListener("click", function () { onChip(kind, t); });
         box.appendChild(b);
@@ -233,19 +262,24 @@
     function onChip(kind, tool) {
       if (kind === "light") {
         state.lit = true;
-        var found = [];
+        if (!state.item.gen.lightable) {
+          setHint(L("Cet objet ne révèle rien sous lumière forensique (on raisonne par la forme et le contexte).",
+                    "This object reveals nothing under forensic light (reason from shape and context)."));
+          return;
+        }
+        var revealedAny = false;
         state.spots.forEach(function (s, i) {
-          if (!s.visible && s.fluorescent && S.fluorescent[s.fluid]) { state.revealed[i] = true; found.push(S.colors[s.fluid]); }
+          if (s.kind !== "stain" || s.visible) return;
+          var fl = S.fluorescence[s.fluid];
+          if (fl && fl[tool.id]) { state.revealed[i] = true; revealedAny = true; }
         });
         renderScene();
-        setHint(found.length
-          ? L("Lumière : fluorescence détectée — une ou plusieurs traces latentes apparaissent.",
-              "Light: fluorescence detected — one or more latent traces appear.")
-          : L("Lumière : aucune trace fluorescente (le sang et l'ADN de contact ne fluorescent pas).",
-              "Light: no fluorescent trace (blood and touch DNA do not fluoresce)."));
+        setHint(revealedAny
+          ? L("Lumière : des traces latentes fluorescent et apparaissent.", "Light: latent traces fluoresce and appear.")
+          : L("Lumière : rien ne fluoresce ici (le sperme ressort sous ALS et UV, la salive sous ALS seulement ; le sang ne fluoresce pas).",
+              "Light: nothing fluoresces here (semen shows under ALS and UV, saliva under ALS only; blood does not fluoresce)."));
         return;
       }
-      // toggle-arm a test or an instrument (single armed tool)
       if (state.armed && state.armed.kind === kind && state.armed.tool.id === tool.id) state.armed = null;
       else state.armed = { kind: kind, tool: tool };
       renderPalettes(); renderScene(); setHint();
@@ -254,8 +288,8 @@
     function setHint(msg) {
       var el = document.getElementById("hint");
       if (msg) { el.innerHTML = msg; return; }
-      if (!state.armed) { el.innerHTML = L("Armez un test ou un instrument, puis cliquez sur l'objet.",
-                                           "Arm a test or an instrument, then click the object."); return; }
+      if (!state.armed) { el.innerHTML = L("Armez un test ou un instrument puis cliquez sur l'objet — ou déclarez qu'il n'y a rien d'exploitable.",
+                                           "Arm a test or an instrument then click the object — or declare there is nothing exploitable."); return; }
       var name = esc(pick(state.armed.tool.label));
       el.innerHTML = state.armed.kind === "test"
         ? L("<strong>" + name + "</strong> armé — cliquez un point à tester.", "<strong>" + name + "</strong> armed — click a point to test.")
@@ -298,6 +332,12 @@
                   : L("négatif －", "negative －")));
     }
 
+    function result(ok, statsHtml, whyHtml) {
+      fb.className = "feedback show " + (ok ? "success" : "fail");
+      fb.innerHTML = statsHtml + "<p>" + whyHtml + "</p>" +
+        '<p class="muted-note" style="border-top:1px solid var(--border);padding-top:8px"><em>' + esc(pick(state.item.teach)) + "</em></p>";
+    }
+
     function sampleAt(p) {
       var it = state.item, tool = state.armed.tool;
       state.footprint = { fp: tool.footprint, x: p.x, y: p.y };
@@ -310,52 +350,67 @@
       var male = (hasDNA && tf > 0) ? sp.male * tf * rand : 0;
       var degrad = hasDNA ? clamp01(sp.degrad + (Math.random() - 0.5) * 0.08) : 0;
       var ok = auto >= S.threshold;
+      var isSperm = hasDNA && sp.fluid === "semen";
 
       var why = [];
-      // instrument fit
       if (tf === 0) why.push(L("Cet instrument ne convient pas à ce support (p. ex. on ne découpe pas une lame métallique) → aucun prélèvement exploitable.",
-                               "This instrument does not suit this substrate (e.g. you don't cut a metal blade) → no usable sampling."));
+                              "This instrument does not suit this substrate (e.g. you don't cut a metal blade) → no usable sampling."));
       else if (tf >= 0.8) why.push(L("Bon instrument pour ce support.", "Good instrument for this substrate."));
       else if (tf >= 0.4) why.push(L("Instrument acceptable mais pas optimal (rendement réduit).", "Acceptable but sub-optimal instrument (reduced yield)."));
       else why.push(L("Instrument peu adapté à ce support → rendement très faible.", "Instrument poorly suited to this substrate → very low yield."));
 
-      // what was under the footprint
       if (!sp) why.push(L("Le prélèvement est tombé sur une zone propre : aucun matériel biologique.", "The footprint landed on a clean area: no biological material."));
-      else if (sp.fluid === "paint") why.push(L("La tache rouge n'était pas du sang (support non biologique) : rien à extraire. Un test d'orientation l'aurait montré.",
-                                                "The red stain was not blood (non-biological material): nothing to extract. An orientation test would have shown this."));
-      else if (sp.fluid === "touch") why.push(L("ADN de contact : invisible, non révélé par la lumière ni par un test présomptif — faible quantité, à raisonner par le contexte.",
-                                                "Touch DNA: invisible, revealed by neither light nor a presumptive test — low amount, reasoned from context."));
+      else if (sp.fluid === "paint") why.push(L("La tache rouge n'était pas du sang (support non biologique) : rien à extraire. Un test l'aurait montré — il valait mieux ne pas prélever.",
+                                               "The red stain was not blood (non-biological): nothing to extract. A test would have shown this — better not to have sampled."));
+      else if (sp.fluid === "distractor") why.push(L("Tache non biologique (aliment, boisson…) : négative à tous les tests, aucun ADN.",
+                                                    "Non-biological stain (food, drink…): negative to all tests, no DNA."));
+      else if (sp.fluid === "touch") why.push(L("ADN de contact d'une zone portée (col, aisselle, manche, ceinture) : invisible et sans test présomptif, mais exploitable — c'est le bon réflexe sur un vêtement sans tache.",
+                                              "Touch DNA from a worn area (collar, armpit, handle, waistband): invisible and with no presumptive test, yet usable — the right reflex on a stain-free garment."));
 
-      // fraction / differential interpretation
       if (ok) {
-        if (male >= S.threshold) why.push(L("Fraction masculine nette → une extraction différentielle est recommandée pour séparer les contributeurs.",
-                                            "Clear male fraction → a differential extraction is recommended to separate the contributors."));
-        else why.push(L("Pas de fraction masculine : source unique de type féminin → extraction différentielle inutile.",
-                        "No male fraction: single feminine-type source → differential extraction unnecessary."));
+        if (isSperm) why.push(L("Spermatozoïdes présents → une extraction différentielle est recommandée pour séparer la fraction spermatique de la fraction de la victime.",
+                               "Spermatozoa present → a differential extraction is recommended to separate the sperm fraction from the victim's fraction."));
+        else if (male >= S.threshold) why.push(L("Contributeur masculin détecté mais pas de sperme → envisager une analyse Y-STR ; une extraction différentielle n'a pas lieu d'être.",
+                                               "Male contributor detected but no sperm → consider a Y-STR analysis; a differential extraction is not warranted."));
+        else why.push(L("Pas de fraction masculine : source unique de type féminin → extraction classique.",
+                       "No male fraction: single feminine-type source → standard extraction."));
       }
 
-      // reminders / context
-      if (it.refSample) why.push(L("Échantillon de référence : aucun test d'orientation n'était nécessaire.", "Reference sample: no orientation test was necessary."));
+      if (it.gen.reference) why.push(L("Échantillon de référence : aucun test d'orientation n'était nécessaire.", "Reference sample: no orientation test was necessary."));
       if (it.sa && !state.testedSemen) why.push(L("⚠ Contexte d'agression sexuelle : vous n'avez PAS recherché les spermatozoïdes (Phosphatesmo / microscopie). Il faut le faire avant l'extraction pour ne pas manquer la fraction masculine.",
                                                   "⚠ Sexual-assault context: you did NOT test for spermatozoa (Phosphatesmo / microscopy). This must be done before extraction so the male fraction isn't missed."));
-      if (it.spots.some(function (s) { return s.uncertain; }) && !state.testedBlood) why.push(L("Vous avez conclu sans confirmer la nature de la tache : sur une tache rouge, confirmez toujours par un test (Peroxtesmo).",
+      if (it.stainPool.some(function (e) { return e.uncertain; }) && !state.testedBlood) why.push(L("Vous avez conclu sans confirmer la nature de la tache : sur une tache rouge, confirmez toujours par un test (Peroxtesmo).",
                                                   "You concluded without confirming the stain's nature: on a red stain, always confirm with a test (Peroxtesmo)."));
 
-      fb.className = "feedback show " + (ok ? "success" : "fail");
-      fb.innerHTML =
+      var statsHtml =
         "<p><strong>" + (ok ? L("ADN récupéré ✔", "DNA recovered ✔") : L("Échec — pas d'ADN exploitable ✘", "Failure — no usable DNA ✘")) + "</strong></p>" +
         '<div class="result-grid">' +
           '<div class="stat"><div class="v">' + fnum(auto) + '</div><div class="k">' + L("ADN auto. ng/µL", "Auto. DNA ng/µL") + "</div></div>" +
           '<div class="stat"><div class="v">' + fnum(male) + '</div><div class="k">' + L("ADN masculin ng/µL", "Male DNA ng/µL") + "</div></div>" +
           '<div class="stat"><div class="v">' + (auto > 0.001 ? degrad.toFixed(2) : "—") + '</div><div class="k">' + L("Index dégradation", "Degradation index") + "</div></div>" +
-        "</div>" +
-        "<p>" + why.join(" ") + "</p>" +
-        '<p class="muted-note" style="border-top:1px solid var(--border);padding-top:8px"><em>' + esc(pick(state.item.teach)) + "</em></p>";
+        "</div>";
+      result(ok, statsHtml, why.join(" "));
       renderScene();
+    }
+
+    function decline() {
+      var ok = !state.hasDNA;
+      var why;
+      if (ok) {
+        why = L("Correct : aucun matériel biologique exploitable sur ce scellé — ne pas prélever évite une analyse inutile et préserve le scellé.",
+                "Correct: no exploitable biological material on this item — declining avoids a pointless analysis and preserves the item.");
+      } else {
+        state.showMissed = true; renderScene();
+        why = L("Il y avait pourtant de l'ADN exploitable (tache biologique et/ou ADN de contact sur une zone portée — col, aisselle, manche, ceinture) → preuve manquée. Les zones révélées ci-dessus auraient dû être prélevées.",
+                "There was exploitable DNA after all (a biological stain and/or touch DNA on a worn area — collar, armpit, handle, waistband) → missed evidence. The areas revealed above should have been sampled.");
+      }
+      var head = "<p><strong>" + (ok ? L("Décision correcte ✔", "Correct decision ✔") : L("Preuve manquée ✘", "Missed evidence ✘")) + "</strong></p>";
+      result(ok, head, why);
     }
 
     scene.addEventListener("click", onScene);
     document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("decline").addEventListener("click", decline);
     document.addEventListener("langchange", function () {
       renderHeader(); renderScene(); renderPalettes(); setHint();
       if (fb.classList.contains("show")) fb.className = "feedback"; // avoid stale mixed-language result
