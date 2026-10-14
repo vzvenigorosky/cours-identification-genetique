@@ -1,13 +1,17 @@
 /* ============================================================
-   Mini-game 1 — Échantillonnage de scellés.
-   Catalogue of evidence items (scellés), the instrument palette,
-   the orientation-test palette, and per-item correctness tiers:
-     good = recommended · ok = defensible · bad = not indicated
-     (anything unlisted is neutral — allowed but unnecessary).
-   Bilingual {fr,en}. DRAFT content pending maintainer validation
-   (issue #12); data-driven, so corrections need no code change.
+   Mini-game 1 (v2) — Interactive sampling of sealed evidence.
+   The student investigates a scellé (visual cues + orientation
+   tests revealing latent stains per zone), then chooses a zone
+   and an instrument to sample. Success = DNA recovered, reported
+   as autosomal + male(Y) ng/µL + a degradation index.
+
+   Bilingual {fr,en}. Forensic parameters (tool factors, zone
+   richness, thresholds) are DRAFT/tunable, pending validation
+   (issue #12). Data-driven: corrections need no code change.
    ============================================================ */
 window.SAMPLING = {
+  threshold: 0.05, // ng/µL autosomal considered "usable DNA recovered"
+
   instruments: [
     { id: "swab_dry",  label: { fr: "Écouvillon sec", en: "Dry swab" } },
     { id: "swab_wet",  label: { fr: "Écouvillon humidifié", en: "Moistened swab" } },
@@ -19,93 +23,113 @@ window.SAMPLING = {
     { id: "forceps",   label: { fr: "Pince / forceps", en: "Forceps" } },
     { id: "pipette",   label: { fr: "Pipette", en: "Pipette" } }
   ],
+
+  // Orientation tests. mode "als" = whole-item reveal of fluorescent latent
+  // stains; mode "chem" = applied to a selected zone, positive for `fluid`.
   tests: [
-    { id: "peroxtesmo",  label: { fr: "Peroxtesmo (sang)", en: "Peroxtesmo (blood)" } },
-    { id: "phosphatesmo",label: { fr: "Phosphatesmo (sperme)", en: "Phosphatesmo (semen)" } },
-    { id: "amylase",     label: { fr: "Amylase / Phadebas (salive)", en: "Amylase / Phadebas (saliva)" } },
-    { id: "uv",          label: { fr: "Lumière UV", en: "UV light" } },
-    { id: "als",         label: { fr: "Forenscope / Crimescope (ALS)", en: "Forenscope / Crimescope (ALS)" } },
-    { id: "none",        label: { fr: "Aucun test nécessaire", en: "No test needed" } }
+    { id: "als",         mode: "als",  label: { fr: "Forenscope / Crimescope (ALS)", en: "Forenscope / Crimescope (ALS)" } },
+    { id: "uv",          mode: "als",  label: { fr: "Lumière UV", en: "UV light" } },
+    { id: "peroxtesmo",  mode: "chem", fluid: "blood",  label: { fr: "Peroxtesmo (sang)", en: "Peroxtesmo (blood)" } },
+    { id: "phosphatesmo",mode: "chem", fluid: "semen",  label: { fr: "Phosphatesmo (sperme)", en: "Phosphatesmo (semen)" } },
+    { id: "amylase",     mode: "chem", fluid: "saliva", label: { fr: "Amylase / Phadebas (salive)", en: "Amylase / Phadebas (saliva)" } }
   ],
+
+  // Fluids that fluoresce under ALS/UV (so an ALS pass reveals latent ones).
+  fluorescent: { semen: true, saliva: true, urine: true, blood: false, touch: false, none: false },
+
+  // Instrument suitability per substrate (0–1). Any instrument NOT listed for a
+  // substrate is incompatible (factor 0) — e.g. scissors can't cut a metal blade.
+  substrateTools: {
+    fabric: { scissors: 1.0, tape: 0.8, swab_wet: 0.6, scalpel: 0.5, swab_dry: 0.3 },
+    metal:  { swab_wet: 1.0, scraping: 0.7, swab_dry: 0.6, scalpel: 0.4 },
+    card:   { fta_punch: 1.0, scissors: 0.7, scalpel: 0.6 },
+    paper:  { scissors: 1.0, swab_wet: 0.6, scalpel: 0.5 },
+    hair:   { forceps: 1.0, tape: 0.5 },
+    liquid: { swab_dry: 1.0, pipette: 1.0, swab_wet: 0.8 },
+    nail:   { scraping: 1.0, scissors: 0.6, scalpel: 0.5 }
+  },
+
+  // Each zone: fluid, auto/male richness (ng/µL if sampled ideally), degrad
+  // index (0 fresh → 1 degraded), visible (shown without a test), x/y/w/h in %
+  // of the schematic inner box.
   items: [
-    { id: "knife_blood", icon: "🔪",
-      title: { fr: "Tache brun-rougeâtre séchée sur un couteau", en: "Dried reddish-brown stain on a knife" },
-      desc:  { fr: "Scène de coups et blessures. Tache sèche sur une lame métallique.", en: "Assault scene. A dry stain on a metal blade." },
-      instruments: { good: ["swab_wet"], ok: ["scraping"], bad: ["scissors", "fta_punch"] },
-      tests: { good: ["peroxtesmo"], bad: ["uv", "als"] },
-      teach: { fr: "Le sang n'est pas fluorescent sous UV/ALS (il absorbe la lumière) : on utilise un test peroxydasique. Surface non découpable → écouvillon humidifié.",
-               en: "Blood does not fluoresce under UV/ALS (it absorbs light): use a peroxidase test. Non-cuttable surface → moistened swab." } },
+    { id: "knife", icon: "🔪", substrate: "metal",
+      title: { fr: "Couteau", en: "Knife" },
+      context: { fr: "Coups et blessures. Lame métallique saisie.", en: "Assault. A seized metal blade." },
+      zones: [
+        { id: "blade", label: { fr: "Tache sur la lame", en: "Stain on the blade" }, fluid: "blood", auto: 2.0, male: 1.8, degrad: 0.4, visible: true, x: 8, y: 30, w: 34, h: 24 },
+        { id: "handle", label: { fr: "Manche", en: "Handle" }, fluid: "touch", auto: 0.08, male: 0.06, degrad: 0.5, visible: false, x: 60, y: 34, w: 32, h: 20 },
+        { id: "flat", label: { fr: "Plat de la lame (propre)", en: "Flat of the blade (clean)" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 8, y: 6, w: 50, h: 18 }
+      ],
+      teach: { fr: "Le sang est visible et non fluorescent : inutile de passer l'ALS, un test peroxydasique confirme. On ne peut pas découper du métal → écouvillon humidifié.",
+               en: "Blood is visible and non-fluorescent: no need for ALS, a peroxidase test confirms. You can't cut metal → moistened swab." } },
 
-    { id: "sheet_semen", icon: "🛏️",
-      title: { fr: "Tache sur un drap (affaire de viol)", en: "Stain on a bedsheet (rape case)" },
-      desc:  { fr: "Literie saisie. Tache suspecte sur tissu absorbant.", en: "Seized bedding. A suspicious stain on absorbent fabric." },
-      instruments: { good: ["scissors"], ok: ["swab_wet"], bad: ["fta_punch"] },
-      tests: { good: ["phosphatesmo", "als"], ok: ["uv", "amylase"], bad: ["peroxtesmo"] },
-      teach: { fr: "Le sperme fluoresce sous ALS/UV et donne une phosphatase acide positive. Tissu → on découpe la zone. La salive (amylase) reste plausible.",
-               en: "Semen fluoresces under ALS/UV and is acid-phosphatase positive. Fabric → cut out the area. Saliva (amylase) remains plausible." } },
+    { id: "sheet", icon: "🛏️", substrate: "fabric",
+      title: { fr: "Drap (affaire de viol)", en: "Bedsheet (rape case)" },
+      context: { fr: "Literie saisie. Tache invisible à l'œil nu.", en: "Seized bedding. A stain invisible to the naked eye." },
+      zones: [
+        { id: "stain", label: { fr: "Zone latente", en: "Latent area" }, fluid: "semen", auto: 3.0, male: 2.8, degrad: 0.3, visible: false, x: 30, y: 24, w: 34, h: 28 },
+        { id: "clean", label: { fr: "Tissu propre", en: "Clean fabric" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 70, y: 10, w: 24, h: 20 }
+      ],
+      teach: { fr: "Le sperme n'est pas visible mais fluoresce : l'ALS localise la tache, le Phosphatesmo confirme. On découpe la zone. ADN masculin élevé (sperme).",
+               en: "Semen is invisible but fluoresces: ALS locates it, Phosphatesmo confirms. Cut out the area. High male DNA (sperm)." } },
 
-    { id: "cig_saliva", icon: "🚬",
+    { id: "underwear", icon: "🩲", substrate: "fabric",
+      title: { fr: "Sous-vêtement (agression)", en: "Underwear (assault)" },
+      context: { fr: "Tache compatible avec un mélange sperme + cellules de la victime.", en: "Stain compatible with a semen + victim-cell mixture." },
+      zones: [
+        { id: "stain", label: { fr: "Tache", en: "Stain" }, fluid: "semen", auto: 2.6, male: 1.4, degrad: 0.4, visible: false, x: 32, y: 26, w: 32, h: 26 },
+        { id: "clean", label: { fr: "Tissu propre", en: "Clean fabric" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 8, y: 10, w: 22, h: 18 }
+      ],
+      teach: { fr: "Mélange : ADN autosomal (victime + agresseur) et une fraction masculine nette → une extraction différentielle sera utile à l'étape suivante.",
+               en: "Mixture: autosomal DNA (victim + offender) and a clear male fraction → a differential extraction will help at the next step." } },
+
+    { id: "cig", icon: "🚬", substrate: "paper",
       title: { fr: "Mégot de cigarette", en: "Cigarette butt" },
-      desc:  { fr: "Mégot retrouvé sur les lieux. ADN de contact salivaire sur le bout.", en: "Butt found at the scene. Salivary contact DNA on the tip." },
-      instruments: { good: ["scissors"], ok: ["swab_wet"], bad: ["fta_punch"] },
-      tests: { good: ["amylase"], ok: ["uv"], bad: ["phosphatesmo", "peroxtesmo"] },
-      teach: { fr: "Salive → amylase. On prélève le bout (découpe) ; l'écouvillon humidifié est acceptable.",
-               en: "Saliva → amylase. Sample the mouth end (cut); a moistened swab is acceptable." } },
+      context: { fr: "ADN salivaire de contact sur le bout.", en: "Salivary contact DNA on the tip." },
+      zones: [
+        { id: "tip", label: { fr: "Bout (embouchure)", en: "Mouth end" }, fluid: "saliva", auto: 0.9, male: 0.8, degrad: 0.4, visible: true, x: 8, y: 26, w: 26, h: 24 },
+        { id: "body", label: { fr: "Corps du mégot", en: "Body of the butt" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 40, y: 28, w: 52, h: 18 }
+      ],
+      teach: { fr: "Salive → amylase. On découpe le bout. L'embouchure est identifiable, l'ALS est optionnel.",
+               en: "Saliva → amylase. Cut the mouth end. The tip is identifiable; ALS is optional." } },
 
-    { id: "fta_ref", icon: "🟦",
-      title: { fr: "Carte FTA — sang de référence", en: "FTA card — reference blood" },
-      desc:  { fr: "Prélèvement de référence d'un individu connu, déposé sur carte FTA.", en: "Reference sample from a known individual, spotted on an FTA card." },
-      instruments: { good: ["fta_punch"], ok: ["scissors"], bad: ["swab_wet"] },
-      tests: { good: ["none"], bad: ["peroxtesmo", "phosphatesmo", "amylase", "uv", "als"] },
-      teach: { fr: "Échantillon de référence : aucun test d'orientation n'est nécessaire. On poinçonne un disque de la carte.",
-               en: "Reference sample: no orientation test is needed. Punch a disc from the card." } },
+    { id: "collar", icon: "👕", substrate: "fabric",
+      title: { fr: "Col de chemise (ADN de contact)", en: "Shirt collar (touch DNA)" },
+      context: { fr: "Vêtement porté. Pas de tache visible.", en: "Worn garment. No visible stain." },
+      zones: [
+        { id: "collar", label: { fr: "Col", en: "Collar" }, fluid: "touch", auto: 0.12, male: 0.1, degrad: 0.5, visible: false, x: 30, y: 10, w: 40, h: 16 },
+        { id: "front", label: { fr: "Devant", en: "Front" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 24, y: 34, w: 52, h: 22 }
+      ],
+      teach: { fr: "L'ADN de contact est invisible et ne répond à aucun test présomptif ni à l'ALS : on raisonne sur le contexte (zone portée au cou) et on fait un tape-lift.",
+               en: "Touch DNA is invisible and responds to no presumptive test nor ALS: reason from context (worn at the neck) and tape-lift it." } },
 
-    { id: "collar_touch", icon: "👕",
-      title: { fr: "Col de chemise — ADN de contact", en: "Shirt collar — touch DNA" },
-      desc:  { fr: "Vêtement porté. ADN de contact (cellules épithéliales) attendu sur le col.", en: "Worn garment. Touch DNA (epithelial cells) expected on the collar." },
-      instruments: { good: ["tape"], ok: ["scissors", "swab_wet"] },
-      tests: { good: ["none"], ok: ["als"] },
-      teach: { fr: "L'ADN de contact n'a pas de test présomptif fiable. Le tape-lift récupère bien les cellules de surface.",
-               en: "Touch DNA has no reliable presumptive test. A tape-lift recovers surface cells well." } },
+    { id: "fta", icon: "🟦", substrate: "card",
+      title: { fr: "Carte FTA — référence", en: "FTA card — reference" },
+      context: { fr: "Prélèvement de référence (sang) d'un individu connu.", en: "Reference blood sample from a known individual." },
+      zones: [
+        { id: "spot", label: { fr: "Spot de sang", en: "Blood spot" }, fluid: "blood", auto: 5.0, male: 0, degrad: 0.1, visible: true, x: 34, y: 20, w: 30, h: 30 }
+      ],
+      teach: { fr: "Échantillon de référence : aucun test d'orientation n'est nécessaire, on poinçonne un disque. (Donneuse féminine : pas d'ADN masculin.)",
+               en: "Reference sample: no orientation test is needed, just punch a disc. (Female donor: no male DNA.)" } },
 
-    { id: "blood_pool", icon: "🩸",
-      title: { fr: "Flaque de sang liquide frais", en: "Fresh liquid blood pool" },
-      desc:  { fr: "Sang encore liquide sur un sol non absorbant.", en: "Still-liquid blood on a non-absorbent floor." },
-      instruments: { good: ["swab_dry"], ok: ["pipette"], bad: ["scraping"] },
-      tests: { good: ["peroxtesmo"], bad: ["uv", "als"] },
-      teach: { fr: "Liquide → l'écouvillon sec suffit (ou pipette) ; le grattage ne convient pas. Sang → peroxydase, pas d'ALS.",
-               en: "Liquid → a dry swab suffices (or pipette); scraping is unsuitable. Blood → peroxidase, not ALS." } },
+    { id: "envelope", icon: "✉️", substrate: "paper",
+      title: { fr: "Rabat d'enveloppe", en: "Envelope flap" },
+      context: { fr: "Courrier anonyme. Zone gommée léchée.", en: "Anonymous letter. Licked gummed area." },
+      zones: [
+        { id: "flap", label: { fr: "Rabat gommé", en: "Gummed flap" }, fluid: "saliva", auto: 0.7, male: 0.6, degrad: 0.3, visible: false, x: 20, y: 10, w: 60, h: 18 },
+        { id: "body", label: { fr: "Corps de l'enveloppe", en: "Envelope body" }, fluid: "none", auto: 0, male: 0, degrad: 0, visible: false, x: 20, y: 34, w: 60, h: 22 }
+      ],
+      teach: { fr: "Salive sur la gomme : l'ALS peut la révéler, l'amylase confirme. On découpe le rabat.",
+               en: "Saliva on the gum: ALS can reveal it, amylase confirms. Cut out the flap." } },
 
-    { id: "underwear", icon: "🩲",
-      title: { fr: "Sous-vêtement — tache jaunâtre", en: "Underwear — yellowish stain" },
-      desc:  { fr: "Sous-vêtement saisi. Tache compatible avec sperme ou urine.", en: "Seized underwear. Stain compatible with semen or urine." },
-      instruments: { good: ["scissors"], ok: ["swab_wet"] },
-      tests: { good: ["phosphatesmo", "als"], ok: ["uv", "amylase"] },
-      teach: { fr: "Sperme → phosphatase acide + fluorescence ALS. On découpe la zone tachée.",
-               en: "Semen → acid phosphatase + ALS fluorescence. Cut out the stained area." } },
-
-    { id: "hair_root", icon: "🧑‍🦰",
-      title: { fr: "Cheveu avec racine sur une surface", en: "Hair with root on a surface" },
-      desc:  { fr: "Cheveu isolé, racine (bulbe) visible → ADN nucléaire exploitable.", en: "Isolated hair with a visible root (bulb) → usable nuclear DNA." },
-      instruments: { good: ["forceps"], ok: ["tape"], bad: ["swab_dry"] },
-      tests: { good: ["none"], ok: ["als"] },
-      teach: { fr: "On saisit le cheveu à la pince sans l'abîmer. Pas de test présomptif ; l'ALS sert juste à le localiser.",
-               en: "Pick the hair up with forceps without damaging it. No presumptive test; ALS only helps locate it." } },
-
-    { id: "envelope", icon: "✉️",
-      title: { fr: "Rabat d'enveloppe / timbre", en: "Envelope flap / stamp" },
-      desc:  { fr: "Courrier anonyme. Zone gommée léchée → salive.", en: "Anonymous letter. Licked gummed area → saliva." },
-      instruments: { good: ["scissors"], ok: ["swab_wet"] },
-      tests: { good: ["amylase"], ok: ["uv"], bad: ["phosphatesmo"] },
-      teach: { fr: "Salive sur la gomme → amylase. On découpe la zone léchée.",
-               en: "Saliva on the gum → amylase. Cut out the licked area." } },
-
-    { id: "nails", icon: "💅",
-      title: { fr: "Ongles de la victime (agression)", en: "Victim's fingernails (assault)" },
-      desc:  { fr: "La victime s'est débattue : matériel biologique possible sous les ongles (mélange).", en: "The victim struggled: possible biological material under the nails (mixture)." },
-      instruments: { good: ["scraping"], ok: ["scissors"] },
-      tests: { good: ["none"], ok: ["peroxtesmo"] },
-      teach: { fr: "Grattage sous-ongual (ou coupe de l'ongle). Pas de test requis ; Peroxtesmo seulement si du sang est visible. Attendez-vous à un mélange.",
-               en: "Sub-ungual scraping (or nail clipping). No test required; Peroxtesmo only if blood is visible. Expect a mixture." } }
+    { id: "pool", icon: "🩸", substrate: "liquid",
+      title: { fr: "Flaque de sang liquide", en: "Liquid blood pool" },
+      context: { fr: "Sang encore liquide sur sol non absorbant.", en: "Still-liquid blood on a non-absorbent floor." },
+      zones: [
+        { id: "pool", label: { fr: "Flaque", en: "Pool" }, fluid: "blood", auto: 4.0, male: 3.6, degrad: 0.1, visible: true, x: 26, y: 20, w: 44, h: 28 }
+      ],
+      teach: { fr: "Liquide et abondant → écouvillon sec (ou pipette). Le grattage ne convient pas. Sang → peroxydase, pas d'ALS.",
+               en: "Liquid and abundant → dry swab (or pipette). Scraping is unsuitable. Blood → peroxidase, not ALS." } }
   ]
 };
