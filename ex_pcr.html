@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Programmer la PCR — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .stat { background:var(--stripe); border:1px solid var(--border); border-radius:8px; padding:8px 14px; display:inline-block; }
+    .stat .v { font-size:1.2rem; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums; }
+    .stat .k { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .givens { display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin:4px 0 12px; }
+    .loadrow { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:6px; }
+    .loadrow input { width:90px; }
+    input[type=number] { padding:6px 8px; border:1px solid var(--border); border-radius:6px; font:inherit; background:var(--card); color:var(--ink); }
+    .proto { display:grid; grid-template-columns:1fr; gap:4px; }
+    .pgroup { margin-top:12px; }
+    .pgroup h4 { margin:0 0 4px; font-size:.8rem; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); }
+    .frow { display:flex; align-items:center; gap:10px; padding:3px 0; }
+    .frow label { flex:1 1 auto; color:var(--ink); font-size:.9rem; }
+    .frow input { width:80px; }
+    .frow .unit { color:var(--muted); font-size:.82rem; min-width:26px; }
+    #epgWrap { overflow-x:auto; border:1px solid var(--border); border-radius:10px; background:#fff; margin-top:6px; }
+    #epgWrap svg { display:block; }
+    .empty { color:var(--muted); font-size:.9rem; padding:24px; text-align:center; }
+  </style>
+</head>
+<body data-page="exercices">
+
+  <main class="wrap">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Programmer la PCR" data-en="Program the PCR"></h1>
+    <p class="page-intro"
+       data-fr="Vous avez un extrait quantifié. Calculez le volume à charger pour atteindre la quantité cible, réglez le protocole thermique (les valeurs standard sont pré-remplies), puis lancez la PCR : l'électrophorégramme montre le résultat."
+       data-en="You have a quantified extract. Compute the volume to load to reach the target input, set the thermal protocol (standard values are pre-filled), then run the PCR: the electropherogram shows the result."></p>
+
+    <div class="panel">
+      <div class="controls" style="justify-content:space-between; align-items:flex-start">
+        <h2 style="margin:0" data-fr="1. Charge d'ADN" data-en="1. DNA input"></h2>
+        <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+      </div>
+      <div class="givens" id="givens"></div>
+      <div class="loadrow">
+        <label for="vol" data-fr="Volume d'extrait à charger :" data-en="Extract volume to load:"></label>
+        <input type="number" id="vol" min="0" step="0.5" inputmode="decimal">
+        <span class="muted-note">µL</span>
+        <div class="stat"><div class="v" id="loadedNg">—</div><div class="k" data-fr="ADN chargé (ng)" data-en="DNA loaded (ng)"></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0" data-fr="2. Protocole thermique" data-en="2. Thermal protocol"></h2>
+      <p class="muted-note" data-fr="Valeurs standard pré-remplies — ajustez si nécessaire." data-en="Standard values pre-filled — adjust if needed."></p>
+      <div class="proto" id="proto"></div>
+      <div class="controls mt">
+        <button class="btn btn-primary" id="run" data-fr="Lancer la PCR" data-en="Run the PCR"></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 style="margin-top:0" data-fr="3. Électrophorégramme" data-en="3. Electropherogram"></h2>
+      <div id="epgWrap"><div class="empty" data-fr="Lancez la PCR pour voir le résultat." data-en="Run the PCR to see the result."></div></div>
+      <div class="feedback" id="fb"></div>
+    </div>
+  </main>
+
+  <script src="assets/i18n.js"></script>
+  <script src="assets/data/pcr.js"></script>
+  <script src="assets/layout.js"></script>
+  <script type="module">
+    import { getKit } from "./assets/epg/panels.js";
+    import { makeRng } from "./assets/epg/rng.js";
+    import { randomProfile } from "./assets/epg/genetics.js";
+    import { simulate } from "./assets/epg/simulate.js";
+    import { renderEPG } from "./assets/epg/render-svg.js";
+    import { observedProfile } from "./assets/epg/index.js";
+
+    const P = window.PCR, I18N = window.I18N;
+    const kit = getKit("globalfiler");
+    const fb = document.getElementById("fb");
+    let state = {};
+    const L = (fr, en) => (I18N.getLang() === "en" ? en : fr);
+    const pick = (o) => I18N.pick(o);
+    const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const fmtAllele = (a) => (typeof a === "number" && !Number.isInteger(a)) ? a.toFixed(1) : String(a);
+    const round = (n, d) => { const m = Math.pow(10, d); return Math.round(n * m) / m; };
+    const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+    const fieldById = (id) => P.fields.find((f) => f.id === id);
+
+    function newCase() {
+      const rng = makeRng(Math.floor(Math.random() * 1e9));
+      const profile = randomProfile(kit, rng);
+      const cr = P.input.concRange;
+      const conc = round(cr[0] + Math.random() * (cr[1] - cr[0]), 3);
+      state = { profile, conc };
+      document.getElementById("vol").value = "";
+      document.getElementById("loadedNg").textContent = "—";
+      document.getElementById("epgWrap").innerHTML = '<div class="empty">' +
+        L("Lancez la PCR pour voir le résultat.", "Run the PCR to see the result.") + "</div>";
+      fb.className = "feedback";
+      renderGivens(); renderProto();
+    }
+
+    function renderGivens() {
+      const i = P.input;
+      document.getElementById("givens").innerHTML =
+        stat(state.conc.toFixed(3), L("Extrait (ng/µL)", "Extract (ng/µL)")) +
+        stat(i.targetNg.toFixed(2), L("Cible (ng)", "Target (ng)")) +
+        stat(i.reactionVol, L("Réaction (µL)", "Reaction (µL)")) +
+        stat(i.maxExtractVol, L("Vol. max extrait (µL)", "Max extract vol (µL)"));
+    }
+    function stat(v, k) { return '<div class="stat"><div class="v">' + v + '</div><div class="k">' + k + "</div></div>"; }
+
+    function renderProto() {
+      let html = "", lastGroup = null;
+      P.fields.forEach((f) => {
+        const g = pick(f.group);
+        if (g !== lastGroup) { if (lastGroup !== null) html += "</div>"; html += '<div class="pgroup"><h4>' + esc(g) + "</h4>"; lastGroup = g; }
+        html += '<div class="frow"><label>' + esc(pick(f.label)) + '</label>' +
+                '<input type="number" data-id="' + f.id + '" value="' + f.def + '" step="' + f.step + '">' +
+                '<span class="unit">' + f.unit + "</span></div>";
+      });
+      if (lastGroup !== null) html += "</div>";
+      document.getElementById("proto").innerHTML = html;
+    }
+
+    function readVals() {
+      const v = {};
+      document.querySelectorAll('#proto input[data-id]').forEach((el) => { v[el.dataset.id] = parseFloat(el.value); });
+      return v;
+    }
+
+    function updateLoaded() {
+      const uL = parseFloat(document.getElementById("vol").value);
+      const el = document.getElementById("loadedNg");
+      el.textContent = (isFinite(uL) && uL >= 0) ? round(state.conc * uL, 3).toFixed(3) : "—";
+    }
+
+    function compute() {
+      const vals = readVals();
+      const uL = parseFloat(document.getElementById("vol").value);
+      const offenders = [];
+      let eff = 1, deg = 0;
+
+      // input
+      const loadedNg = (isFinite(uL) && uL >= 0) ? state.conc * uL : 0;
+      if (!isFinite(uL) || uL < 0) return { error: L("Entrez un volume d'extrait.", "Enter an extract volume.") };
+      if (uL > P.input.maxExtractVol) offenders.push(P.inputMsg.volTooMuch);
+      if (loadedNg < P.input.bandNg[0]) offenders.push(P.inputMsg.low);
+      else if (loadedNg > P.input.bandNg[1]) offenders.push(P.inputMsg.high);
+
+      // thermal fields
+      P.fields.forEach((f) => {
+        const v = vals[f.id];
+        if (!isFinite(v)) { offenders.push({ fr: "valeur manquante (" + f.group.fr + ")", en: "missing value (" + f.group.en + ")" }); return; }
+        let dir = null;
+        if (v < f.band[0]) dir = "low"; else if (v > f.band[1]) dir = "high";
+        if (!dir) return;
+        const e = f[dir];
+        if (e.effMul != null) eff *= e.effMul;
+        if (e.degAdd != null) deg += e.degAdd;
+        offenders.push({ fr: f.group.fr + " : " + e.msg.fr, en: f.group.en + ": " + e.msg.en });
+      });
+
+      const cycles = vals.cycles;
+      const cycleFactor = clamp(Math.pow(P.cycleBase, cycles - P.cycleRef), P.cycleClamp[0], P.cycleClamp[1]);
+      const inputFactor = loadedNg / P.input.targetNg;
+      const amount = Math.max(0, P.A_OPT * inputFactor * cycleFactor * eff);
+      const degradation = clamp(deg, P.degClamp[0], P.degClamp[1]);
+      return { amount, degradation, offenders, loadedNg };
+    }
+
+    function run() {
+      const c = compute();
+      if (c.error) { feedback("warn", { fr: c.error, en: c.error }); return; }
+      const sim = simulate(kit, [{ geno: state.profile.geno, amount: c.amount, degradation: c.degradation }],
+                           { rng: makeRng(Math.floor(Math.random() * 1e9)), thresholds: P.thresholds });
+      const r = renderEPG(kit, sim, { sampleLabel: L("Échantillon", "Sample"), title: kit.label, width: 1000 });
+      document.getElementById("epgWrap").innerHTML = r.svg;
+
+      // grade
+      const observed = observedProfile(kit, sim);
+      const missing = [];
+      kit.loci.forEach((l) => {
+        const ref = state.profile.geno[l.name];
+        if (!ref || !ref.length) return;
+        const obs = observed[l.name] || [];
+        const lost = ref.some((a) => obs.indexOf(fmtAllele(a)) === -1);
+        if (lost) missing.push(l.name);
+      });
+      const saturated = sim.peaks.some((p) => p.saturated);
+      let maxCalled = 0;
+      sim.peaks.forEach((p) => { if (p.called && p.height > maxCalled) maxCalled = p.height; });
+      const overAmp = saturated || maxCalled > P.OVER;
+      const epgOk = missing.length === 0 && !overAmp;
+      const pass = c.offenders.length === 0 && epgOk;
+
+      if (pass) {
+        feedback("success", {
+          fr: "<strong>PCR réussie.</strong> Profil complet et équilibré, pas de pic hors-échelle — l'électrophorégramme est exploitable.",
+          en: "<strong>PCR successful.</strong> Complete, balanced profile with no off-scale peak — the electropherogram is usable."
+        });
+        return;
+      }
+      // build reasons
+      const symFr = [], symEn = [];
+      if (missing.length) { symFr.push("pertes d'allèles (drop-out) aux loci : " + missing.join(", ")); symEn.push("allele drop-out at loci: " + missing.join(", ")); }
+      if (overAmp) { symFr.push("pics hors-échelle / sur-amplification (pull-up probable)"); symEn.push("off-scale peaks / over-amplification (pull-up likely)"); }
+      const causeFr = c.offenders.map((o) => o.fr).filter(Boolean);
+      const causeEn = c.offenders.map((o) => o.en).filter(Boolean);
+      let fr = "<strong>Électrophorégramme non exploitable.</strong>";
+      let en = "<strong>Unusable electropherogram.</strong>";
+      if (symFr.length) { fr += " Symptômes : " + symFr.join(" ; ") + "."; en += " Symptoms: " + symEn.join("; ") + "."; }
+      if (causeFr.length) { fr += "<ul style='margin:8px 0 0;padding-left:20px'>" + causeFr.map((x) => "<li>" + x + "</li>").join("") + "</ul>";
+                            en += "<ul style='margin:8px 0 0;padding-left:20px'>" + causeEn.map((x) => "<li>" + x + "</li>").join("") + "</ul>"; }
+      else if (!symFr.length) { fr += " " + L("Réglage sous-optimal.", "Sub-optimal setting."); }
+      feedback("fail", { fr, en });
+    }
+
+    function feedback(kind, msg) {
+      fb._fr = msg.fr; fb._en = msg.en; fb._kind = kind;
+      fb.className = "feedback show " + kind;
+      fb.innerHTML = I18N.getLang() === "en" ? msg.en : msg.fr;
+    }
+
+    document.getElementById("newCase").addEventListener("click", newCase);
+    document.getElementById("run").addEventListener("click", run);
+    document.getElementById("vol").addEventListener("input", updateLoaded);
+    document.addEventListener("langchange", function () {
+      renderGivens(); renderProto(); updateLoaded();
+      if (fb._kind) fb.innerHTML = I18N.getLang() === "en" ? fb._en : fb._fr;
+    });
+
+    newCase();
+  </script>
+</body>
+</html>
