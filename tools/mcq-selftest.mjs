@@ -80,7 +80,7 @@ const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1];
 const originalBank = JSON.stringify(bank);
 let totalScenarios = 0;
 for (const level of ['m1', 'm2']) {
-  for (const count of [10, 15, 20]) {
+  for (const count of [7, 10, 15, 20]) {
     for (const language of ['fr', 'en']) {
       const elements = Object.fromEntries([...html.matchAll(/id="([^"]+)"/g)]
         .map(m => [m[1], new Element()]));
@@ -90,6 +90,9 @@ for (const level of ['m1', 'm2']) {
       doc.createTextNode = text => ({ textContent: text });
       elements.level.value = level;
       elements.count.value = String(count);
+      // Stand in for native constraint validation; ensure the script honours it.
+      let countValid = true;
+      elements.count.reportValidity = () => countValid;
       elements.quiz.classList.add('hidden');
       let lang = language;
       let allowSubmit = false;
@@ -105,6 +108,12 @@ for (const level of ['m1', 'm2']) {
       vm.runInNewContext(script, runtime);
       const pool = bank.filter(q => level === 'm2' || q.level === 'm12');
       assert.ok(elements.poolInfo.textContent.endsWith(String(pool.length)));
+      assert.equal(Number(elements.count.max), pool.length);
+      countValid = false;
+      elements.start.fire('click');
+      assert.equal(elements.questions.children.length, 0);
+      assert.ok(elements.quiz.classList.contains('hidden'));
+      countValid = true;
       elements.start.fire('click');
       assert.equal(elements.questions.children.length, count);
       assert.ok(elements.setup.classList.contains('hidden'));

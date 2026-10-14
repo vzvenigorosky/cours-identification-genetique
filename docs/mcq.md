@@ -45,7 +45,7 @@ Run `npm run mcq:test` (or `node tools/mcq-selftest.mjs`). It checks translation
 unique stems and choices, exactly one Boolean answer key, topic/level coverage,
 and selected arithmetic and inheritance examples. It also executes the actual
 inline quiz script against a minimal DOM fixture in both languages, at both
-levels and all three quiz lengths. It checks filtering, randomisation, grading,
+levels and four quiz lengths, including a custom count of seven. It checks filtering, randomisation, grading,
 incomplete submission, language switching, correction, and restarting.
 This is a logic smoke test, not a visual browser-layout test or a substitute for
 scientific review by the course instructor.
