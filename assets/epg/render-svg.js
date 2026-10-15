@@ -101,7 +101,8 @@ export function renderEPG(kit, sim, opts = {}) {
     for (const p of dpk) {
       const x = xOf(p.size);
       const yTop = yOf(p.height);
-      const op = KIND_OPACITY[p.kind] || 0.5;
+      // Exercise mode hides ground-truth opacity cues; default renders unchanged.
+      const op = opts.neutralArtifacts ? 1 : (KIND_OPACITY[p.kind] || 0.5);
       // off-scale: truly saturated, or (with a fixed ceiling) any peak at/above it
       const offscale = p.saturated || (opts.dispMax != null && p.height >= disp);
       if (offscale) {
