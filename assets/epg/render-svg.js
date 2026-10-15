@@ -13,6 +13,27 @@ function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function fmtAllele(a) {
+  return (typeof a === "number" && !Number.isInteger(a)) ? a.toFixed(1) : String(a);
+}
+
+/* GeneMapper-style bin call: a peak is labelled with the allele of the bin it
+   falls in (nearest allele within ~0.5 bp in its dye), else "OL" (off-ladder).
+   Artefacts landing in a bin thus read as ordinary allele calls — no artefact
+   tag — so the analyst must recognise them. The peak's true `kind` stays in
+   the data for grading. */
+function binCall(kit, dye, size) {
+  let best = null, bd = Infinity;
+  for (const l of kit.loci) {
+    if (l.dye !== dye) continue;
+    for (const a of allelesOf(l)) {
+      const d = Math.abs(sizeOf(l, a) - size);
+      if (d < bd) { bd = d; best = a; }
+    }
+  }
+  return (best != null && bd <= 0.5) ? fmtAllele(best) : "OL";
+}
+
 export function renderEPG(kit, sim, opts = {}) {
   const W = opts.width || 1300;
   const padL = 62, padR = 18, headerH = 34, panelH = 120, gap = 8, axisH = 26, liziH = 20;
@@ -115,7 +136,7 @@ export function renderEPG(kit, sim, opts = {}) {
       row = (x - lastLabelX < 22) ? (row + 1) % 2 : 0;
       lastLabelX = x;
       const yA = bottom - 11 - row * 19;        // allele line, just above the baseline
-      const label = esc(p.kind === "pullup" ? "PU" : (p.offladder ? "OL" : (p.label || "OL")));
+      const label = esc(binCall(kit, p.dye, p.size));
       parts.push(
         `<rect x="${(x - 9).toFixed(1)}" y="${(yA - 8).toFixed(1)}" width="18" height="17" fill="#ffffff" opacity="0.82"/>` +
         `<text x="${x.toFixed(1)}" y="${yA.toFixed(1)}" font-size="8.5" font-weight="700" fill="${dye.color}" text-anchor="middle">${label}</text>` +

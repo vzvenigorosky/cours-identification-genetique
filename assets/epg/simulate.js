@@ -179,7 +179,7 @@ export function simulate(kit, contributors, opts = {}) {
     // imbalance is not auto-filtered. Default off → only true alleles called.
     p.called = p.height >= th.at && (p.kind === "allele" ||
       (opts.callArtifacts && (p.kind === "pullup" || p.kind === "dropin" ||
-       p.kind === "spike" || p.kind === "blob" || p.kind === "minusA")));
+       p.kind === "spike" || p.kind === "blob" || p.kind === "minusA" || p.kind === "stutter")));
   }
 
   peaks = peaks.filter((p) => p.height > 8);

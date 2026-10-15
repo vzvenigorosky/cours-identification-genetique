@@ -39,7 +39,7 @@ window.PCR = {
   // GeneMapper-style realism knobs passed to the simulator (DRAFT, issue #12):
   // call artefacts above threshold (pull-ups labelled PU, imbalanced minor
   // peaks kept), inject spurious Y-marker calls, and make off-ladder common.
-  sim: { callArtifacts: true, yNoise: true, yNoiseRate: 0.45, olRate: 0.6, olMax: 3 },
+  sim: { callArtifacts: true, yNoise: true, yNoiseRate: 0.45, olRate: 0.3, olMax: 1 },
 
   // messages for the input decision
   inputMsg: {
