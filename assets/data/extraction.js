@@ -13,15 +13,15 @@
    The decision axis is QUANTITY only (ng/µL vs the usable threshold).
    Y-STR and mtDNA are deliberately out of scope here.
 
-   Bilingual {fr,en}. The threshold and quant ranges are DRAFT/tunable,
-   pending validation (issue #12). Ranges are [min,max] ng/µL; the FIRST
+   Bilingual {fr,en}. The teaching threshold is 5 pg/µL (0.005 ng/µL).
+   Quantification ranges remain DRAFT/tunable. Ranges are [min,max] ng/µL; the FIRST
    site of each scellé is the rich one, the others are poorer (ranges
    are non-overlapping so the best extract is unambiguous). A case may
    put a scellé in "depleted" mode where every extract falls below the
    threshold → the correct answer is "aucun".
    ============================================================ */
 window.EXTRACTION = {
-  threshold: 0.05, // ng/µL autosomal: minimum usable input for STR (matches MG1's "usable DNA")
+  threshold: 0.005, // ng/µL autosomal = 5 pg/µL; teaching criterion for this exercise
   pDepleted: 0.25, // chance a given scellé has no usable extract (dead end)
   perCase: [2, 3], // number of scellés drawn per case
 
