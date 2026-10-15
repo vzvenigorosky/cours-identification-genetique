@@ -13,6 +13,27 @@ function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function fmtAllele(a) {
+  return (typeof a === "number" && !Number.isInteger(a)) ? a.toFixed(1) : String(a);
+}
+
+/* GeneMapper-style bin call: a peak is labelled with the allele of the bin it
+   falls in (nearest allele within ~0.5 bp in its dye), else "OL" (off-ladder).
+   Artefacts landing in a bin thus read as ordinary allele calls — no artefact
+   tag — so the analyst must recognise them. The peak's true `kind` stays in
+   the data for grading. */
+function binCall(kit, dye, size) {
+  let best = null, bd = Infinity;
+  for (const l of kit.loci) {
+    if (l.dye !== dye) continue;
+    for (const a of allelesOf(l)) {
+      const d = Math.abs(sizeOf(l, a) - size);
+      if (d < bd) { bd = d; best = a; }
+    }
+  }
+  return (best != null && bd <= 0.5) ? fmtAllele(best) : "OL";
+}
+
 export function renderEPG(kit, sim, opts = {}) {
   const W = opts.width || 1300;
   const padL = 62, padR = 18, headerH = 34, panelH = 120, gap = 8, axisH = 26, liziH = 20;
@@ -22,10 +43,18 @@ export function renderEPG(kit, sim, opts = {}) {
 
   const xOf = (size) => padL + ((size - X0) / (X1 - X0)) * (W - padL - padR);
 
-  // display y-max from tallest non-saturated true allele (peaks above clip at top)
-  let disp = sim.thresholds.st * 1.3;
-  for (const p of sim.peaks) if (p.kind === "allele" && !p.saturated) disp = Math.max(disp, p.height);
-  disp = Math.max(disp * 1.12, 500);
+  // display y-max. With opts.dispMax, use a FIXED ceiling (like a fixed-scale
+  // GeneMapper view): peaks above it clip/flat-top (off-scale) and small peaks
+  // such as pull-up keep their true proportion. Otherwise auto-scale to the
+  // tallest non-saturated true allele (default; unchanged).
+  let disp;
+  if (opts.dispMax != null) {
+    disp = opts.dispMax;
+  } else {
+    disp = sim.thresholds.st * 1.3;
+    for (const p of sim.peaks) if (p.kind === "allele" && !p.saturated) disp = Math.max(disp, p.height);
+    disp = Math.max(disp * 1.12, 500);
+  }
 
   const parts = [];
   parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${totalH}" width="${W}" height="${totalH}" font-family="Segoe UI, Arial, sans-serif" style="background:#fff">`);
@@ -73,7 +102,9 @@ export function renderEPG(kit, sim, opts = {}) {
       const x = xOf(p.size);
       const yTop = yOf(p.height);
       const op = KIND_OPACITY[p.kind] || 0.5;
-      if (p.saturated) {
+      // off-scale: truly saturated, or (with a fixed ceiling) any peak at/above it
+      const offscale = p.saturated || (opts.dispMax != null && p.height >= disp);
+      if (offscale) {
         // flat-topped
         parts.push(`<path d="M ${(x - 3).toFixed(1)} ${bottom} L ${(x - 2).toFixed(1)} ${(top + 2).toFixed(1)} L ${(x + 2).toFixed(1)} ${(top + 2).toFixed(1)} L ${(x + 3).toFixed(1)} ${bottom} Z" fill="${dye.color}" opacity="${op}"/>`);
       } else {
@@ -105,7 +136,7 @@ export function renderEPG(kit, sim, opts = {}) {
       row = (x - lastLabelX < 22) ? (row + 1) % 2 : 0;
       lastLabelX = x;
       const yA = bottom - 11 - row * 19;        // allele line, just above the baseline
-      const label = esc(p.offladder ? "OL" : p.label);
+      const label = esc(binCall(kit, p.dye, p.size));
       parts.push(
         `<rect x="${(x - 9).toFixed(1)}" y="${(yA - 8).toFixed(1)}" width="18" height="17" fill="#ffffff" opacity="0.82"/>` +
         `<text x="${x.toFixed(1)}" y="${yA.toFixed(1)}" font-size="8.5" font-weight="700" fill="${dye.color}" text-anchor="middle">${label}</text>` +
