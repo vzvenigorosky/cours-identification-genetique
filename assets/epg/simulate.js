@@ -103,15 +103,21 @@ export function simulate(kit, contributors, opts = {}) {
   }
   let peaks = [...bins.values()];
 
-  // ---- pull-up from tall/saturated peaks into other dyes ----
+  // ---- pull-up from tall true alleles into other dyes. The pull-up sits at
+  //      the SAME fragment size as its parent, so it appears directly under the
+  //      tall peak in another channel — the cross-channel alignment is the tell.
+  //      Only true alleles seed pull-up (not stutter/minus-A) so every pull-up
+  //      has a visible tall parent; saturated peaks pull up into most channels. ----
   if (art.pullup) {
-    const tall = peaks.filter((p) => p.height > 4000);
+    const tall = peaks.filter((p) => p.height > 4000 && p.kind === "allele");
     for (const p of tall) {
-      const ratio = p.height >= SAT ? rng.range(0.03, 0.07) : rng.range(0.015, 0.04);
+      const saturated = p.height >= SAT;
+      const ratio = saturated ? rng.range(0.03, 0.07) : rng.range(0.015, 0.04);
+      const prob = saturated ? 0.85 : 0.4;
       for (const dye of DYE_ORDER) {
         if (dye === p.dye) continue;
-        if (rng.bool(0.4)) addPeak(peaks, { locus: "", dye, size: p.size, height: p.height * ratio,
-                                            label: "", kind: "pullup" });
+        if (rng.bool(prob)) addPeak(peaks, { locus: "", dye, size: p.size, height: p.height * ratio,
+                                             label: "", kind: "pullup" });
       }
     }
   }
