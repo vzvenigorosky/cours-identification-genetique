@@ -39,6 +39,7 @@
     </div>
 
     <div class="panel">
+      <p class="muted-note" id="thresholdNote"></p>
       <div id="scelles"></div>
       <div class="controls mt">
         <button class="btn btn-primary" id="check" data-i18n="common.check"></button>
@@ -89,6 +90,9 @@
 
     function render() {
       document.getElementById("requisition").innerHTML = pick(E.requisition);
+      document.getElementById("thresholdNote").textContent = L(
+        "Seuil de cet exercice : " + E.threshold + " ng/µL (" + (E.threshold * 1000) + " pg/µL), inclus. Choisissez le meilleur extrait à partir de ce seuil.",
+        "Exercise threshold: " + E.threshold + " ng/µL (" + (E.threshold * 1000) + " pg/µL), inclusive. Choose the best extract at or above this threshold.");
       var box = document.getElementById("scelles");
       box.innerHTML = state.scelles.map(function (sc, si) {
         var rows = sc.extracts.map(function (e) {
