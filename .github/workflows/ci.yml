@@ -31,3 +31,5 @@ jobs:
         run: node tools/mcq-selftest.mjs
       - name: MG4 cleanup self-tests
         run: node tools/cleanup-selftest.mjs
+      - name: MG2 casework self-tests
+        run: node tools/casework-selftest.mjs
