@@ -9,13 +9,22 @@ for (let seed=0; seed<250; seed++) {
   assert.equal(c.candidates.filter(p=>p.offladder).length, 1);
   assert(c.sim.noise);
   assert(c.candidates.every(p=>p.height>=150 && ['keep','review','stutter','pullup'].includes(expected(p))));
+  assert.equal(c.candidates.filter(p=>p.kind==='pullup').length,1, 'one detectable echo per trace');
+  assert(c.candidates.filter(p=>p.kind!=='allele').length<=4, 'sparse trace: at most four extra calls across three loci');
+  for (const l of kit.loci) {
+    assert(c.candidates.filter(p=>p.kind==='stutter' && p.locus===l.name).length<=1, 'at most one detected stutter per locus');
+    const sizes = c.geno[l.name].map(a=>sizeOf(l,a));
+    assert(c.candidates.filter(p=>p.kind!=='allele' && p.dye===l.dye && p.size>=Math.min(...sizes)-l.repeat && p.size<=Math.max(...sizes)+l.repeat).length<=2, 'at most two extra peaks around each marker');
+  }
   for (const kind of ['pullup','stutter']) assert(c.candidates.some(p=>p.kind===kind));
   for (const p of c.sim.peaks.filter(p=>p.kind==='pullup')) {
     const q=parentOf(c.sim,p); assert(q); assert.notEqual(q.dye,p.dye); assert.equal(q.size,p.size);
     assert.equal(expected(q),'keep', 'parent allele retained');
   }
-  const first=c.candidates.filter(p=>p.kind==='allele' && p.locus===kit.loci[0].name);
-  assert(Math.min(...first.map(p=>p.height))/Math.max(...first.map(p=>p.height))<0.5, 'imbalance guaranteed');
+  assert(kit.loci.some(l=> {
+    const pair=c.candidates.filter(p=>p.kind==='allele' && p.locus===l.name);
+    return Math.min(...pair.map(p=>p.height))/Math.max(...pair.map(p=>p.height))<0.5;
+  }), 'imbalance guaranteed at a variable locus');
   for (const p of c.candidates) {
     for (const lang of ['fr','en']) assert(explanation(c,p,lang).length>80);
     if(p.kind==='allele') {

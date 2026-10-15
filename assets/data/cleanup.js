@@ -29,13 +29,14 @@ export function makeCase(seed) {
   // Keep core simulation unchanged; every graded peak has an unambiguous origin.
   for (let attempt = 0; attempt < 1000; attempt++) {
     const geno = {}, contributors = [];
+    const tallLocus = rng.int(0, kit.loci.length - 1);
     for (const [i, l] of kit.loci.entries()) {
       const al = allelesOf(l).filter(Number.isInteger);
       const a = rng.pick(al.slice(0, -3));
       const b = rng.pick(al.filter(b => b >= a + 3));
       geno[l.name] = [a, b];
       for (const [j, allele] of [a, b].entries()) contributors.push({
-        geno: { [l.name]: [allele] }, amount: i === 0 && j === 1 ? 2200 : rng.range(6500, 8500), degradation: 0.1
+        geno: { [l.name]: [allele] }, amount: i === tallLocus ? (j === 0 ? rng.range(5000, 6000) : 1300) : rng.range(900, 1400), degradation: 0.1
       });
     }
     const original = kit.loci.flatMap(l => geno[l.name].map(a => ({ dye: l.dye, size: sizeOf(l, a), repeat: l.repeat })));
@@ -52,7 +53,18 @@ export function makeCase(seed) {
     if (sim.peaks.some((p, i) => sim.peaks.some((q, j) => j > i && p.dye === q.dye && Math.abs(p.size - q.size) < 2))) continue;
     if (truePeaks.some(p => truePeaks.some(q => q !== p && q.size === p.size))) continue;
     if (sim.peaks.some(p => p.kind === 'stutter' && parentOf(sim, p))) continue;
-    if (!candidates.some(p => p.kind === 'pullup') || !candidates.some(p => p.kind === 'stutter')) continue;
+    // Select sparse teaching traces rather than over-amplifying every locus.
+    // Leave all simulated signals intact (including subthreshold products).
+    // One detectable spectral echo, and at most one detected stutter per locus.
+    if (candidates.filter(p => p.kind === 'pullup').length !== 1) continue;
+    if (!candidates.some(p => p.kind === 'stutter')) continue;
+    if (kit.loci.some(l => candidates.filter(p => p.kind === 'stutter' && p.locus === l.name).length > 1)) continue;
+    // An echo landing within a marker may add a second extra peak, never four.
+    if (kit.loci.some(l => {
+      const sizes = allelesOf(l).map(a => sizeOf(l, a));
+      return candidates.filter(p => p.kind !== 'allele' && p.dye === l.dye &&
+        p.size >= Math.min(...sizes) - l.repeat && p.size <= Math.max(...sizes) + l.repeat).length > 2;
+    })) continue;
     return { seed, geno, sim, candidates: candidates.map((p, i) => ({ ...p, id: `P${i + 1}` })) };
   }
   throw new Error('Could not generate an unambiguous MG4 case');
