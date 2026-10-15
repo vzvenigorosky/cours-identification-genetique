@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nettoyage de profil — MG4</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .epg-scroll,.table-scroll { overflow-x:auto; margin:12px 0; }
+    .epg-scroll svg { display:block; }
+    #decisions { width:100%; border-collapse:collapse; }
+    #decisions th,#decisions td { padding:10px; text-align:left; border-bottom:1px solid var(--border); }
+    #decisions select { max-width:100%; min-width:190px; padding:8px; }
+    .correction { max-width:560px; font-size:.9rem; }
+    .correct { color:var(--green); } .incorrect { color:#a3202c; }
+    #summary:empty,#profile:empty { display:none; }
+  </style>
+</head>
+<body data-page="exercices">
+<main class="wrap">
+  <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+  <h1 class="page-title mt" data-fr="MG4 — Nettoyage de profil" data-en="MG4 — Profile cleanup"></h1>
+  <p class="page-intro" data-fr="Classez les pics détectés, puis comparez votre interprétation à la vérité du générateur. Le signal brut reste conservé." data-en="Classify detected peaks, then compare your interpretation with generator ground truth. The raw signal is preserved."></p>
+  <section class="panel">
+    <div class="controls">
+      <button id="newCase" class="btn btn-ghost" data-i18n="common.newcase"></button>
+      <span id="caseLabel"></span>
+      <label for="scale" data-fr="Échelle RFU" data-en="RFU scale"></label>
+      <select id="scale"><option value="10000">0–10000</option><option value="2000">0–2000</option></select>
+    </div>
+    <p data-fr="Extrait mono-source, trois loci d’entraînement. Tailles et seuils pédagogiques approximatifs (SA = 150 RFU). Bruit de fond sous le seuil : pas d’appel allélique. Les pics dépassant l’échelle d’affichage sont tronqués visuellement ; cela ne signifie pas saturation instrumentale." data-en="Single-source extract, three training loci. Approximate teaching bins and thresholds (AT = 150 RFU). Baseline noise below threshold: no allele call. Peaks above the display scale are visually clipped; this does not imply instrument saturation."></p>
+    <p data-fr="Conservez les allèles déséquilibrés. OL signifie hors bin : conserver pour vérification. Un pull-up est un écho spectral dans un autre canal à la même taille ; le parent reste un allèle. Dans un cas réel, ces indices exigent une validation, des contrôles et parfois une réanalyse." data-en="Retain imbalanced alleles. OL means outside a bin: retain for review. A pull-up is a spectral echo in another channel at the same size; its parent remains an allele. In real casework, these clues require validation, controls and sometimes reanalysis."></p>
+    <div id="epgWrap" class="epg-scroll" tabindex="0" role="region" aria-label="EPG"></div>
+  </section>
+  <section class="panel">
+    <h2 data-fr="Votre interprétation" data-en="Your interpretation"></h2>
+    <p data-fr="Une ligne par pic ≥ 150 RFU, dans l’ordre des canaux puis des tailles. Utilisez les tailles pour retrouver les pics sur l’EPG. Écarter enlève l’appel du profil interprété, sans effacer la mesure." data-en="One row per peak ≥ 150 RFU, ordered by channel then size. Use fragment sizes to locate peaks on the EPG. Excluding removes the call from the interpreted profile without erasing the measurement."></p>
+    <div class="table-scroll"><table id="decisions"><thead id="head"></thead><tbody id="rows"></tbody></table></div>
+    <div id="selection" aria-live="polite"></div>
+    <div class="controls">
+      <button id="check" class="btn btn-primary" data-i18n="common.check"></button>
+      <button id="reset" class="btn btn-ghost" data-fr="Réinitialiser les choix" data-en="Reset choices"></button>
+    </div>
+    <div id="summary" class="feedback" role="status" aria-live="polite"></div>
+    <div id="profile"></div>
+  </section>
+  <p class="muted-note" data-fr="Modèle limité : pas de mélange, drop-in ni superposition allèle/artefact dans ces cas. Le stutter et le pull-up sont des catégories distinctes ; OL et déséquilibre ne sont pas des artefacts à supprimer automatiquement." data-en="Model limits: no mixtures, drop-in or allele/artifact overlaps in these cases. Stutter and pull-up are distinct categories; OL and imbalance are not artifacts to delete automatically."></p>
+  <p><a href="https://www.swgdam.org/publications" data-fr="Référence : recommandations SWGDAM d’interprétation des STR autosomiques (2021)" data-en="Reference: SWGDAM autosomal STR interpretation guidelines (2021)"></a></p>
+</main>
+<script src="assets/i18n.js"></script>
+<script src="assets/layout.js"></script>
+<script type="module" src="assets/cleanup-ui.js"></script>
+</body>
+</html>

@@ -29,3 +29,5 @@ jobs:
         run: node tools/epg-selftest.mjs
       - name: Quiz data and behavior self-tests
         run: node tools/mcq-selftest.mjs
+      - name: MG4 cleanup self-tests
+        run: node tools/cleanup-selftest.mjs
