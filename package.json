@@ -7,6 +7,7 @@
   "scripts": {
     "epg": "node tools/epg-cli.mjs",
     "epg:test": "node tools/epg-selftest.mjs",
+    "casework:test": "node tools/casework-selftest.mjs",
     "cleanup:test": "node tools/cleanup-selftest.mjs",
     "mcq:test": "node tools/mcq-selftest.mjs"
   }

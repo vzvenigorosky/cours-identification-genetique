@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MG2 — Du scellé à la comparaison</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .table-scroll { overflow-x:auto; margin:12px 0; }
+    .case-table { width:100%; border-collapse:collapse; }
+    .case-table th,.case-table td { padding:10px; border-bottom:1px solid var(--border); text-align:left; vertical-align:top; }
+    .case-table th { white-space:nowrap; }
+    .case-table td { font-variant-numeric:tabular-nums; }
+    .route-card,.result-card { border:1px solid var(--border); border-radius:10px; padding:16px; margin:14px 0; }
+    .route-card h3,.result-card h3 { margin-top:0; }
+    .reference-picks { display:flex; flex-wrap:wrap; gap:18px; margin:12px 0; }
+    .result-card select { max-width:100%; }
+    .case-note { border-left:4px solid var(--accent); padding:8px 14px; background:var(--stripe); }
+    summary { cursor:pointer; font-weight:600; padding:8px 0; }
+    .verdict { margin:10px 0; }
+    .ok { color:var(--green); } .ko { color:#a3202c; }
+    fieldset { border:0; padding:0; margin:12px 0; }
+    legend { font-weight:600; }
+  </style>
+</head>
+<body data-page="exercices">
+<main class="wrap">
+  <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+  <h1 class="page-title mt" data-fr="MG2 — Du scellé à la comparaison" data-en="MG2 — From evidence to comparison"></h1>
+  <p class="page-intro" data-fr="Choisissez l’extraction, lisez la quantification, choisissez une analyse, puis comparez les profils aux références." data-en="Choose extraction, read quantification, choose an analysis, then compare profiles with references."></p>
+  <p class="case-note" data-fr="Prototype à valider : les seuils sont des règles pédagogiques de ce laboratoire fictif, pas des recommandations universelles. Les profils sont idéalisés et sans artefacts. Aucun LR ni conclusion sur l’activité n’est demandé." data-en="Prototype for review: thresholds are teaching rules for this fictional laboratory, not universal recommendations. Profiles are idealized and artifact-free. No LR or activity conclusion is requested."></p>
+  <section class="panel">
+    <div class="controls">
+      <label for="scenario" data-fr="Dossier" data-en="Case type"></label>
+      <select id="scenario" class="input"></select>
+      <button id="newCase" class="btn btn-ghost" data-i18n="common.newcase"></button>
+      <span id="seed"></span>
+    </div>
+    <h2 id="caseTitle"></h2><p id="brief"></p>
+    <p data-fr="A, B et C sont les seules références disponibles. Un donneur absent des références est possible. Une concordance de lignée peut concerner plusieurs personnes." data-en="A, B and C are the only available references. A donor absent from the references is possible. A lineage concordance can include several people."></p>
+  </section>
+  <section class="panel" aria-labelledby="extractionTitle">
+    <h2 id="extractionTitle" data-fr="1. Extraction" data-en="1. Extraction"></h2>
+    <label for="extraction" data-fr="Stratégie" data-en="Strategy"></label>
+    <select id="extraction" class="input"></select>
+    <button id="extract" class="btn btn-primary" data-fr="Extraire et quantifier" data-en="Extract and quantify"></button>
+    <div id="extractionFeedback" class="feedback" role="status"></div>
+  </section>
+  <section id="quantPanel" class="panel hidden" aria-labelledby="quantTitle">
+    <h2 id="quantTitle" data-fr="2. Quantification et choix des analyses" data-en="2. Quantification and analysis selection"></h2>
+    <p id="policy"></p>
+    <p data-fr="SA / LA : cibles autosomiques courte / longue ; DI = SA ÷ LA. Ce test mesure un DI autosomique, sans indice de dégradation spécifique au Y. Le contrôle interne ne révèle pas d’inhibition. Les concentrations Y sont des estimations calibrées, pas une preuve de type cellulaire." data-en="SA / LA: short / long autosomal targets; DI = SA ÷ LA. This assay measures autosomal DI, without a Y-specific degradation index. The internal control shows no inhibition. Y concentrations are calibrated estimates, not evidence of cell type."></p>
+    <div id="quant" class="table-scroll" tabindex="0" role="region" aria-label="Quantification"></div>
+    <p data-fr="Les contrôles de faisabilité Y et mtDNA sont des informations de validation propres au dossier, indépendantes du DI autosomique. Non évalué ne signifie pas impossible. Choisissez une analyse prioritaire par extrait selon l’objectif ; plusieurs techniques peuvent être pertinentes en pratique." data-en="Y and mtDNA feasibility assessments are case-specific validation information, independent of autosomal DI. Not assessed does not mean impossible. Choose one priority analysis per extract for the stated aim; several techniques may be useful in practice."></p>
+    <div id="routes"></div>
+    <button id="run" class="btn btn-primary" data-fr="Lancer les analyses choisies" data-en="Run selected analyses"></button>
+    <div id="runFeedback" class="feedback" role="status"></div>
+  </section>
+  <section id="resultsPanel" class="panel hidden" aria-labelledby="resultsTitle">
+    <h2 id="resultsTitle" data-fr="3. Profils et comparaison" data-en="3. Profiles and comparison"></h2>
+    <p data-fr="Ouvrez les tableaux trace / références. Cochez toutes les références compatibles avec les données, puis choisissez la portée de votre conclusion. Pour un mélange, la présence de tous les allèles d’une référence indique seulement une compatibilité dans ce modèle complet, pas un donneur démontré." data-en="Open trace / reference tables. Select every reference compatible with the data, then choose the scope of your conclusion. In a mixture, observing all alleles of a reference indicates only compatibility in this complete-data model, not a proven donor."></p>
+    <div id="results"></div>
+    <button id="check" class="btn btn-primary" data-i18n="common.check"></button>
+    <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+  </section>
+  <p class="muted-note" data-fr="Périmètre : fractions pédagogiques, pas de simulation des rendements réels ; mélanges autosomiques complets sans drop-out lorsqu’un tableau est fourni. Les cas hors modèle restent non interprétés. Les identifiants mtDNA représentent des séquences complètes fictives, sans nomenclature de variants réels." data-en="Scope: teaching fractions, no simulation of real extraction yields; complete autosomal mixtures without drop-out when a table is supplied. Cases outside the model remain uninterpreted. mtDNA IDs represent fictitious complete sequences, not real variant nomenclature."></p>
+  <p><a href="https://www.swgdam.org/publications" data-fr="Références scientifiques : recommandations SWGDAM (STR autosomiques, Y et mtDNA)" data-en="Scientific references: SWGDAM guidelines (autosomal STRs, Y and mtDNA)"></a></p>
+</main>
+<script src="assets/i18n.js"></script>
+<script src="assets/layout.js"></script>
+<script type="module" src="assets/casework-ui.js"></script>
+</body>
+</html>
