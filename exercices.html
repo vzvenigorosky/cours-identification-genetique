@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Exercices — Identification génétique</title>
   <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .group-title { margin:34px 0 2px; font-size:1.25rem; color:var(--ink); }
+    .group-title:first-of-type { margin-top:18px; }
+    .group-sub { margin:0 0 14px; color:var(--muted); font-size:.92rem; }
+    .step { opacity:.7; font-weight:700; }
+  </style>
 </head>
 <body data-page="exercices">
 
@@ -14,27 +20,23 @@
        data-fr="Des cas tirés au hasard à chaque essai. Cliquez sur « Nouveau cas » autant de fois que vous voulez : chaque exercice se corrige tout seul."
        data-en="Randomly drawn cases on every attempt. Click “New case” as often as you like: each exercise corrects itself."></p>
 
+    <!-- ============ Casework chain ============ -->
+    <h2 class="group-title" data-fr="Chaîne casework" data-en="Casework workflow"></h2>
+    <p class="group-sub" data-fr="Du prélèvement à l'interprétation, étape par étape."
+       data-en="From sampling to interpretation, step by step."></p>
     <div class="grid">
       <a class="card" href="ex_sampling.html">
         <span class="ico">🔬</span>
-        <span class="badge badge-3" data-fr="Nouveau" data-en="New"></span>
+        <span class="badge badge-3"><span class="step">1 ·</span> <span data-fr="Prélèvement" data-en="Sampling"></span></span>
         <h3 data-fr="Échantillonnage de scellés" data-en="Sampling sealed evidence"></h3>
         <p data-fr="Face à une grande diversité de scellés, choisissez les bons instruments de prélèvement et les tests d'orientation adaptés. Plusieurs choix peuvent être corrects."
            data-en="Faced with a wide variety of sealed items, choose the right sampling instruments and orientation tests. Several choices can be correct."></p>
         <span class="go" data-fr="Lancer →" data-en="Start →"></span>
       </a>
 
-      <a class="card" href="ex_casework.html">
-        <span class="ico">🧬</span>
-        <span class="badge badge-3" data-fr="Prototype MG2" data-en="MG2 prototype"></span>
-        <h3 data-fr="Du scellé à la comparaison" data-en="From evidence to comparison"></h3>
-        <p data-fr="Choisissez l’extraction et les analyses, puis comparez profils autosomiques, STR Y ou mitogénomes aux références. Trois dossiers et un corrigé détaillé ; règles pédagogiques à valider." data-en="Choose extraction and analyses, then compare autosomal, Y-STR or mitogenome profiles with references. Three cases with detailed feedback; teaching rules for review."></p>
-        <span class="go" data-fr="Lancer →" data-en="Start →"></span>
-      </a>
-
       <a class="card" href="ex_extraction.html">
         <span class="ico">🧪</span>
-        <span class="badge badge-3" data-fr="Nouveau" data-en="New"></span>
+        <span class="badge badge-3"><span class="step">2 ·</span> <span data-fr="Quantification" data-en="Quantification"></span></span>
         <h3 data-fr="Quantification : quels extraits amplifier ?" data-en="Quantification: which extracts to amplify?"></h3>
         <p data-fr="Sur réquisition (profils STR autosomiques), lisez la quantification de plusieurs extraits par scellé et choisissez le meilleur à amplifier — ou concluez qu'aucun n'est exploitable."
            data-en="On requisition (autosomal STR profiles), read the quantification of several extracts per exhibit and pick the best one to amplify — or conclude that none is usable."></p>
@@ -43,7 +45,7 @@
 
       <a class="card" href="ex_pcr.html">
         <span class="ico">🔥</span>
-        <span class="badge badge-3" data-fr="Nouveau" data-en="New"></span>
+        <span class="badge badge-3"><span class="step">3 ·</span> <span data-fr="Amplification" data-en="Amplification"></span></span>
         <h3 data-fr="Programmer la PCR" data-en="Program the PCR"></h3>
         <p data-fr="Calculez le volume d'extrait à charger et réglez le protocole thermique (cycles, températures, durées). Lancez la PCR : l'électrophorégramme révèle drop-out, hors-échelle ou profil propre."
            data-en="Compute the extract volume to load and set the thermal protocol (cycles, temperatures, times). Run the PCR: the electropherogram reveals drop-out, off-scale or a clean profile."></p>
@@ -52,21 +54,36 @@
 
       <a class="card" href="ex_cleanup.html">
         <span class="ico">📉</span>
-        <span class="badge badge-3" data-fr="Nouveau" data-en="New"></span>
+        <span class="badge badge-3"><span class="step">4 ·</span> <span data-fr="Lecture EPG" data-en="EPG reading"></span></span>
         <h3 data-fr="Nettoyage de profil" data-en="Profile cleanup"></h3>
         <p data-fr="Distinguez allèles, stutter et pull-ups sur un EPG bruité. Conservez les allèles déséquilibrés et vérifiez les pics OL, puis consultez le corrigé détaillé." data-en="Distinguish alleles, stutter and pull-ups on a noisy EPG. Retain imbalanced alleles and review OL peaks, then inspect detailed feedback."></p>
         <span class="go" data-fr="Lancer →" data-en="Start →"></span>
       </a>
 
-      <a class="card" href="epg.html">
-        <span class="ico">📈</span>
-        <span class="badge badge-3" data-fr="Nouveau" data-en="New"></span>
-        <h3 data-fr="Laboratoire EPG" data-en="EPG lab"></h3>
-        <p data-fr="Générez des électrophorégrammes réalistes GlobalFiler / Yfiler Plus (comme GeneMapper) : traces propres, dégradées, mélanges, paires apparentées. Corrigé et téléchargement inclus."
-           data-en="Generate realistic GlobalFiler / Yfiler Plus electropherograms (like GeneMapper): clean, degraded, mixtures, related pairs. Answer key and downloads included."></p>
-        <span class="go" data-fr="Ouvrir →" data-en="Open →"></span>
+      <a class="card" href="ex_paternite.html">
+        <span class="ico">👪</span>
+        <span class="badge badge-3"><span class="step">5 ·</span> <span data-fr="Interprétation" data-en="Interpretation"></span></span>
+        <h3 data-fr="Paternité &amp; parenté" data-en="Paternity &amp; kinship"></h3>
+        <p data-fr="Trio ou duo : vérifiez la compatibilité allélique parent/enfant, décidez inclusion ou exclusion et estimez la force de la preuve (LR)."
+           data-en="Trio or duo: check parent/child allele compatibility, decide inclusion or exclusion and estimate the strength of the evidence (LR)."></p>
+        <span class="go" data-fr="Lancer →" data-en="Start →"></span>
       </a>
 
+      <a class="card" href="ex_dvi.html">
+        <span class="ico">🚢</span>
+        <span class="badge badge-3"><span class="step">6 ·</span> <span data-fr="Interprétation" data-en="Interpretation"></span></span>
+        <h3 data-fr="Atelier DVI (catastrophe)" data-en="DVI workshop (disaster)"></h3>
+        <p data-fr="Identifiez un corps dégradé par comparaison avec des objets personnels de fiabilité variable, en gérant les pertes d'allèles."
+           data-en="Identify a degraded body by comparison with personal items of varying reliability, handling allele drop-out."></p>
+        <span class="go" data-fr="Lancer →" data-en="Start →"></span>
+      </a>
+    </div>
+
+    <!-- ============ Statistics & tools ============ -->
+    <h2 class="group-title" data-fr="Statistiques &amp; outils" data-en="Statistics &amp; tools"></h2>
+    <p class="group-sub" data-fr="Interprétation statistique et bac à sable de génération d'EPG."
+       data-en="Statistical interpretation and an EPG-generation sandbox."></p>
+    <div class="grid">
       <a class="card" href="ex_consensus.html">
         <span class="ico">🧬</span>
         <span class="badge badge-1" data-fr="Niveau 1" data-en="Level 1"></span>
@@ -94,21 +111,27 @@
         <span class="go" data-fr="Lancer →" data-en="Start →"></span>
       </a>
 
-      <a class="card" href="ex_paternite.html">
-        <span class="ico">👪</span>
-        <span class="badge badge-2" data-fr="Niveau 2" data-en="Level 2"></span>
-        <h3 data-fr="Paternité &amp; parenté" data-en="Paternity &amp; kinship"></h3>
-        <p data-fr="Trio ou duo : vérifiez la compatibilité allélique parent/enfant, décidez inclusion ou exclusion et estimez la force de la preuve (LR)."
-           data-en="Trio or duo: check parent/child allele compatibility, decide inclusion or exclusion and estimate the strength of the evidence (LR)."></p>
-        <span class="go" data-fr="Lancer →" data-en="Start →"></span>
+      <a class="card" href="epg.html">
+        <span class="ico">📈</span>
+        <span class="badge badge-2" data-fr="Bac à sable" data-en="Sandbox"></span>
+        <h3 data-fr="Laboratoire EPG" data-en="EPG lab"></h3>
+        <p data-fr="Générez des électrophorégrammes réalistes GlobalFiler / Yfiler Plus (comme GeneMapper) : traces propres, dégradées, mélanges, paires apparentées. Corrigé et téléchargement inclus."
+           data-en="Generate realistic GlobalFiler / Yfiler Plus electropherograms (like GeneMapper): clean, degraded, mixtures, related pairs. Answer key and downloads included."></p>
+        <span class="go" data-fr="Ouvrir →" data-en="Open →"></span>
       </a>
+    </div>
 
-      <a class="card" href="ex_dvi.html">
-        <span class="ico">🚢</span>
-        <span class="badge badge-3" data-fr="Niveau 3" data-en="Level 3"></span>
-        <h3 data-fr="Atelier DVI (catastrophe)" data-en="DVI workshop (disaster)"></h3>
-        <p data-fr="Identifiez un corps dégradé par comparaison avec des objets personnels de fiabilité variable, en gérant les pertes d'allèles."
-           data-en="Identify a degraded body by comparison with personal items of varying reliability, handling allele drop-out."></p>
+    <!-- ============ Prototypes under review ============ -->
+    <h2 class="group-title" data-fr="Prototypes à valider" data-en="Prototypes under review"></h2>
+    <p class="group-sub" data-fr="Brouillons jouables en attente de validation scientifique — les seuils et le périmètre peuvent changer."
+       data-en="Playable drafts awaiting scientific validation — thresholds and scope may change."></p>
+    <div class="grid">
+      <a class="card" href="ex_casework.html">
+        <span class="ico">🧬</span>
+        <span class="badge badge-3" data-fr="Prototype MG2" data-en="MG2 prototype"></span>
+        <h3 data-fr="Du scellé à la comparaison" data-en="From evidence to comparison"></h3>
+        <p data-fr="Chaîne complète d'un dossier : choisissez l'extraction et les analyses, puis comparez profils autosomiques, STR Y ou mitogénomes aux références. Trois dossiers et un corrigé détaillé ; règles pédagogiques à valider."
+           data-en="A full case workflow: choose extraction and analyses, then compare autosomal, Y-STR or mitogenome profiles with references. Three cases with detailed feedback; teaching rules for review."></p>
         <span class="go" data-fr="Lancer →" data-en="Start →"></span>
       </a>
     </div>
