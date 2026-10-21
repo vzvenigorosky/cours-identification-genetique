@@ -288,12 +288,12 @@
     function setHint(msg) {
       var el = document.getElementById("hint");
       if (msg) { el.innerHTML = msg; return; }
-      if (!state.armed) { el.innerHTML = L("Armez un test ou un instrument puis cliquez sur l'objet — ou déclarez qu'il n'y a rien d'exploitable.",
+      if (!state.armed) { el.innerHTML = L("Sélectionnez un test ou un instrument puis cliquez sur l'objet — ou déclarez qu'il n'y a rien d'exploitable.",
                                            "Arm a test or an instrument then click the object — or declare there is nothing exploitable."); return; }
       var name = esc(pick(state.armed.tool.label));
       el.innerHTML = state.armed.kind === "test"
-        ? L("<strong>" + name + "</strong> armé — cliquez un point à tester.", "<strong>" + name + "</strong> armed — click a point to test.")
-        : L("<strong>" + name + "</strong> armé — cliquez où prélever.", "<strong>" + name + "</strong> armed — click where to sample.");
+        ? L("<strong>" + name + "</strong> sélectionné — cliquez un point à tester.", "<strong>" + name + "</strong> armed — click a point to test.")
+        : L("<strong>" + name + "</strong> sélectionné — cliquez où prélever.", "<strong>" + name + "</strong> armed — click where to sample.");
     }
 
     function objCoords(evt) {
@@ -387,7 +387,7 @@
         '<div class="result-grid">' +
           '<div class="stat"><div class="v">' + fnum(auto) + '</div><div class="k">' + L("ADN auto. ng/µL", "Auto. DNA ng/µL") + "</div></div>" +
           '<div class="stat"><div class="v">' + fnum(male) + '</div><div class="k">' + L("ADN masculin ng/µL", "Male DNA ng/µL") + "</div></div>" +
-          '<div class="stat"><div class="v">' + (auto > 0.001 ? degrad.toFixed(2) : "—") + '</div><div class="k">' + L("Index dégradation", "Degradation index") + "</div></div>" +
+          '<div class="stat"><div class="v">' + (auto > 0.001 ? degrad.toFixed(2) : "—") + '</div><div class="k">' + L("Indice de dégradation", "Degradation index") + "</div></div>" +
         "</div>";
       result(ok, statsHtml, why.join(" "));
       renderScene();

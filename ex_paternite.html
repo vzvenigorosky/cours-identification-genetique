@@ -20,13 +20,13 @@
         <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
       </div>
       <p class="muted-note"
-         data-fr="À chaque locus, l'enfant hérite d'un allèle de sa mère et d'un allèle de son père. Le père allégué doit pouvoir fournir l'allèle paternel obligatoire."
+         data-fr="À chaque locus, l'enfant hérite d'un allèle de sa mère et d'un allèle de son père. Le père supposé doit pouvoir fournir l'allèle paternel obligatoire."
          data-en="At each locus, the child inherits one allele from the mother and one from the father. The alleged father must be able to supply the obligate paternal allele."></p>
       <div class="table-scroll">
         <table class="data" id="grid"></table>
       </div>
       <div class="controls mt">
-        <strong data-fr="Le père allégué est :" data-en="The alleged father is:"></strong>
+        <strong data-fr="Le père supposé est :" data-en="The alleged father is:"></strong>
         <label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="verdict" value="match">
           <span data-fr="Non exclu (compatible)" data-en="Not excluded (compatible)"></span></label>
         <label class="mcq-opt" style="display:inline-flex;margin:0"><input type="radio" name="verdict" value="exclusion">
@@ -73,18 +73,18 @@
 
     function render() {
       document.getElementById("scenario").innerHTML =
-        '<span class="badge badge-2">' + (state.trio ? L("Trio (mère + enfant + père allégué)", "Trio (mother + child + alleged father)")
-                                                       : L("Duo (enfant + père allégué)", "Duo (child + alleged father)")) + "</span>" +
+        '<span class="badge badge-2">' + (state.trio ? L("Trio (mère + enfant + père supposé)", "Trio (mother + child + alleged father)")
+                                                       : L("Duo (enfant + père supposé)", "Duo (child + alleged father)")) + "</span>" +
         "<p style='margin:10px 0 0'>" +
-        L("Déterminez si le père allégué peut être le père biologique de l'enfant.",
+        L("Déterminez si le père supposé peut être le père biologique de l'enfant.",
           "Decide whether the alleged father can be the child's biological father.") +
-        (state.trio ? "" : " " + L("Sans la mère, l'allèle paternel est ambigu : le père allégué doit seulement partager un allèle avec l'enfant à chaque locus.",
+        (state.trio ? "" : " " + L("Sans la mère, l'allèle paternel est ambigu : le père supposé doit seulement partager un allèle avec l'enfant à chaque locus.",
                                     "Without the mother, the paternal allele is ambiguous: the alleged father only needs to share one allele with the child at each locus.")) +
         "</p>";
 
       var cols = state.trio
-        ? [L("Mère", "Mother"), L("Enfant", "Child"), L("Père allégué", "Alleged father")]
-        : [L("Enfant", "Child"), L("Père allégué", "Alleged father")];
+        ? [L("Mère", "Mother"), L("Enfant", "Child"), L("Père supposé", "Alleged father")]
+        : [L("Enfant", "Child"), L("Père supposé", "Alleged father")];
       var head = "<tr><th>Locus</th>";
       cols.forEach(function (c) { head += "<th>" + c + "</th>"; });
       head += "</tr>";
@@ -105,17 +105,17 @@
       var correct = (state.notExcluded && picked.value === "match") || (!state.notExcluded && picked.value === "exclusion");
       if (correct && state.notExcluded) {
         Engine.feedback(fb, "success",
-          "<strong>Correct !</strong> Aucune exclusion sur " + LOCI.length + " loci : la compatibilité s'accumule, l'index de paternité (LR) devient élevé et soutient fortement la paternité.",
+          "<strong>Correct !</strong> Aucune exclusion sur " + LOCI.length + " loci : la compatibilité s'accumule, l'indice de paternité (LR) devient élevé et soutient fortement la paternité.",
           "<strong>Correct!</strong> No exclusion across " + LOCI.length + " loci: compatibility accumulates, the paternity index (LR) becomes large and strongly supports paternity.");
       } else if (correct) {
         Engine.feedback(fb, "success",
           "<strong>Correct !</strong> Exclusion à : " + state.excludedLoci.join(", ") +
-          ". L'allèle paternel obligatoire y est absent du père allégué (LR = 0).",
+          ". L'allèle paternel obligatoire y est absent du père supposé (LR = 0).",
           "<strong>Correct!</strong> Exclusion at: " + state.excludedLoci.join(", ") +
           ". The obligate paternal allele is missing from the alleged father there (LR = 0).");
       } else {
         Engine.feedback(fb, "fail",
-          "<strong>Conclusion incorrecte.</strong> En réalité, le père allégué est " +
+          "<strong>Conclusion incorrecte.</strong> En réalité, le père supposé est " +
           (state.notExcluded ? "non exclu (compatible à tous les loci)." : "exclu (incompatibilité à : " + state.excludedLoci.join(", ") + ")."),
           "<strong>Wrong conclusion.</strong> In reality, the alleged father is " +
           (state.notExcluded ? "not excluded (compatible at all loci)." : "excluded (incompatibility at: " + state.excludedLoci.join(", ") + ")."));
