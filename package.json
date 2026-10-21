@@ -11,6 +11,7 @@
     "cleanup:test": "node tools/cleanup-selftest.mjs",
     "mcq:test": "node tools/mcq-selftest.mjs",
     "sampling:test": "node tools/sampling-selftest.mjs",
-    "pcr:test": "node tools/pcr-selftest.mjs"
+    "pcr:test": "node tools/pcr-selftest.mjs",
+    "devis:test": "node tools/devis-selftest.mjs"
   }
 }

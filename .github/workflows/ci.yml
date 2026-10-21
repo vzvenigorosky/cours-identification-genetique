@@ -37,3 +37,5 @@ jobs:
         run: node tools/sampling-selftest.mjs
       - name: MG3 PCR data self-tests
         run: node tools/pcr-selftest.mjs
+      - name: Devis simulator self-tests
+        run: node tools/devis-selftest.mjs
