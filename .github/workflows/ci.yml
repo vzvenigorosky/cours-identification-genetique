@@ -33,3 +33,7 @@ jobs:
         run: node tools/cleanup-selftest.mjs
       - name: MG2 casework self-tests
         run: node tools/casework-selftest.mjs
+      - name: MG1 sampling data self-tests
+        run: node tools/sampling-selftest.mjs
+      - name: MG3 PCR data self-tests
+        run: node tools/pcr-selftest.mjs
