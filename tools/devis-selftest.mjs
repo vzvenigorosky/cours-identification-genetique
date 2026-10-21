@@ -29,8 +29,12 @@ for (const r of Object.values(relations)) bilingual(r.label, 'relation label');
 
 // --- clarity rules (owner-defined) ---
 assert(clarityRules.identification({ relation: true }) && !clarityRules.identification({}));
-assert(clarityRules.saSites({ allSamples: true }) && clarityRules.saSites({ listedSamples: true }) && !clarityRules.saSites({}));
-assert(clarityRules.saEjaculation({ unknownAuthor: true }) && clarityRules.saEjaculation({ sperm: true }) && !clarityRules.saEjaculation({}));
+const saFacts = { spermWhere: true, victimStated: true };
+assert(clarityRules.saSites({ allSamples: true, ...saFacts }) && clarityRules.saSites({ listedSamples: true, ...saFacts }) && !clarityRules.saSites({}));
+assert(!clarityRules.saSites({ listedSamples: true }), 'a list alone is not enough: sperm location and victim profile must be stated');
+assert(!clarityRules.saSites({ listedSamples: true, spermWhere: true }) && !clarityRules.saSites({ listedSamples: true, victimStated: true }));
+assert(clarityRules.saEjaculation({ unknownAuthor: true, victimStated: true }) && clarityRules.saEjaculation({ sperm: true, victimStated: true }) && !clarityRules.saEjaculation({}));
+assert(!clarityRules.saEjaculation({ unknownAuthor: true }) && !clarityRules.saEjaculation({ sperm: true }), 'the victim profile must also be stated');
 assert(clarityRules.miscItems({ itemsLinked: true }) && !clarityRules.miscItems({}));
 
 // --- expectedLine: package selection from material and sperm ---
@@ -157,31 +161,64 @@ for (let seed = 0; seed < 20; seed++) {
 }
 
 
-// --- victim reference: asked for in some sexual-assault cases; the 300 EUR package is a distractor ---
+// --- victim reference: always attached in sexual-assault cases; whether it is wanted must be stated ---
 for (let seed = 0; seed < 30; seed++) {
   for (const [tpl, swab] of [['sa-ejaculation', 'slip'], ['sa-sites', 'vag']]) {
     for (const variant of ['vague', 'clear']) {
       const withRef = makeCase(seed, { template: tpl, variant, victimRef: true });
       const noRef = makeCase(seed, { template: tpl, variant, victimRef: false });
-      assert(withRef.scelles.some(s => s.id === 'refv') && !noRef.scelles.some(s => s.id === 'refv'));
-      assert(withRef.requisition.fr.includes('profil de la victime') && withRef.requisition.en.includes('victim'), 'the request is stated in the text');
-      assert(!noRef.requisition.fr.includes('profil de la victime'));
+      for (const c of [withRef, noRef]) assert(c.scelles.some(s => s.id === 'refv'), 'the victim reference swab is always attached');
+      assert.equal(withRef.scelles.find(s => s.id === 'refv').relevant, true);
+      assert.equal(noRef.scelles.find(s => s.id === 'refv').relevant, false);
+      if (variant === 'clear') {
+        assert(withRef.requisition.fr.includes('Établir aussi le profil de la victime') && withRef.requisition.en.includes('Also establish'), 'the request is stated');
+        assert(noRef.requisition.fr.includes('n’est pas demandé') && noRef.requisition.en.includes('not requested'), 'the absence of request is stated');
+      } else {
+        assert(!/profil de la victime/.test(withRef.requisition.fr), 'a vague réquisition is silent about the victim profile');
+        assert(/profil de la victime/.test(withRef.clarification.fr) && /victim/.test(withRef.clarification.en), 'the clarification states it');
+      }
       assert.equal(withRef.needsInfo, noRef.needsInfo, 'asking a victim reference does not change clarity');
       const ideal = idealAnswer(withRef);
       assert.equal(ideal.lines.refv.pkg, 'ref', 'victim reference: 70 EUR package');
+      assert.equal(idealAnswer(noRef).lines.refv.analyse, false, 'not requested: not analysed');
       if (withRef.scelles.find(s => s.id === swab).sperm !== 'no') assert.equal(ideal.lines[swab].pkg, 'diffMale');
       assert.equal(grade(withRef, ideal).total, 100);
-      // forgetting the requested reference is penalised
-      assert(grade(withRef, { ...ideal, lines: { ...ideal.lines, refv: { analyse: false } } }).total < 100);
-      // analysing a reference nobody asked for does not exist (it is simply absent), the quote total follows
+      assert(grade(withRef, { ...ideal, lines: { ...ideal.lines, refv: { analyse: false } } }).total < 100, 'forgetting the requested reference is penalised');
+      assert(grade(noRef, { ...idealAnswer(noRef), lines: { ...idealAnswer(noRef).lines, refv: { analyse: true, pkg: 'ref', profiles: 1 } } }).total < 100, 'analysing an unrequested reference is penalised');
       assert.equal(quoteTotal(ideal.lines, 'normal') - quoteTotal(idealAnswer(noRef).lines, 'normal'), 70);
-      // using the 300 EUR both-profiles package instead of reference + male differential is penalised
       if (ideal.lines[swab].pkg === 'diffMale') {
         const dist = { ...ideal, lines: { ...ideal.lines, [swab]: { ...ideal.lines[swab], pkg: 'diffBoth' }, refv: { analyse: false } } };
         assert(grade(withRef, dist).total < 100, 'diffBoth is a distractor');
       }
     }
   }
+}
+
+// --- sexual-assault sites: decisive facts (where sperm may be, victim profile) must be stated, and sperm stays in the genital area ---
+for (let seed = 0; seed < 40; seed++) {
+  for (const victimRef of [true, false]) {
+    const clear = makeCase(seed, { template: 'sa-sites', variant: 'clear', victimRef });
+    assert(clear.requisition.fr.includes('zone génitale') && clear.requisition.en.includes('genital area'), 'a clear réquisition says where ejaculation may have occurred');
+    assert.equal(clear.needsInfo, false);
+    const vague = makeCase(seed, { template: 'sa-sites', variant: 'vague', victimRef });
+    assert(!vague.requisition.fr.includes('zone génitale'), 'a vague réquisition does not');
+    assert(vague.clarification.fr.includes('zone génitale') && vague.clarification.fr.includes('ne peut pas concerner le cou, le poignet'), 'the clarification says where ejaculation may have occurred and excludes the wrist');
+    assert.equal(vague.needsInfo, true);
+    for (const c of [clear, vague]) {
+      for (const s of c.scelles) if (['cou', 'poi', 'bou', 'che', 'ana'].includes(s.id)) assert.equal(s.sperm, 'no', s.id + ' cannot carry sperm');
+      for (const s of c.scelles) if (['vag', 'vul', 'pub'].includes(s.id)) assert.equal(s.sperm, 'unknown');
+      const L = idealAnswer(c).lines;
+      assert.equal(L.vag.pkg, 'diffMale'); assert.equal(L.vul.pkg, 'diffMale');
+      assert.equal(L.poi.pkg, 'ref', 'wrist: plain extraction, never a differential');
+      assert.equal(L.cou.pkg, 'ref');
+    }
+  }
+}
+// a received trace swab is not billed or described as a "reference sample"
+assert(!/référence/i.test(packages.ref.label.fr) && !/reference/i.test(packages.ref.label.en), 'package 1 label is not "reference"');
+for (let seed = 0; seed < 20; seed++) {
+  const c = makeCase(seed, { template: 'sa-sites', variant: 'vague' });
+  for (const s of c.scelles) if (s.material === 'swab') assert(!/référence|reference/i.test(s.title.fr + s.title.en), 'trace swab titles never say reference');
 }
 for (const t of templates) for (const variant of t.variants) for (let seed = 0; seed < 40; seed++) {
   const c = makeCase(seed, { template: t.id, variant });
