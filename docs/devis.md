@@ -15,7 +15,7 @@ At the quote stage the lab must interpret what a requérant wants, often without
 | Package | Price |
 | --- | --- |
 | Reference sample received (cheek swab, blood, FTA…) → autosomal profile | 70 € |
-| Tissue or bone to sample → autosomal profile | 140 € |
+| Organ (muscle…) or bone to sample → autosomal profile | 140 € |
 | Item to sample, a trace may be present → profile | 200 € |
 | Differential extraction → male profile | 200 € |
 | Differential extraction → male and female profiles | 300 € |
@@ -29,7 +29,7 @@ Assumptions (confirmed in #32): a doubled trace costs 2 × the package; the diff
 ## Rules the grading enforces
 
 - **One profile per analysed sample.** A **trace** (something to sample where there may be no DNA) accepts one **or** two profiles (doubled extraction and quantification); doubling a non-trace is over-ordering.
-- **Différentielle** only when sperm is present or could be present. The material decides the base package: tissue → 140 €, other received sample → 70 €, item → 200 €.
+- **Différentielle** only when sperm is present or could be present. The material decides the base package: organ or bone → 140 €, other received sample → 70 €, item → 200 €.
 - **Victim reference.** Some sexual-assault cases ask in the text for the victim's own profile and attach her reference sample (cheek swab, or the blood draw once the client corrects the absurd request). The right quote is the reference sample (70 €) plus a differential for the male profile on the stain or swab. The **300 € « male and female profiles » package is a deliberate distractor**: it is never the ideal answer, and choosing it is penalised with an explanation.
 - **Kinship.** Autosomal STR LR is reachable only for parent/offspring and full siblings (and for the unknown's own belongings). Otherwise Y-STR (paternal male line) or mtDNA (maternal line), whichever the lineage supports. Adding Y-STR or mtDNA when autosomal suffices, Y-STR without a shared Y lineage, or mtDNA without a shared maternal lineage is penalised. Some relationships have no feasible analysis (for example a paternal half-sister) and behave like the absurd type.
 - **Clarity rules.** A réquisition is clear (no need to ask) when: an identification states the relationship; a many-site sexual-assault request analyses everything or lists the samples; a sexual-assault request mentions the unknown aggressor or specifies sperm; a miscellany of items explicitly links the accepted items to the unknown. Asking when clear, or not asking when vague, loses the information points.

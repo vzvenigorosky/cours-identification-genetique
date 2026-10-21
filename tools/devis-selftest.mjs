@@ -187,5 +187,12 @@ for (const t of templates) for (const variant of t.variants) for (let seed = 0; 
   const c = makeCase(seed, { template: t.id, variant });
   for (const l of Object.values(idealAnswer(c).lines)) assert.notEqual(l.pkg, 'diffBoth', 'diffBoth is never the ideal answer');
 }
+// no organ sample is called a "tissu" (reads as cloth): a named organ is used instead
+for (const t of templates) for (let seed = 0; seed < 40; seed++) {
+  const c = makeCase(seed, { template: t.id });
+  for (const s of c.scelles.concat(c.corrected || [])) assert(!/tissu/i.test(s.title.fr + s.nature.fr), t.id + ': "tissu" in a scellé title');
+  assert(!/tissu/i.test(c.requisition.fr + c.clarification.fr));
+}
+assert(!/tissu/i.test(packages.tissue.label.fr), 'package label');
 for (const s of ['ref', 'tissue', 'item', 'diffMale', 'diffBoth']) bilingual(packages[s].label, s);
 console.log(`Devis: ${templates.length} templates, ${seen.size} variants, price grid, kinship, clarity and absurd-flow grading passed.`);

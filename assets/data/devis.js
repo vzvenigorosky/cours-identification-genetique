@@ -24,7 +24,7 @@ export const text = (fr, en) => ({ fr, en });
 /* ---------- Price grid (fictional teaching values) ---------- */
 export const packages = {
   ref:      { price: 70,  label: text('Échantillon de référence reçu (écouvillon buccal, sang, FTA…) → profil autosomique', 'Reference sample received (cheek swab, blood, FTA…) → autosomal profile') },
-  tissue:   { price: 140, label: text('Tissu ou os à échantillonner → profil autosomique', 'Tissue or bone to sample → autosomal profile') },
+  tissue:   { price: 140, label: text('Organe (muscle…) ou os à échantillonner → profil autosomique', 'Organ (muscle…) or bone to sample → autosomal profile') },
   item:     { price: 200, label: text('Objet à échantillonner, trace possible → profil', 'Item to sample, a trace may be present → profile') },
   diffMale: { price: 200, label: text('Extraction différentielle → profil masculin', 'Differential extraction → male profile') },
   diffBoth: { price: 300, label: text('Extraction différentielle → profils masculin et féminin', 'Differential extraction → male and female profiles') }
@@ -111,6 +111,9 @@ export function expectedLine(s, relation) {
   return { analyse: true, pkg, profiles: s.trace ? [1, 2] : [1], y: a.y, mt: a.mt };
 }
 
+// Organ sample taken from remains. Always a named organ (never "tissu", which reads as cloth); muscle most of the time.
+const organ = rng => rng.weightedPick([text('muscle', 'muscle'), text('foie', 'liver'), text('rein', 'kidney')], [6, 1, 1]);
+
 const KINSHIP = {
   parent: {
     ref: ['Mme Durand', text('Mme Durand', 'Ms Durand')],
@@ -131,7 +134,8 @@ const KINSHIP = {
 
 function buildIdentification(rng, rel, variant, deadline) {
   const k = KINSHIP[rel];
-  const unknown = sc('u', 'Fragment de tissu', 'Tissue fragment', 'Prélevé sur des restes non identifiés.', 'Taken from unidentified remains.', { material: 'tissue', trace: false, sperm: null, relevant: true });
+  const og = organ(rng);
+  const unknown = sc('u', 'Fragment de ' + og.fr, og.en.charAt(0).toUpperCase() + og.en.slice(1) + ' fragment', 'Prélevé sur des restes non identifiés.', 'Taken from unidentified remains.', { material: 'tissue', trace: false, sperm: null, relevant: true });
   const ref = sc('r', 'Écouvillon buccal de ' + k.ref[0], 'Cheek swab of ' + k.ref[1].en, 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: true });
   const base = text('Identifier la personne dont les restes sont décrits ci-dessous par comparaison avec le prélèvement de référence de ' + k.ref[0] + '.', 'Identify the person whose remains are described below by comparing with the reference sample of ' + k.ref[1].en + '.');
   const requisition = join(base, variant === 'clear' ? k.stated : text('', ''), deadlineText(deadline));
@@ -211,7 +215,8 @@ const FLAT_ITEMS = [
   ['gan', 'Paire de gants', 'Pair of gloves', false]
 ];
 function buildMiscItems(rng, variant, deadline) {
-  const body = sc('corps', 'Fragment de tissu (corps non identifié)', 'Tissue fragment (unidentified body)', 'Prélevé sur le corps à identifier.', 'Taken from the body to be identified.', { material: 'tissue', trace: false, sperm: null, relevant: true });
+  const og = organ(rng);
+  const body = sc('corps', 'Fragment de ' + og.fr + ' (corps non identifié)', og.en.charAt(0).toUpperCase() + og.en.slice(1) + ' fragment (unidentified body)', 'Prélevé sur le corps à identifier.', 'Taken from the body to be identified.', { material: 'tissue', trace: false, sperm: null, relevant: true });
   const items = rng.shuffle(FLAT_ITEMS).map(([id, fr, en, linked]) => sc(id, fr, en, 'Objet saisi au domicile présumé de la personne.', 'Item seized at the person’s presumed home.', { material: 'item', trace: true, sperm: 'no', relevant: linked }));
   const linked = FLAT_ITEMS.filter(i => i[3]);
   const lf = linked.map(i => i[1].toLowerCase()).join(', '), le = linked.map(i => i[2].toLowerCase()).join(', ');
@@ -254,7 +259,7 @@ function buildAbsurdAdopted() {
   };
 }
 function buildAbsurdHalfSister() {
-  const u = sc('u', 'Fragment de tissu', 'Tissue fragment', 'Prélevé sur les restes d’une femme non identifiée.', 'Taken from the remains of an unidentified woman.', { material: 'tissue', trace: false, sperm: null, relevant: false });
+  const u = sc('u', 'Fragment de muscle', 'Muscle fragment', 'Prélevé sur les restes d’une femme non identifiée.', 'Taken from the remains of an unidentified woman.', { material: 'tissue', trace: false, sperm: null, relevant: false });
   const r = sc('r', 'Écouvillon buccal de M. Roux', 'Cheek swab of Mr Roux', 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: false });
   return {
     kind: 'absurdVoid', rule: 'absurd',
