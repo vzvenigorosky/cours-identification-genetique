@@ -197,7 +197,7 @@
 
       if (pass) {
         feedback("success", {
-          fr: "<strong>PCR réussie.</strong> Profil complet et équilibré, pas de pic hors-échelle — l'électrophorégramme est exploitable.",
+          fr: "<strong>PCR réussie.</strong> Profil complet et équilibré, pas de pic hors échelle — l'électrophorégramme est exploitable.",
           en: "<strong>PCR successful.</strong> Complete, balanced profile with no off-scale peak — the electropherogram is usable."
         });
         return;
@@ -205,7 +205,7 @@
       // build reasons
       const symFr = [], symEn = [];
       if (missing.length) { symFr.push("pertes d'allèles (drop-out) aux loci : " + missing.join(", ")); symEn.push("allele drop-out at loci: " + missing.join(", ")); }
-      if (overAmp) { symFr.push("pics hors-échelle / sur-amplification (pull-up probable)"); symEn.push("off-scale peaks / over-amplification (pull-up likely)"); }
+      if (overAmp) { symFr.push("pics hors échelle / sur-amplification (pull-up probable)"); symEn.push("off-scale peaks / over-amplification (pull-up likely)"); }
       const causeFr = c.offenders.map((o) => o.fr).filter(Boolean);
       const causeEn = c.offenders.map((o) => o.en).filter(Boolean);
       let fr = "<strong>Électrophorégramme non exploitable.</strong>";

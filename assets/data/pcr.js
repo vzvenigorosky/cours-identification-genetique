@@ -45,7 +45,7 @@ window.PCR = {
   inputMsg: {
     low:  { fr: "Sous-dosage : trop peu d'ADN dans la réaction → signal faible et pertes d'allèles (drop-out).",
             en: "Under-loading: too little DNA in the reaction → weak signal and allele drop-out." },
-    high: { fr: "Surdosage : trop d'ADN → pics hors-échelle, pull-up (percolation entre canaux) et pics dédoublés.",
+    high: { fr: "Surdosage : trop d'ADN → pics hors échelle, pull-up (percolation entre canaux) et pics dédoublés.",
             en: "Over-loading: too much DNA → off-scale peaks, pull-up (bleed-through) and split peaks." },
     volTooMuch: { fr: "Volume d'extrait supérieur au volume maximal admissible dans la réaction.",
                   en: "Extract volume exceeds the maximum that fits in the reaction." }
@@ -91,6 +91,6 @@ window.PCR = {
 
     { id: "cycles", group: { fr: "Nombre de cycles", en: "Number of cycles" }, label: { fr: "Cycles", en: "Cycles" }, unit: "", def: 29, band: [28, 30], step: 1,
       low:  { msg: { fr: "pas assez de cycles → signal faible et pertes d'allèles", en: "too few cycles → weak signal and allele drop-out" } },
-      high: { msg: { fr: "trop de cycles → sur-amplification : pics hors-échelle, pull-up et pics dédoublés", en: "too many cycles → over-amplification: off-scale peaks, pull-up and split peaks" } } }
+      high: { msg: { fr: "trop de cycles → sur-amplification : pics hors échelle, pull-up et pics dédoublés", en: "too many cycles → over-amplification: off-scale peaks, pull-up and split peaks" } } }
   ]
 };
