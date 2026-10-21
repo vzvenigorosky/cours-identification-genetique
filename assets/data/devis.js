@@ -155,10 +155,17 @@ const SITES = [
   ['che', 'Prélèvement de cheveux', 'Hair sample', false, false]
 ];
 
-function buildSaSites(rng, variant, deadline) {
+// In practice a sexual-assault case often asks for the victim's own profile too: a reference
+// sample (70 EUR) plus a differential (male profile) on the stain or swab. The 300 EUR
+// both-profiles differential stays in the grid as a distractor and is never the ideal answer.
+const VICTIM_REF_TEXT = text(' Établir aussi le profil de la victime à partir de son prélèvement de référence (écouvillon buccal joint).', ' Also establish the victim’s profile from her reference sample (cheek swab attached).');
+const victimRef = () => sc('refv', 'Écouvillon buccal de la victime (référence)', 'Victim’s cheek swab (reference)', 'Prélèvement de référence de la victime.', 'Victim’s reference sample.', { material: 'ref', trace: false, sperm: null, relevant: true });
+
+function buildSaSites(rng, variant, deadline, o = {}) {
   // clear variants: 'list' (names the samples) or 'all' (analyse everything)
   const sub = variant === 'clear' ? rng.pick(['list', 'all']) : 'vague';
   const all = sub === 'all';
+  const wantRef = o.victimRef ?? rng.bool(0.5);
   const scelles = SITES.map(([id, fr, en, sperm, limited]) => sc(id, fr, en, 'Prélèvement de la victime lors de l’examen médical.', 'Taken from the victim during the medical examination.', {
     material: 'ref', trace: true, sperm: sperm ? 'unknown' : 'no', relevant: all || limited
   }));
@@ -168,11 +175,13 @@ function buildSaSites(rng, variant, deadline) {
   let extra = text('', '');
   if (sub === 'all') extra = text(' Analyser l’ensemble des prélèvements et restituer tous les profils qui peuvent être obtenus.', ' Analyse all the samples and return every profile that can be obtained.');
   if (sub === 'list') extra = text(' Merci d’analyser les prélèvements suivants : ' + listFr + '.', ' Please analyse the following samples: ' + listEn + '.');
+  if (wantRef) { extra = join(extra, VICTIM_REF_TEXT); scelles.push(victimRef()); }
   const clarification = text('Les faits décrits sont une pénétration vaginale, des baisers dans le cou et une contention du poignet droit. Seuls les prélèvements vaginal, vulvaire, du cou et du poignet sont à analyser. Il n’est pas certain qu’il y ait eu éjaculation.', 'The alleged facts are vaginal penetration, kissing of the neck and restraint of the right wrist. Only the vaginal, vulvar, neck and wrist samples are to be analysed. It is not certain that ejaculation occurred.');
   return { requisition: join(base, extra, deadlineText(deadline)), clarification, scelles, relation: null, stated: { allSamples: sub === 'all', listedSamples: sub === 'list' }, rule: 'saSites' };
 }
 
-function buildSaEjaculation(rng, variant, deadline) {
+function buildSaEjaculation(rng, variant, deadline, o = {}) {
+  const wantRef = o.victimRef ?? rng.bool(0.5);
   const slip = sc('slip', 'Slip de la victime', 'Victim’s underwear', 'Vêtement saisi après l’agression.', 'Garment seized after the assault.', { material: 'item', trace: true, sperm: 'unknown', relevant: true });
   const truthNo = variant === 'vague' && rng.bool(0.4); // ejaculation excluded in the clarification (vague cases only)
   let stated = {}, extra = text('', '');
@@ -183,11 +192,13 @@ function buildSaEjaculation(rng, variant, deadline) {
   } else {
     slip.sperm = truthNo ? 'no' : 'unknown';
   }
+  const scellesE = [slip];
   const base = text('Agression sexuelle. Merci de rechercher le profil ADN de l’auteur sur le slip de la victime.', 'Sexual assault. Please look for the attacker’s DNA profile on the victim’s underwear.');
+  if (wantRef) { extra = join(extra, VICTIM_REF_TEXT); scellesE.push(victimRef()); }
   const clarification = truthNo
     ? text('Selon la victime, l’agresseur a utilisé un préservatif : il n’y a pas eu d’éjaculation sur le slip.', 'According to the victim, the attacker used a condom: there was no ejaculation on the underwear.')
     : text('La victime ne sait pas s’il y a eu éjaculation.', 'The victim does not know whether ejaculation occurred.');
-  return { requisition: join(base, extra, deadlineText(deadline)), clarification, scelles: [slip], relation: null, stated, rule: 'saEjaculation' };
+  return { requisition: join(base, extra, deadlineText(deadline)), clarification, scelles: scellesE, relation: null, stated, rule: 'saEjaculation' };
 }
 
 const FLAT_ITEMS = [
@@ -218,8 +229,8 @@ function buildAbsurdBlood() {
   return {
     kind: 'absurdFix', rule: 'absurd',
     requisition: text('Agression sexuelle. Merci d’analyser la prise de sang de la victime afin d’identifier l’auteur.', 'Sexual assault. Please analyse the victim’s blood draw in order to identify the attacker.'),
-    clarification: text('Pardon, j’ai joint le mauvais scellé. Il fallait analyser le slip et l’écouvillon vaginal de la victime. Nous ne savons pas s’il y a eu éjaculation.', 'Sorry, I attached the wrong exhibit. We meant the victim’s underwear and vaginal swab. We do not know whether ejaculation occurred.'),
-    scelles: [blood], corrected: [slip, vag], relation: null, stated: {}
+    clarification: text('Pardon, la prise de sang ne sert qu’à établir le profil de référence de la victime. Il fallait analyser le slip et l’écouvillon vaginal. Nous ne savons pas s’il y a eu éjaculation.', 'Sorry, the blood draw is only meant as the victim’s reference profile. We meant the underwear and the vaginal swab to be analysed. We do not know whether ejaculation occurred.'),
+    scelles: [blood], corrected: [slip, vag, { ...blood, relevant: true }], relation: null, stated: {}
   };
 }
 function buildAbsurdCouch() {
@@ -257,8 +268,8 @@ export const templates = [
   { id: 'id-parent', archetype: 'identification', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence'], build: (rng, v, d) => buildIdentification(rng, 'parent', v, d) },
   { id: 'id-uncle', archetype: 'identification', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence'], build: (rng, v, d) => buildIdentification(rng, 'paternalUncle', v, d) },
   { id: 'id-maternal-aunt', archetype: 'identification', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence'], build: (rng, v, d) => buildIdentification(rng, 'maternalAunt', v, d) },
-  { id: 'sa-sites', archetype: 'sa-sites', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence', 'gav'], build: (rng, v, d) => buildSaSites(rng, v, d) },
-  { id: 'sa-ejaculation', archetype: 'sa-ejaculation', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence', 'gav'], build: (rng, v, d) => buildSaEjaculation(rng, v, d) },
+  { id: 'sa-sites', archetype: 'sa-sites', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence', 'gav'], build: (rng, v, d, o) => buildSaSites(rng, v, d, o) },
+  { id: 'sa-ejaculation', archetype: 'sa-ejaculation', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence', 'gav'], build: (rng, v, d, o) => buildSaEjaculation(rng, v, d, o) },
   { id: 'misc-flat', archetype: 'misc-items', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence'], build: (rng, v, d) => buildMiscItems(rng, v, d) },
   { id: 'absurd-blood', archetype: 'absurd', kind: 'absurdFix', variants: ['vague'], deadlines: ['normal'], build: () => buildAbsurdBlood() },
   { id: 'absurd-couch', archetype: 'absurd', kind: 'absurdVoid', variants: ['vague'], deadlines: ['normal'], build: () => buildAbsurdCouch() },
@@ -273,7 +284,7 @@ export function makeCase(seed, opts = {}) {
   if (!t) throw new Error('Unknown template ' + opts.template);
   const variant = opts.variant && t.variants.includes(opts.variant) ? opts.variant : rng.pick(t.variants);
   const deadline = opts.deadline && t.deadlines.includes(opts.deadline) ? opts.deadline : rng.weightedPick(t.deadlines, t.deadlines.map(d => d === 'normal' ? 3 : 1));
-  const b = t.build(rng, variant, deadline);
+  const b = t.build(rng, variant, deadline, opts);
   const kind = b.kind || 'normal';
   const needsInfo = !clarityRules[b.rule](b.stated);
   return {

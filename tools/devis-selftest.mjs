@@ -116,7 +116,7 @@ for (let seed = 0; seed < 30; seed++) {
   assert(grade(ac, { ...ai, lines: { u: { ...ai.lines.u, mt: false, y: true }, r: { ...ai.lines.r, mt: false, y: true } } }).total < 100);
   // sexual assault sites: vague truth = 4 relevant samples, 'all' = 14
   const vs = makeCase(seed, { template: 'sa-sites', variant: 'vague' });
-  const rel = vs.scelles.filter(s => s.relevant);
+  const rel = vs.scelles.filter(s => s.relevant && s.id !== 'refv');
   assert.deepEqual(rel.map(s => s.id).sort(), ['cou', 'poi', 'vag', 'vul']);
   const li = idealAnswer(vs).lines;
   assert.equal(li.vag.pkg, 'diffMale'); assert.equal(li.cou.pkg, 'ref');
@@ -148,12 +148,44 @@ for (let seed = 0; seed < 20; seed++) {
   const f = makeCase(seed, { template: 'absurd-blood' });
   assert.equal(f.kind, 'absurdFix');
   assert.deepEqual(visibleScelles(f, false).map(s => s.id), ['sang']);
-  assert.deepEqual(visibleScelles(f, true).map(s => s.id), ['slip', 'vag'], 'client corrects the request');
+  assert.deepEqual(visibleScelles(f, true).map(s => s.id), ['slip', 'vag', 'sang'], 'client corrects the request; the blood draw becomes the victim reference');
+  assert.equal(idealAnswer(f).lines.sang.pkg, 'ref'); assert.equal(idealAnswer(f).lines.vag.pkg, 'diffMale');
   const ideal = idealAnswer(f);
   assert.equal(ideal.asked, true); assert.equal(grade(f, ideal).total, 100);
   assert.equal(grade(f, { ...ideal, declined: true, lines: {} }).total, 30, 'declining a corrected (valid) request is wrong');
   assert.equal(grade(f, { asked: false, declined: true, tariff: 'normal', lines: {} }).total, 0);
 }
 
+
+// --- victim reference: asked for in some sexual-assault cases; the 300 EUR package is a distractor ---
+for (let seed = 0; seed < 30; seed++) {
+  for (const [tpl, swab] of [['sa-ejaculation', 'slip'], ['sa-sites', 'vag']]) {
+    for (const variant of ['vague', 'clear']) {
+      const withRef = makeCase(seed, { template: tpl, variant, victimRef: true });
+      const noRef = makeCase(seed, { template: tpl, variant, victimRef: false });
+      assert(withRef.scelles.some(s => s.id === 'refv') && !noRef.scelles.some(s => s.id === 'refv'));
+      assert(withRef.requisition.fr.includes('profil de la victime') && withRef.requisition.en.includes('victim'), 'the request is stated in the text');
+      assert(!noRef.requisition.fr.includes('profil de la victime'));
+      assert.equal(withRef.needsInfo, noRef.needsInfo, 'asking a victim reference does not change clarity');
+      const ideal = idealAnswer(withRef);
+      assert.equal(ideal.lines.refv.pkg, 'ref', 'victim reference: 70 EUR package');
+      if (withRef.scelles.find(s => s.id === swab).sperm !== 'no') assert.equal(ideal.lines[swab].pkg, 'diffMale');
+      assert.equal(grade(withRef, ideal).total, 100);
+      // forgetting the requested reference is penalised
+      assert(grade(withRef, { ...ideal, lines: { ...ideal.lines, refv: { analyse: false } } }).total < 100);
+      // analysing a reference nobody asked for does not exist (it is simply absent), the quote total follows
+      assert.equal(quoteTotal(ideal.lines, 'normal') - quoteTotal(idealAnswer(noRef).lines, 'normal'), 70);
+      // using the 300 EUR both-profiles package instead of reference + male differential is penalised
+      if (ideal.lines[swab].pkg === 'diffMale') {
+        const dist = { ...ideal, lines: { ...ideal.lines, [swab]: { ...ideal.lines[swab], pkg: 'diffBoth' }, refv: { analyse: false } } };
+        assert(grade(withRef, dist).total < 100, 'diffBoth is a distractor');
+      }
+    }
+  }
+}
+for (const t of templates) for (const variant of t.variants) for (let seed = 0; seed < 40; seed++) {
+  const c = makeCase(seed, { template: t.id, variant });
+  for (const l of Object.values(idealAnswer(c).lines)) assert.notEqual(l.pkg, 'diffBoth', 'diffBoth is never the ideal answer');
+}
 for (const s of ['ref', 'tissue', 'item', 'diffMale', 'diffBoth']) bilingual(packages[s].label, s);
 console.log(`Devis: ${templates.length} templates, ${seen.size} variants, price grid, kinship, clarity and absurd-flow grading passed.`);
