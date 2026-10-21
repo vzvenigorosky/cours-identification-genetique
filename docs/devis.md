@@ -15,7 +15,7 @@ At the quote stage the lab must interpret what a requérant wants, often without
 | Package | Price |
 | --- | --- |
 | Reference sample received (cheek swab, blood, FTA…) → autosomal profile | 70 € |
-| Tissue or bone to sample → autosomal profile | 140 € |
+| Organ (muscle…) or bone to sample → autosomal profile | 140 € |
 | Item to sample, a trace may be present → profile | 200 € |
 | Differential extraction → male profile | 200 € |
 | Differential extraction → male and female profiles | 300 € |
@@ -29,7 +29,8 @@ Assumptions (confirmed in #32): a doubled trace costs 2 × the package; the diff
 ## Rules the grading enforces
 
 - **One profile per analysed sample.** A **trace** (something to sample where there may be no DNA) accepts one **or** two profiles (doubled extraction and quantification); doubling a non-trace is over-ordering.
-- **Différentielle** only when sperm is present or could be present. The material decides the base package: tissue → 140 €, other received sample → 70 €, item → 200 €.
+- **Différentielle** only when sperm is present or could be present. The material decides the base package: organ or bone → 140 €, other received sample → 70 €, item → 200 €.
+- **Victim reference.** Some sexual-assault cases ask in the text for the victim's own profile and attach her reference sample (cheek swab, or the blood draw once the client corrects the absurd request). The right quote is the reference sample (70 €) plus a differential for the male profile on the stain or swab. The **300 € « male and female profiles » package is a deliberate distractor**: it is never the ideal answer, and choosing it is penalised with an explanation.
 - **Kinship.** Autosomal STR LR is reachable only for parent/offspring and full siblings (and for the unknown's own belongings). Otherwise Y-STR (paternal male line) or mtDNA (maternal line), whichever the lineage supports. Adding Y-STR or mtDNA when autosomal suffices, Y-STR without a shared Y lineage, or mtDNA without a shared maternal lineage is penalised. Some relationships have no feasible analysis (for example a paternal half-sister) and behave like the absurd type.
 - **Clarity rules.** A réquisition is clear (no need to ask) when: an identification states the relationship; a many-site sexual-assault request analyses everything or lists the samples; a sexual-assault request mentions the unknown aggressor or specifies sperm; a miscellany of items explicitly links the accepted items to the unknown. Asking when clear, or not asking when vague, loses the information points.
 - **Absurd requests.** The right path is: see the absurd request, use the one info click, then either follow the client's corrected request (graded as a normal quote) or, once the client confirms there is nothing to do, **decline the whole request**. Declining without asking is the right decision but earns a warning and 70 instead of 100.
@@ -45,10 +46,10 @@ Normal cases are scored out of 100 from weighted criteria: information 20, scell
 | id-parent | identification | vague / clear | parent: autosomal only |
 | id-uncle | identification | vague / clear | paternal uncle: Y-STR on both samples |
 | id-maternal-aunt | identification | vague / clear | maternal aunt: mtDNA on both samples |
-| sa-sites | sexual assault, 14 body sites | vague / clear (list or "analyse all") | 4 relevant sites when limited |
-| sa-ejaculation | sexual assault, underwear | vague / clear | differential if sperm is present or possible, plain item package if excluded |
+| sa-sites | sexual assault, 14 body sites | vague / clear (list or "analyse all"), with or without a victim reference | 4 relevant sites when limited, plus the victim reference when asked |
+| sa-ejaculation | sexual assault, underwear | vague / clear, with or without a victim reference | differential if sperm is present or possible, plain item package if excluded; plus the victim reference when asked |
 | misc-flat | items from a flat | vague / clear | only the items linked to the unknown |
-| absurd-blood | absurd, correctable | vague | victim's blood; client corrects to underwear + vaginal swab |
+| absurd-blood | absurd, correctable | vague | victim's blood; client corrects to underwear + vaginal swab, and the blood becomes the victim reference (70 €) |
 | absurd-couch | absurd, void | vague | couch swabs unrelated to the case |
 | absurd-adopted | absurd, void | vague | adopted children in a kinship request |
 | absurd-half-sister | absurd, void | vague | no feasible analysis |
