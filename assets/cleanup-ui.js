@@ -15,7 +15,7 @@ function renderSelection() {
     ` · ${pending} ` + L('décision(s) en attente.', 'decision(s) pending.');
 }
 function render() {
-  document.title = L('Nettoyage de profil — MG4', 'Profile cleanup — MG4');
+  document.title = L('Édition du profil — MG4', 'Profile cleanup — MG4');
   $('caseLabel').textContent = L('Cas ', 'Case ') + c.seed;
   renderEPGView();
   renderSelection();

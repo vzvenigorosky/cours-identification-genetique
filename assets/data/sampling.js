@@ -74,8 +74,8 @@ window.SAMPLING = {
     { id: "swab_wet",  footprint: "swab", label: { fr: "Écouvillon humidifié", en: "Moistened swab" } },
     { id: "scissors",  footprint: "cut",  label: { fr: "Ciseaux (découpe)", en: "Scissors (cut-out)" } },
     { id: "scalpel",   footprint: "scalpel", label: { fr: "Scalpel", en: "Scalpel" } },
-    { id: "fta_punch", footprint: "disc", label: { fr: "Puncher FTA", en: "FTA puncher" } },
-    { id: "tape",      footprint: "tape", label: { fr: "Tape-lift (ruban)", en: "Tape-lift" } }
+    { id: "fta_punch", footprint: "disc", label: { fr: "Poinçon FTA", en: "FTA puncher" } },
+    { id: "tape",      footprint: "tape", label: { fr: "Ruban adhésif (tape-lift)", en: "Tape-lift" } }
   ],
 
   // Instrument suitability per substrate (0–1). Any instrument NOT listed is

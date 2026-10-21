@@ -1,4 +1,4 @@
-# MG4 — Nettoyage de profil / Profile cleanup
+# MG4 — Édition du profil / Profile cleanup
 
 Entry point: `ex_cleanup.html`, linked from `exercices.html`. Static ES modules, no build or dependencies. UI uses the shared layout and I18N language event.
 
