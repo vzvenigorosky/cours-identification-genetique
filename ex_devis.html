@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulateur de devis — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .req { background:var(--stripe); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:12px 14px; }
+    .clar { display:none; margin-top:10px; border:1px dashed var(--border); border-radius:8px; padding:10px 14px; }
+    .clar.show { display:block; }
+    .scelle-card { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin:10px 0; }
+    .scelle-card.on { border-color:var(--accent); }
+    .scelle-card .nat { margin:2px 0 8px; color:var(--muted); font-size:.86rem; }
+    .scelle-card .take { cursor:pointer; }
+    .opts { display:flex; flex-wrap:wrap; gap:12px 18px; align-items:center; }
+    .opts.off { opacity:.45; }
+    .opts > label:not(.chk) { display:flex; flex-direction:column; gap:4px; min-width:0; flex:1 1 220px; }
+    .opts select { width:100%; max-width:100%; min-width:0; }
+    .opts .chk { display:inline-flex; gap:6px; align-items:center; }
+    .opts .lp { margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; }
+    .tariffs { display:flex; flex-wrap:wrap; gap:8px 22px; margin:8px 0; }
+    .tariffs .chk { display:inline-flex; gap:6px; align-items:center; }
+    .totalbar { display:flex; justify-content:space-between; align-items:baseline; gap:12px; border-top:1px solid var(--border); padding-top:10px; margin-top:10px; }
+    .totalbar strong { font-size:1.4rem; font-variant-numeric:tabular-nums; }
+    .case-table { width:100%; border-collapse:collapse; }
+    .case-table td { padding:6px 8px; border-bottom:1px solid var(--border); }
+    .case-table td.n { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+    .case-note { border-left:4px solid var(--accent); padding:8px 14px; background:var(--stripe); }
+    summary { cursor:pointer; font-weight:600; padding:8px 0; }
+  </style>
+</head>
+<body data-page="exercices">
+<main class="wrap narrow">
+  <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+  <h1 class="page-title mt" data-fr="Simulateur de devis" data-en="Quote simulator"></h1>
+  <p class="page-intro"
+     data-fr="Un requérant vous envoie une réquisition et des scellés : à vous d'établir le devis. Que faut-il analyser, avec quel forfait, à quel tarif ? Et en savez-vous assez pour répondre, ou faut-il poser la question ? Une seule demande de précisions est possible."
+     data-en="A requester sends you a requisition and some exhibits: you draw up the quote. What should be analysed, with which package, at which tariff? And do you know enough to answer, or should you ask? Only one request for details is allowed."></p>
+  <p class="case-note"
+     data-fr="Prototype à valider : les prix sont fictifs et la grille de notation est une proposition. STR autosomiques sur GlobalFiler ; Y-STR et ADN mitochondrial seulement pour la filiation ; normalisation non facturée."
+     data-en="Prototype for review: prices are fictional and the scoring grid is a proposal. Autosomal STRs on GlobalFiler; Y-STR and mtDNA only for kinship; normalisation is not billed."></p>
+
+  <section class="panel">
+    <div class="controls" style="justify-content:space-between">
+      <span id="seed" class="muted-note"></span>
+      <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+    </div>
+    <h2 data-fr="Réquisition" data-en="Requisition"></h2>
+    <div class="req" id="requisition"></div>
+    <div class="clar" id="clarification" role="status" aria-live="polite"></div>
+    <div class="controls mt">
+      <button class="btn btn-ghost" id="ask" data-fr="Demander des précisions au requérant" data-en="Ask the requester for details"></button>
+      <button class="btn btn-ghost" id="decline" data-fr="Décliner la demande" data-en="Decline the request"></button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 data-fr="Scellés et forfaits" data-en="Exhibits and packages"></h2>
+    <div id="scelles"></div>
+    <h2 data-fr="Tarif" data-en="Tariff"></h2>
+    <div class="tariffs" id="tariffs"></div>
+    <div class="totalbar"><span data-fr="Total du devis" data-en="Quote total"></span><strong id="total"></strong></div>
+    <details><summary data-fr="Grille tarifaire (fictive)" data-en="Price grid (fictional)"></summary><div id="grid"></div></details>
+    <div class="controls mt"><button class="btn btn-primary" id="check" data-fr="Valider le devis" data-en="Submit the quote"></button></div>
+    <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+  </section>
+</main>
+<script src="assets/i18n.js"></script>
+<script src="assets/layout.js"></script>
+<script type="module" src="assets/devis-ui.js"></script>
+</body>
+</html>
