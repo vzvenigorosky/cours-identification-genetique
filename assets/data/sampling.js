@@ -126,7 +126,7 @@ window.SAMPLING = {
       context: { fr: "Literie saisie. Recherche de taches biologiques sur une grande surface.",
                  en: "Seized bedding. Searching for biological stains over a large surface." },
       gen: { min: 1, max: 3, lightable: true },
-      stainSlots: [ { cx: 110, cy: 110, r: 30 }, { cx: 205, cy: 140, r: 32 }, { cx: 292, cy: 112, r: 26 }, { cx: 170, cy: 182, r: 26 } ],
+      stainSlots: [ { cx: 110, cy: 110, r: 30 }, { cx: 205, cy: 140, r: 32 }, { cx: 292, cy: 112, r: 26 }, { cx: 160, cy: 190, r: 26 } ],
       stainPool: [
         { fluid: "semen",      auto: 3.2, degrad: 0.3, visible: false, maleMode: "always", weight: 3 },
         { fluid: "blood",      auto: 2.4, degrad: 0.35, visible: true, maleMode: "random", weight: 2 },
