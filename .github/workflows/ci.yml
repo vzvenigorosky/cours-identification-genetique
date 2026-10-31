@@ -35,6 +35,8 @@ jobs:
         run: node tools/casework-selftest.mjs
       - name: MG1 sampling data self-tests
         run: node tools/sampling-selftest.mjs
+      - name: MG2 quantification data self-tests
+        run: node tools/extraction-selftest.mjs
       - name: MG3 PCR data self-tests
         run: node tools/pcr-selftest.mjs
       - name: Devis simulator self-tests
