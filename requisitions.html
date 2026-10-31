@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Générateur de réquisitions — Identification génétique</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .controls-row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:10px 0; }
+    select.input, .controls-row label { font-size:.95rem; }
+    #preview { width:100%; height:80vh; min-height:520px; border:1px solid var(--border); border-radius:10px; background:#fff; }
+    .note-fictif { border-left:4px solid var(--accent); background:var(--stripe); padding:8px 14px; font-size:.9rem; margin:10px 0; }
+  </style>
+</head>
+<body data-page="exercices">
+  <main class="wrap narrow">
+    <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+    <h1 class="page-title mt" data-fr="Générateur de réquisitions FNAEG" data-en="FNAEG requisition generator"></h1>
+    <p class="page-intro"
+       data-fr="Génère des réquisitions d'analyse génétique réalistes et aléatoires pour l'entraînement : personne identifiée (suspect / condamné), trace(s) / personne décédée, personne disparue et parentèle. Chaque tirage produit un PDF téléchargeable."
+       data-en="Generates realistic, randomised DNA-analysis requisitions for training: identified person (suspect / convicted), trace(s) / deceased person, missing person and relatives. Each draw produces a downloadable PDF."></p>
+
+    <p class="note-fictif"
+       data-fr="⚠ Documents entièrement fictifs à usage pédagogique. Les noms, services, juridictions et numéros de scellés sont générés aléatoirement et ne désignent aucune personne ni aucun service réels. Les PDF portent la mention « document fictif » et n'ont aucune valeur légale."
+       data-en="⚠ Entirely fictitious documents for teaching use. Names, services, jurisdictions and seal numbers are randomly generated and designate no real person or service. The PDFs are watermarked “document fictif” and have no legal value."></p>
+
+    <div class="panel">
+      <div class="controls-row">
+        <label for="rtype" data-fr="Type de réquisition :" data-en="Requisition type:"></label>
+        <select id="rtype" class="input">
+          <option value="suspect" data-fr="Individu — suspect" data-en="Individual — suspect"></option>
+          <option value="condamne" data-fr="Individu — condamné" data-en="Individual — convicted"></option>
+          <option value="trace" data-fr="Trace(s) / personne décédée" data-en="Trace(s) / deceased person"></option>
+          <option value="disparu" data-fr="Personne disparue &amp; parentèle" data-en="Missing person &amp; relatives"></option>
+        </select>
+        <button class="btn btn-primary" id="gen" data-fr="Générer" data-en="Generate"></button>
+        <button class="btn btn-ghost" id="dl" data-fr="Télécharger le PDF" data-en="Download the PDF" disabled></button>
+      </div>
+      <iframe id="preview" title="aperçu réquisition"></iframe>
+    </div>
+  </main>
+
+  <script src="assets/vendor/jspdf.umd.min.js"></script>
+  <script src="assets/vendor/JsBarcode.all.min.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/data/requisitions.js"></script>
+  <script src="assets/layout.js"></script>
+  <script>
+  (function () {
+    var jsPDF = window.jspdf.jsPDF;
+    var L = 16, R = 194, W = R - L, PAGE_H = 297;
+    var lastBlobUrl = null, lastName = "";
+
+    function barcodeDataURL(num) {
+      var c = document.createElement("canvas");
+      try { window.JsBarcode(c, String(num), { format: "CODE128", width: 1.5, height: 42, fontSize: 15, margin: 0, displayValue: true }); }
+      catch (e) { return null; }
+      return c.toDataURL("image/png");
+    }
+
+    // ---- low-level drawing on a jsPDF doc, with a y cursor + watermark/footer ----
+    function Doc(title) {
+      var d = new jsPDF({ unit: "mm", format: "a4" });
+      var self = { d: d, y: 0, titleWords: title };
+      watermark(d); footer(d);
+      self.y = 14;
+      return self;
+    }
+    function watermark(d) {
+      d.saveGraphicsState && d.saveGraphicsState();
+      d.setFont("helvetica", "bold"); d.setFontSize(46); d.setTextColor(232, 232, 232);
+      d.text("DOCUMENT FICTIF", 105, 170, { align: "center", angle: 32 });
+      d.setFontSize(18); d.text("EXERCICE PÉDAGOGIQUE — SANS VALEUR LÉGALE", 105, 186, { align: "center", angle: 32 });
+      d.setTextColor(0, 0, 0);
+    }
+    function footer(d) {
+      d.setFont("helvetica", "italic"); d.setFontSize(7); d.setTextColor(120);
+      d.text("Document fictif généré à des fins pédagogiques — sans valeur légale.", 105, 289, { align: "center" });
+      d.setTextColor(0);
+    }
+    function newPage(s) { s.d.addPage(); watermark(s.d); footer(s.d); s.y = 14; }
+    function need(s, h) { if (s.y + h > PAGE_H - 14) newPage(s); }
+
+    function set(s, style, size, color) {
+      s.d.setFont("helvetica", style || "normal");
+      s.d.setFontSize(size || 9);
+      s.d.setTextColor(color == null ? 0 : color);
+    }
+    function centered(s, str, size, style) { set(s, style, size); s.d.text(str, 105, s.y, { align: "center" }); }
+    function sectionBar(s, label) {
+      need(s, 8); s.y += 1.5;
+      s.d.setFillColor(222, 226, 230); s.d.rect(L, s.y - 3.6, W, 5.4, "F");
+      set(s, "bold", 9.5, 40); s.d.text(label, 105, s.y, { align: "center" }); set(s, "normal", 9, 0);
+      s.y += 5;
+    }
+    function field(s, label, value, lw) {
+      need(s, 5.5); set(s, "bold", 9); s.d.text(label, L, s.y);
+      set(s, "normal", 9); s.d.text(String(value == null ? "" : value), L + (lw || 42), s.y);
+      s.y += 5;
+    }
+    function twoCol(s, l1, v1, l2, v2) {
+      need(s, 5.5); set(s, "bold", 9); s.d.text(l1, L, s.y);
+      set(s, "normal", 9); s.d.text(String(v1 || ""), L + 32, s.y);
+      set(s, "bold", 9); s.d.text(l2, 120, s.y);
+      set(s, "normal", 9); s.d.text(String(v2 || ""), 150, s.y);
+      s.y += 5;
+    }
+    function para(s, str, size) {
+      set(s, "normal", size || 8);
+      var lines = s.d.splitTextToSize(str, W - 4);
+      for (var i = 0; i < lines.length; i++) { need(s, 4); s.d.text(lines[i], L + 2, s.y); s.y += 3.7; }
+    }
+    function bullet(s, str, size) {
+      set(s, "normal", size || 8);
+      var lines = s.d.splitTextToSize(str, W - 6);
+      for (var i = 0; i < lines.length; i++) { need(s, 4); s.d.text((i === 0 ? "•  " : "   ") + lines[i], L + 2, s.y); s.y += 3.7; }
+    }
+    function check(s, checked, label) {
+      need(s, 5); s.d.setDrawColor(60); s.d.rect(L + 2, s.y - 3, 3, 3);
+      if (checked) { s.d.setLineWidth(0.4); s.d.line(L + 2.3, s.y - 2.7, L + 4.7, s.y - 0.3); s.d.line(L + 4.7, s.y - 2.7, L + 2.3, s.y - 0.3); s.d.setLineWidth(0.2); }
+      set(s, "normal", 8.5); var lines = s.d.splitTextToSize(label, W - 10);
+      for (var i = 0; i < lines.length; i++) { if (i) need(s, 4); s.d.text(lines[i], L + 7, s.y - (lines.length > 1 ? 0 : 0) + i * 3.7, { baseline: "alphabetic" }); }
+      s.y += Math.max(5, lines.length * 3.7 + 1);
+    }
+    function barcode(s, num, caption) {
+      var url = barcodeDataURL(num);
+      need(s, 26);
+      if (url) { s.d.addImage(url, "PNG", 105 - 27, s.y, 54, 15); s.y += 19; }
+      else { set(s, "bold", 11); s.d.text(String(num), 105, s.y + 6, { align: "center" }); s.y += 12; }
+      if (caption) { set(s, "italic", 7.5, 90); s.d.text(caption, 105, s.y, { align: "center" }); s.y += 4; set(s, "normal", 9, 0); }
+    }
+    function header(s, titleLine, subLine, purposes) {
+      set(s, "normal", 7.5, 90); s.d.text("Timbre du service", L, s.y); set(s, "normal", 9, 0);
+      s.y += 7; centered(s, titleLine, 12.5, "bold"); s.y += 5;
+      centered(s, subLine, 9, "italic"); s.y += 6;
+      for (var i = 0; i < purposes.length; i++) bullet(s, purposes[i], 8);
+      s.y += 1;
+    }
+    function signature(s, ville, date) {
+      s.y += 4; need(s, 16);
+      set(s, "normal", 9);
+      s.d.text("À " + (ville || "..............................") + " , le " + date, 120, s.y);
+      s.y += 5; set(s, "italic", 8, 90); s.d.text("Sceau et signature du requérant", 120, s.y); set(s, "normal", 9, 0);
+      s.y += 8;
+    }
+    function edition(s, date) { set(s, "italic", 7.5, 120); s.d.text("Édition du " + date, L, PAGE_H - 10); set(s, "normal", 9, 0); }
+
+    // ---- form renderers -----------------------------------------------------
+    var MISSION_IND = [
+      "Procéder à l'analyse génétique du prélèvement biologique placé sous scellé ;",
+      "Détruire le résidu de ce scellé et l'ADN extrait non utilisés ;",
+      "Transmettre au FNAEG la présente réquisition et le rapport comportant le profil génétique ;",
+      "Transmettre au requérant le rapport décrivant les opérations effectuées et comportant le profil génétique, ainsi que la prestation de serment des personnes habilitées non inscrites sur une liste d'expert."
+    ];
+    var MISSION_TRACE = [
+      "Rechercher, déterminer le cas échéant la nature, et procéder à l'analyse génétique des traces biologiques présentes sur les objets placés sous scellés. L'expert est autorisé à altérer ces scellés pour les besoins des analyses et à procéder le cas échéant à la destruction des prélèvements effectués au moyen d'écouvillons complètement exploités à l'issue de leurs analyses.",
+      "Apposer un identifiant code-barres FNAEG sur les scellés analysés ainsi que sur l'annexe de la présente réquisition.",
+      "Conditionner le cas échéant chaque prélèvement ou support résiduel de trace individuellement, selon les dispositions en vigueur, et l'adresser au SCPPB accompagné d'une copie de la présente réquisition pour conservation.",
+      "Pour chaque scellé, transmettre au FNAEG le ou les profils génétiques uniques obtenus, accompagnés d'une copie de la présente réquisition.",
+      "Transmettre au requérant le rapport relatant les opérations effectuées et les résultats obtenus."
+    ];
+    var MISSION_DISP = [
+      "Procéder à l'analyse génétique du matériel biologique contenu dans le(s) scellé(s) et prélèvement(s) ;",
+      "L'expert est autorisé à altérer ces scellés et prélèvements pour les besoins des analyses et à procéder le cas échéant à la destruction des prélèvements complètement exploités ;",
+      "Transmettre au FNAEG le ou les profil(s) génétique(s) d'intérêt accompagné(s) d'une copie de cette réquisition ;",
+      "Si les prélèvements sont réalisés sur un ascendant, un descendant ou un collatéral, détruire le scellé et l'ADN extrait non utilisés ;",
+      "Transmettre au requérant le rapport relatant les opérations effectuées et les résultats obtenus."
+    ];
+
+    function requerant(s, r) {
+      sectionBar(s, "REQUÉRANT");
+      twoCol(s, "Nom :", r.nom, "Prénom :", r.prenom);
+      field(s, "Grade et qualité :", r.grade, 42);
+      field(s, "N° procédure :", r.procedure, 42);
+      field(s, "Service ou unité :", r.service, 42);
+    }
+
+    function renderIndividu(data) {
+      var s = Doc("RequisitionIndividu");
+      header(s, "RÉQUISITION FNAEG — version électronique", "(formulaire personne identifiée)",
+        ["aux fins d'analyse génétique de matériel biologique", "aux fins de transmission au FNAEG"]);
+      sectionBar(s, "CADRE JURIDIQUE");
+      check(s, data.cadre === "condamne", "CONDAMNÉ, article 706-54 alinéa 1 du code de procédure pénale, aux fins de rapprochement et d'enregistrement.");
+      if (data.cadre === "condamne") { field(s, "Condamnation en date du :", data.dateCondamnation, 55); field(s, "Parquet compétent :", data.parquet, 55); }
+      check(s, data.cadre === "suspect2", "SUSPECT : indices graves ou concordants, article 706-54 alinéa 2 du code de procédure pénale, aux fins de rapprochement et d'enregistrement.");
+      check(s, data.cadre === "suspect3", "SUSPECT : raisons plausibles, article 706-54 alinéa 3 du code de procédure pénale, aux fins de rapprochement.");
+      field(s, "Juridiction compétente :", data.juridiction, 48);
+      field(s, "Infraction(s) 706-55 CPP :", data.infractions, 48);
+      field(s, "Date de commission des faits :", data.dateFaits, 55);
+      requerant(s, data.requerant);
+      sectionBar(s, "ÉTAT CIVIL DE LA PERSONNE CONCERNÉE");
+      var e = data.etatCivil;
+      field(s, "Nom de naissance :", e.nomNaissance, 42);
+      field(s, "Prénoms :", e.prenoms, 42);
+      field(s, "Date de naissance :", e.dateNaissance, 42);
+      field(s, "Lieu de naissance :", e.lieuNaissance + (e.departement ? "  (" + e.departement + ")" : ""), 42);
+      field(s, "Filiation père :", e.pere, 42);
+      field(s, "et mère :", e.mere, 42);
+      sectionBar(s, "PRÉLÈVEMENT");
+      barcode(s, data.prelevement, "N° FNAEG du prélèvement");
+      sectionBar(s, "EXPERT OU PERSONNE HABILITÉE");
+      field(s, "NOM / Prénom :", data.expert, 42);
+      sectionBar(s, "MISSION");
+      for (var i = 0; i < MISSION_IND.length; i++) bullet(s, MISSION_IND[i]);
+      signature(s, data.ville, REQ.today()); edition(s, REQ.today());
+      return s.d;
+    }
+
+    function renderTrace(data) {
+      var s = Doc("RequisitionTrace");
+      header(s, "RÉQUISITION FNAEG/SCPPB — version électronique", "(formulaire trace(s) / personne décédée non identifiée)",
+        ["aux fins d'analyse génétique de matériel biologique", "aux fins de transmission du ou des profils génétiques au FNAEG",
+         "aux fins d'enregistrement au FNAEG", "aux fins de transmission des scellés au SCPPB"]);
+      sectionBar(s, "CADRE JURIDIQUE");
+      var arts = { "60": "Article 60 du code de procédure pénale", "77-1": "Article 77-1 du code de procédure pénale",
+        "74": "Article 74 du code de procédure pénale", "74-1": "Article 74-1 du code de procédure pénale",
+        "80-4": "Article 80-4 du code de procédure pénale", "151": "Article 151 du code de procédure pénale" };
+      Object.keys(arts).forEach(function (k) { check(s, data.cadre.indexOf(k) >= 0, arts[k]); });
+      if (data.autorite.kind === "procureur") para(s, "Sur autorisation du procureur de la République près le " + data.autorite.ville + ".");
+      else para(s, "Sur instruction du juge d'instruction près le " + data.autorite.ville + ", en date du " + data.autorite.date + ".");
+      s.y += 1;
+      check(s, data.alinea === "1", "TRACE(S), article 706-54 alinéa 1 du code de procédure pénale.");
+      check(s, data.alinea === "4", "TRACE(S), article 706-54 alinéa 4 du code de procédure pénale.");
+      field(s, "Infraction(s) 706-55 CPP :", data.infractions, 48);
+      requerant(s, data.requerant);
+      sectionBar(s, "SCELLÉ(S)");
+      field(s, "Nombre de scellés :", String(data.scelles.length), 42);
+      field(s, "Numéroté(s) :", data.scelles.map(function (x) { return x.num; }).join(", "), 42);
+      sectionBar(s, "EXPERT");
+      field(s, "NOM / Prénom :", data.expert, 42);
+      sectionBar(s, "MISSION");
+      for (var i = 0; i < MISSION_TRACE.length; i++) bullet(s, MISSION_TRACE[i]);
+      signature(s, data.ville, REQ.today()); edition(s, REQ.today());
+      // scellé annex pages
+      data.scelles.forEach(function (sc) {
+        newPage(s); s.y = 20;
+        centered(s, "SCELLÉ", 12, "bold"); s.y += 8;
+        field(s, "N° scellé :", sc.num, 42);
+        field(s, "N° procédure :", data.requerant.procedure, 42);
+        field(s, "Service :", data.requerant.service, 42);
+        s.y += 3; barcode(s, sc.barcode, "Identifiant code-barres FNAEG");
+        s.y += 2; set(s, "bold", 9.5); s.d.text(sc.type, 105, s.y, { align: "center" }); set(s, "normal", 9); s.y += 8;
+        signature(s, data.ville, REQ.today()); edition(s, REQ.today());
+      });
+      return s.d;
+    }
+
+    function renderDisparu(data) {
+      var s = Doc("RequisitionDisparu");
+      header(s, "RÉQUISITION FNAEG/SCPPB — version électronique", "FORMULAIRE PERSONNE DISPARUE ET PARENTÈLE",
+        ["aux fins d'analyse génétique de matériel(s) biologique(s)", "aux fins de transmission et d'enregistrement du ou des profils génétiques au FNAEG",
+         "aux fins de transmission des scellés au SCPPB"]);
+      sectionBar(s, "CADRE JURIDIQUE");
+      check(s, data.cadre === "74-1", "Article 74-1 du code de procédure pénale, sur autorisation du procureur de la République près le " + data.juridiction + ".");
+      check(s, data.cadre === "80-4", "Article 80-4 du code de procédure pénale, sur instruction du juge d'instruction près le " + data.juridiction + ".");
+      requerant(s, data.requerant);
+      sectionBar(s, "ÉTAT CIVIL DE LA PERSONNE DISPARUE");
+      var e = data.disparue;
+      field(s, "Nom de naissance :", e.nomNaissance, 42);
+      field(s, "Prénom :", e.prenoms, 42);
+      field(s, "Date de naissance :", e.dateNaissance, 42);
+      field(s, "Lieu de naissance :", e.lieuNaissance, 42);
+      field(s, "Pays :", e.pays, 42);
+      field(s, "Filiation père :", e.pere, 42);
+      field(s, "et mère :", e.mere, 42);
+      sectionBar(s, "SERVICE OU PERSONNE DÉSIGNÉ(E) POUR L'ANALYSE");
+      field(s, "NOM / Prénom :", data.expert, 42);
+      sectionBar(s, "MISSION");
+      for (var i = 0; i < MISSION_DISP.length; i++) bullet(s, MISSION_DISP[i]);
+      signature(s, data.ville, REQ.today()); edition(s, REQ.today());
+      // annex: scellé issu de la personne disparue + parentèle
+      newPage(s); s.y = 18;
+      centered(s, "SCELLÉ(S) ISSU(S) DE LA PERSONNE DISPARUE", 11, "bold"); s.y += 8;
+      field(s, "N° procédure :", data.requerant.procedure, 42);
+      field(s, "Service :", data.requerant.service, 42);
+      barcode(s, data.disparueBarcode, "Scellé rattaché à la personne disparue");
+      s.y += 2;
+      sectionBar(s, "PRÉLÈVEMENTS SUR ASCENDANTS / DESCENDANTS / COLLATÉRAUX");
+      data.parentele.forEach(function (p, i) {
+        need(s, 34);
+        set(s, "bold", 9); s.d.text("Parent " + (i + 1) + " — lien : " + p.lien, L, s.y); set(s, "normal", 9); s.y += 5;
+        field(s, "Nom de naissance :", p.nomNaissance, 42);
+        field(s, "Prénom :", p.prenom, 42);
+        field(s, "Date de naissance :", p.dateNaissance, 42);
+        field(s, "Lieu de naissance :", p.lieuNaissance + "  (" + p.pays + ")", 42);
+        field(s, "Accord complet de comparaison :", p.accord ? "OUI" : "NON", 60);
+        barcode(s, p.barcode, "Scellé parentèle");
+        s.y += 2;
+      });
+      signature(s, data.ville, REQ.today()); edition(s, REQ.today());
+      return s.d;
+    }
+
+    var REQ = window.REQUISITIONS;
+    function build(type) {
+      var data = REQ.generate(type);
+      var doc = type === "trace" ? renderTrace(data) : type === "disparu" ? renderDisparu(data) : renderIndividu(data);
+      var tag = type === "trace" ? "RequisitionTrace" : type === "disparu" ? "RequisitionDisparu" : "RequisitionIndividu";
+      var bc = data.prelevement || (data.scelles && data.scelles[0] && data.scelles[0].barcode) || data.disparueBarcode || "";
+      lastName = bc + "_" + tag + "_FICTIF_" + REQ.today().replace(/\//g, "") + ".pdf";
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      lastBlobUrl = doc.output("bloburl");
+      document.getElementById("preview").src = lastBlobUrl;
+      document.getElementById("dl").disabled = false;
+      window.__lastDoc = doc; // for automated verification
+    }
+
+    document.getElementById("gen").addEventListener("click", function () { build(document.getElementById("rtype").value); });
+    document.getElementById("dl").addEventListener("click", function () { if (window.__lastDoc) window.__lastDoc.save(lastName); });
+    // first preview
+    build("suspect");
+  })();
+  </script>
+</body>
+</html>
