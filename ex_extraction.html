@@ -60,8 +60,6 @@
     function L(fr, en) { return I18N.getLang() === "en" ? en : fr; }
     function pick(o) { return I18N.pick(o); }
     function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-    function rnd(r) { return r[0] + Math.random() * (r[1] - r[0]); }
-    function q3(n) { return Math.round(n * 1000) / 1000; }
 
     function newCase() {
       var n = Engine.rint(E.perCase[0], E.perCase[1]);
@@ -71,21 +69,12 @@
       render();
     }
 
+    // Generation lives in assets/data/extraction.js (shared with the self-test);
+    // here we just randomise the on-screen order of the returned extracts.
     function buildScelle(tpl) {
-      var depleted = Math.random() < E.pDepleted;
-      var extracts = tpl.sites.map(function (s, i) {
-        var q = depleted ? rnd([0, E.threshold * 0.8]) : rnd(s.range);
-        return { id: tpl.id + "_" + i, label: s.label, q: Math.max(0, q3(q)) };
-      });
-      // best usable extract (quantity ≥ threshold); else "none"
-      var usable = extracts.filter(function (e) { return e.q >= E.threshold; });
-      var best = usable.reduce(function (a, e) { return (!a || e.q > a.q) ? e : a; }, null);
-      return {
-        id: tpl.id, title: tpl.title, nature: tpl.nature,
-        extracts: Engine.shuffle(extracts.slice()), // display order randomised
-        correctId: best ? best.id : "none",
-        bestLabel: best ? best.label : null, bestQ: best ? best.q : null
-      };
+      var sc = E.buildScelle(tpl, Math.random);
+      sc.extracts = Engine.shuffle(sc.extracts.slice());
+      return sc;
     }
 
     function render() {
@@ -128,13 +117,20 @@
         var tagFr = esc(sc.title.fr), tagEn = esc(sc.title.en);
         var detailFr, detailEn;
         if (sc.correctId === "none") {
-          detailFr = ok ? "aucun extrait n'atteint le seuil de " + E.threshold + " ng/µL : pas d'amplification, à signaler dans le rapport."
-                        : "aucun extrait n'atteignait le seuil de " + E.threshold + " ng/µL : il ne fallait rien amplifier.";
-          detailEn = ok ? "no extract reaches the " + E.threshold + " ng/µL threshold: no amplification, to report back."
-                        : "no extract reached the " + E.threshold + " ng/µL threshold: nothing should have been amplified.";
+          // Name the highest reading so a near-miss ("aucun" just under the
+          // threshold) is explicit, not just "everything was blank".
+          var topFr = sc.topQ > 0 ? " La meilleure lecture, « " + esc(sc.topLabel.fr) + " » (" + sc.topQ.toFixed(3) + " ng/µL), reste sous le seuil." : "";
+          var topEn = sc.topQ > 0 ? " The highest reading, “" + esc(sc.topLabel.en) + "” (" + sc.topQ.toFixed(3) + " ng/µL), stays below the threshold." : "";
+          detailFr = (ok ? "aucun extrait n'atteint le seuil de " + E.threshold + " ng/µL : pas d'amplification, à signaler dans le rapport."
+                         : "aucun extrait n'atteignait le seuil de " + E.threshold + " ng/µL : il ne fallait rien amplifier.") + topFr;
+          detailEn = (ok ? "no extract reaches the " + E.threshold + " ng/µL threshold: no amplification, to report back."
+                         : "no extract reached the " + E.threshold + " ng/µL threshold: nothing should have been amplified.") + topEn;
         } else {
-          detailFr = "le meilleur extrait exploitable est « " + esc(sc.bestLabel.fr) + " » (" + sc.bestQ.toFixed(3) + " ng/µL).";
-          detailEn = "the best usable extract is “" + esc(sc.bestLabel.en) + "” (" + sc.bestQ.toFixed(3) + " ng/µL).";
+          // When the only usable extract is marginal, flag it: amplifiable, but low.
+          var margFr = sc.mode === "marginalPos" ? " Extrait marginal : au-dessus du seuil mais faible — un profil partiel est possible." : "";
+          var margEn = sc.mode === "marginalPos" ? " Marginal extract: above the threshold but low — a partial profile is possible." : "";
+          detailFr = "le meilleur extrait exploitable est « " + esc(sc.bestLabel.fr) + " » (" + sc.bestQ.toFixed(3) + " ng/µL)." + margFr;
+          detailEn = "the best usable extract is “" + esc(sc.bestLabel.en) + "” (" + sc.bestQ.toFixed(3) + " ng/µL)." + margEn;
         }
         linesFr.push("<li><strong>" + tagFr + "</strong> " + (ok ? "✔ " : "✘ ") + detailFr + "</li>");
         linesEn.push("<li><strong>" + tagEn + "</strong> " + (ok ? "✔ " : "✘ ") + detailEn + "</li>");
