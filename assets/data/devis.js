@@ -255,7 +255,7 @@ function buildAbsurdCouch() {
   return {
     kind: 'absurdVoid', rule: 'absurd',
     requisition: text('Agression sexuelle. Merci d’analyser les écouvillons prélevés sur le canapé du salon afin de retrouver l’ADN de l’auteur.', 'Sexual assault. Please analyse the swabs taken from the living-room couch to find the attacker’s DNA.'),
-    clarification: text('Après vérification, les faits se sont déroulés dans un véhicule. Le canapé n’a aucun lien avec l’affaire. Désolé, il n’y a rien à analyser.', 'On checking, the events took place in a vehicle. The couch has no connection to the case. Sorry, there is nothing to analyse.'),
+    clarification: text('Pardon : selon la victime, l’agresseur s’est assis sur ce canapé, mais nous n’avons aucun prélèvement de référence de l’agresseur. Nous comprenons que l’analyse ne serait pas productive.', 'Sorry: according to the victim, the aggressor sat on that couch, but we have no reference sample for the aggressor. We understand the analysis would not be productive.'),
     scelles: [couch], relation: null, stated: {}
   };
 }
