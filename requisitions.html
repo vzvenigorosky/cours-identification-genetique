@@ -17,8 +17,8 @@
     <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
     <h1 class="page-title mt" data-fr="Générateur de réquisitions génétiques" data-en="Forensic genetic requisition generator"></h1>
     <p class="page-intro"
-       data-fr="Génère au hasard un formulaire FNAEG structuré ou une réquisition narrative libre. Vous pouvez aussi imposer un format, une affaire ou des références pour vous exercer. Chaque tirage produit un PDF fictif."
-       data-en="Randomly generates either a structured FNAEG form or a free-form narrative requisition. You can also choose a format, case and comparison references for practice. Each draw produces a fictional PDF."></p>
+       data-fr="Génère au hasard un formulaire FNAEG structuré ou une réquisition narrative libre, ainsi qu’une qualité de rédaction variable (nette, vague ou mal rédigée). Vous pouvez aussi imposer le format et la qualité pour vous exercer. Chaque tirage produit un PDF fictif."
+       data-en="Randomly generates either a structured FNAEG form or a free-form narrative requisition, with independently randomized writing quality (clean, vague or poorly written). You can also choose a format and quality for practice. Each draw produces a fictional PDF."></p>
 
     <p class="note-fictif"
        data-fr="⚠ Documents entièrement fictifs à usage pédagogique. Les noms, services, juridictions et numéros de scellés sont générés aléatoirement et ne désignent aucune personne ni aucun service réels. Les PDF portent la mention « document fictif » et n'ont aucune valeur légale."
@@ -58,6 +58,7 @@
         </span>
         <label for="rquality" data-fr="Qualité :" data-en="Quality:"></label>
         <select id="rquality" class="input">
+          <option value="random" data-fr="Aléatoire (toutes qualités)" data-en="Random (all quality levels)"></option>
           <option value="nette" data-fr="Nette" data-en="Clean"></option>
           <option value="vague" data-fr="Vague (fait décisif manquant)" data-en="Vague (missing decisive fact)"></option>
           <option value="sloppy" data-fr="Mal rédigée" data-en="Poorly written"></option>
@@ -385,8 +386,14 @@
     function pickNote(o) { return (o && typeof o === "object" && (o.fr != null || o.en != null)) ? L2(o.fr, o.en) : String(o || ""); }
     function esc2(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
+    // Choosing random document format must not silently force a clean writing style.
+    // Quality is drawn once per Generate click, independently of the format.
     function readOpts() {
       var q = document.getElementById("rquality").value;
+      if (q === "random") {
+        var variants = ["nette", "vague", "sloppy", "both"];
+        q = variants[Math.floor(Math.random() * variants.length)];
+      }
       return { vague: q === "vague" || q === "both", sloppy: q === "sloppy" || q === "both" };
     }
     // In mixed mode each click independently draws a real FNAEG form or narrative.
@@ -437,6 +444,8 @@
             vague: !!opts.vague, sloppy: !!opts.sloppy
           })
         : REQ.generate(type, opts || {});
+      // Do not leave a previously opened answer key visible on the next case.
+      document.getElementById("corrige").classList.add("hidden");
       displayData(data);
     }
 
@@ -445,14 +454,14 @@
       var deg = (lastReq && lastReq.degraded) || [];
       var btn = document.getElementById("corrigeBtn");
       var hint = document.getElementById("corrigeHint");
-      if (!deg.length) {
-        btn.disabled = true;
-        document.getElementById("corrige").classList.add("hidden");
-        btn.textContent = L2("Afficher le corrigé", "Show answer key");
-        hint.textContent = L2("Réquisition nette : aucun défaut à corriger.", "Clean requisition: nothing to correct.");
-        return;
-      }
-      btn.disabled = false; hint.textContent = "";
+      // The exercise must not reveal whether a document is clean before
+      // the student deliberately opens the answer key.
+      btn.disabled = false;
+      var hidden = document.getElementById("corrige").classList.contains("hidden");
+      btn.textContent = hidden ? L2("Afficher le corrigé", "Show answer key")
+                               : L2("Masquer le corrigé", "Hide answer key");
+      hint.textContent = L2("Évaluez la demande avant de consulter le corrigé.",
+                           "Evaluate the request before opening the answer key.");
       renderCorrigeBody();
     }
     function renderCorrigeBody() {
@@ -475,6 +484,8 @@
         sloppy.forEach(function (e) { html += "<li>" + esc2(pickNote(e.note)) + " <span class=\"muted-note\">(" + esc2(e.field) + ")</span></li>"; });
         html += "</ul>";
       }
+      if (!deg.length) html = "<p>" + L2("Aucun défaut intentionnel : demande suffisamment précise et correctement rédigée.",
+        "No intentional defect: the request is sufficiently informative and properly written.") + "</p>";
       document.getElementById("corrigeBody").innerHTML = html;
     }
 
@@ -496,7 +507,7 @@
     });
     // Mixed formats by default; the explicit old FNAEG options remain selectable.
     updateNarrativeControls();
-    build("mixed", {});
+    build("mixed", readOpts());
   })();
   </script>
 </body>
