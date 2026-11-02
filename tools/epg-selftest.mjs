@@ -146,6 +146,19 @@ for (const kit of ["globalfiler", "yfilerplus"]) {
   const bca = generateCase({ kit: "globalfiler", type: "clean", seed: "noiseB" });
   ok(a.svg === a2.svg, "render: noise reproducible for a fixed seed");
   ok(a.svg !== bca.svg, "render: different cases differ (noise varies)");
+
+  // batch controls: opt-in allelic ladder + positive/negative controls, stacked
+  const noCtl = generateCase({ kit: "globalfiler", type: "clean", seed: "ctl" });
+  const withCtl = generateCase({ kit: "globalfiler", type: "clean", seed: "ctl", controls: true });
+  ok(!/Allelic ladder/.test(noCtl.svg), "render: no control tracks by default");
+  ok(/Allelic ladder/.test(withCtl.svg) && /Positive control/.test(withCtl.svg) && /Negative control/.test(withCtl.svg),
+    "render: controls add ladder + positive + negative tracks");
+  ok(withCtl.svg.length > noCtl.svg.length, "render: control stack is larger than the bare sample");
+  // positive control is the same fixed profile every time
+  const c1 = generateCase({ kit: "globalfiler", type: "clean", seed: "x1", controls: true });
+  const c2 = generateCase({ kit: "globalfiler", type: "clean", seed: "x2", controls: true });
+  const posOf = (svg) => svg.slice(svg.indexOf("Positive control"), svg.indexOf("Negative control"));
+  ok(posOf(c1.svg) !== "" && posOf(c1.svg).length > 100, "render: positive-control track present");
 }
 
 console.log(`\n${fail === 0 ? "✓ ALL PASS" : "✗ FAILURES"} — ${pass} passed, ${fail} failed`);

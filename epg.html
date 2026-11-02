@@ -71,6 +71,7 @@
 
       <div class="art-grid" style="margin-top:12px">
         <label><input type="checkbox" id="showBins"> <span data-fr="Repères d'allèles (bins)" data-en="Allele bin marks"></span></label>
+        <label><input type="checkbox" id="controls"> <span data-fr="Témoins &amp; échelle allélique" data-en="Controls &amp; allelic ladder"></span></label>
         <span class="muted-note" data-fr="Survolez (ou touchez) un pic pour lire sa taille (bp) et sa hauteur (RFU). Le type de pic apparaît quand le corrigé est affiché."
               data-en="Hover (or tap) a peak to read its size (bp) and height (RFU). The peak type appears once the answer key is shown."></span>
       </div>
@@ -176,6 +177,7 @@
       const r = parseRatio($("ratio").value);
       if (r && (type === "mixture2" || type === "mixture3")) s.ratio = r;
       s.showBins = $("showBins").checked;
+      s.controls = $("controls").checked;
       // Expose the peak `kind` (in data-* and the hover title) only while the
       // answer key is shown, so inspection doesn't give the artefacts away early.
       s.revealKind = !$("answer").classList.contains("hidden");
@@ -303,6 +305,7 @@
     // wiring
     $("gen").addEventListener("click", generate);
     $("showBins").addEventListener("change", generate);
+    $("controls").addEventListener("change", generate);
     wirePeakTip();
     $("dice").addEventListener("click", () => { $("seed").value = String(Math.floor(Math.random() * 1e6)); generate(); });
     $("template").addEventListener("input", () => ($("templateOut").textContent = $("template").value));
