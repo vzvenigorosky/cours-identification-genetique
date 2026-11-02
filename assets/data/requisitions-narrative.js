@@ -155,9 +155,17 @@ window.NARRATIVE_REQUISITIONS = (function () {
       data.degraded.push({field:change.field,kind:"vague",archetype:change.archetype,was,note:change.note});
     }
     if(opts.sloppy) {
-      const was=data.requerant.grade;data.requerant.grade="OPJ";
-      data.degraded.push({field:"requerant.grade",kind:"sloppy",was,
-        note:t("Le grade est abrégé au lieu d'être rédigé en entier.","The rank is abbreviated rather than written in full.")});
+      // Actual drafting defects: do not classify the standard abbreviation OPJ
+      // as erroneous, and never alter the evidence or forensic case semantics.
+      const wasNarrative=data.narrative;
+      data.narrative=t(wasNarrative.fr.charAt(0).toLowerCase()+wasNarrative.fr.slice(1),
+                       wasNarrative.en.charAt(0).toLowerCase()+wasNarrative.en.slice(1));
+      data.degraded.push({field:"narrative",kind:"sloppy",was:wasNarrative,
+        note:t("La phrase commence sans majuscule.","The sentence begins without capitalization.")});
+      const wasService=data.requerant.service;
+      data.requerant.service=wasService.toLowerCase();
+      data.degraded.push({field:"requerant.service",kind:"sloppy",was:wasService,
+        note:t("Le nom du service est composé sans la casse habituelle.","The unit name has inconsistent capitalization.")});
     }
     data.quality={vague:!!opts.vague,sloppy:!!opts.sloppy};
     return data;
