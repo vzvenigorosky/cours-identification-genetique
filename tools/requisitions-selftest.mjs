@@ -139,8 +139,13 @@ for (const scenario of N.SCENARIOS) {
       const vagues = d.degraded.filter(e => e.kind === 'vague');
       const sloppies = d.degraded.filter(e => e.kind === 'sloppy');
       assert.equal(vagues.length, flags.vague ? 1 : 0);
-      assert.equal(sloppies.length, flags.sloppy ? 2 : 0);
-      if (flags.sloppy) assert(d.narrative.fr[0] === d.narrative.fr[0].toLowerCase(), 'sloppy punctuation is visible');
+      assert.equal(sloppies.length, flags.sloppy ? 3 : 0);
+      if (flags.sloppy) {
+        assert(d.narrative.fr.match(/resttes|corpss|persone/), 'French casework typo is visible');
+        assert(d.narrative.en.match(/remians|bodu|persn/), 'English casework typo is visible');
+        assert(d.mission.fr.includes('génetiques') && d.mission.en.includes('genetc'), 'mission typo is visible in both languages');
+        assert(d.degraded.some(e => e.field === 'mission'), 'corrigé identifies actual mission typo');
+      }
       assert(d.degraded.every(e => e.note.fr && e.note.en), 'corrigé bilingual');
       assert(vagues.every(e => e.was && e.field && e.archetype), 'withheld decisive fact preserved');
       assert(d.exhibits.every(e => /^S[0-9]+$/.test(e.id)));
@@ -157,9 +162,49 @@ assert.match(narrativeUI, /value="fnaegRandom"/);
 assert.match(narrativeUI, /value="narrative"/);
 assert.match(narrativeUI, /Math\.random\(\) < 0\.5/, 'mixed format must choose both families');
 assert.match(narrativeUI, /function renderNarrative\(/);
-assert.match(narrativeUI, /build\("mixed", \{\}\)/, 'mixed default preview');
+assert.match(narrativeUI, /build\("mixed", readOpts\(\)\)/, 'initial preview respects randomized quality');
 assert.match(narrativeUI, /requisitions-narrative\.js/);
-console.log('Requisitions: #61 narrative modes, seeds, bilingual cases, quality axes and mixed UI checked.');
+
+for (const scenario of N.SCENARIOS) {
+  for (const mode of scenario === 'johnDoe' ? N.MODES : ['random']) {
+    for (let seed = 0; seed < 120; seed++) {
+      const clean = N.generate({scenario, referenceMode:mode, seed});
+      const vague = N.generate({scenario, referenceMode:mode, seed, vague:true});
+      const sloppy = N.generate({scenario, referenceMode:mode, seed, sloppy:true});
+      const both = N.generate({scenario, referenceMode:mode, seed, vague:true, sloppy:true});
+      assert.deepEqual(vague.degraded.filter(e => e.kind === 'sloppy'), []);
+      assert.equal(vague.degraded.filter(e => e.kind === 'vague').length, 1);
+      assert.equal(sloppy.degraded.filter(e => e.kind === 'sloppy').length, 3);
+      assert.equal(both.degraded.length, 4);
+      assert.equal(clean.degraded.length, 0);
+      assert.equal(clean.exhibits.length, vague.exhibits.length, 'defective wording does not discard evidence');
+      assert.equal(clean.references.length, vague.references.length, 'defective wording does not discard comparisons');
+      assert.deepEqual(checkBilingual(both).bad, [], 'defective variants remain bilingual');
+      const defect = vague.degraded[0];
+      if (defect.archetype === 'relationship-path-unstated') {
+        const ref = vague.references.find(x => defect.field === 'references.'+x.id+'.claimedSource');
+        assert(ref && !ref.claimedSource.fr.includes(ref.relationship.summary.fr));
+        assert(ref.claimedSource.fr.includes(ref.relationship.relativePerson.birthDate), 'dates remain available');
+      } else if (defect.archetype === 'comparison-attribution-unstated') {
+        const ref = vague.references.find(x => defect.field === 'references.'+x.id+'.claimedSource');
+        assert(ref && !ref.claimedSource.fr.includes(vague.candidate), 'claimed source is actually omitted');
+      } else if (defect.archetype === 'sample-nature-unstated') {
+        const e = vague.exhibits.find(x => defect.field === 'exhibits.'+x.id+'.label');
+        assert(e && !e.label.fr.includes(defect.was.fr), 'sample type/site was actually omitted');
+      } else if (defect.archetype === 'exhibit-origin-unstated') {
+        const e = vague.exhibits.find(x => defect.field === 'exhibits.'+x.id+'.provenance');
+        assert(e && !e.provenance.fr.includes(defect.was.fr), 'collection circumstances were actually omitted');
+      } else if (defect.archetype === 'comparison-status-unstated') {
+        assert.equal(mode, 'none');
+        assert(!vague.referenceStatus.fr.includes('Aucune référence'), 'availability no longer explicit');
+      } else {
+        assert.fail('Unexpected vague omission archetype '+defect.archetype);
+      }
+    }
+  }
+}
+
+console.log('Requisitions: narrative quality variants and meaningful omissions verified.');
 
 
 // ---- #62: parent-child ages, shared names, explicit and coherent pedigree ----
