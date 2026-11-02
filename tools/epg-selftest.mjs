@@ -101,5 +101,22 @@ for (const kit of ["globalfiler", "yfilerplus"]) {
   ok(inc, "FGA allele sizes increase monotonically with repeat number");
 }
 
+// ---- render features (#50): ST line, bin overlay, peak inspection ----
+{
+  const base = generateCase({ kit: "globalfiler", type: "clean", seed: "render50" });
+  ok(/>AT</.test(base.svg), "render: AT threshold label present");
+  ok(/>ST</.test(base.svg), "render: ST threshold label present");
+  ok(/class="pk" data-size=/.test(base.svg), "render: peaks carry inspection data attributes");
+  ok(/<title>\d+ bp/.test(base.svg), "render: peaks expose a size/RFU title for hover");
+  ok(!/data-kind=/.test(base.svg), "render: peak kind is hidden by default (no answer leak)");
+  ok(!/class="bin"/.test(base.svg), "render: no bin marks unless requested");
+
+  const withBins = generateCase({ kit: "globalfiler", type: "clean", seed: "render50", showBins: true });
+  ok((withBins.svg.match(/class="bin"/g) || []).length > 20, "render: allele bin marks drawn when showBins");
+
+  const revealed = generateCase({ kit: "globalfiler", type: "clean", seed: "render50", revealKind: true });
+  ok(/data-kind=/.test(revealed.svg), "render: peak kind exposed only with revealKind");
+}
+
 console.log(`\n${fail === 0 ? "✓ ALL PASS" : "✗ FAILURES"} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
