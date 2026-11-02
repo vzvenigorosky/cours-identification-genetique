@@ -255,7 +255,13 @@
         html += genoTableHTML(null, ak.contributors, ["Sample A", "Sample B"]);
       } else {
         if (ak.mixtureRatioLabel) {
-          html += `<p><strong>${L("Ratio du mélange", "Mixture ratio")} :</strong> <span class="mono">${ak.mixtureRatioLabel}</span></p>`;
+          html += `<p><strong>${L("Ratio du mélange", "Mixture ratio")} :</strong> <span class="mono">${ak.mixtureRatioLabel}</span>` +
+            (ak.mixtureObserved ? ` &nbsp;•&nbsp; <strong>${L("estimé (hauteurs)", "estimated (heights)")} :</strong> <span class="mono">${ak.mixtureObserved.mxRatioLabel}</span>` : "") + `</p>`;
+          if (ak.mixtureObserved) {
+            const mo = ak.mixtureObserved;
+            html += `<p class="muted-note">${L("Loci avec empilement d'un allèle partagé", "Loci with a stacked shared allele")}: <strong>${mo.stackedLoci.length ? mo.stackedLoci.join(", ") : "—"}</strong><br>` +
+                    `${L("Loci avec perte d'allèle (contributeur mineur)", "Loci with allele drop-out (minor contributor)")}: <strong>${mo.dropoutLoci.length ? mo.dropoutLoci.join(", ") : "—"}</strong></p>`;
+          }
         }
         if (ak.degradation != null && ak.type === "degraded") {
           html += `<p><strong>${L("Dégradation", "Degradation")} :</strong> <span class="mono">${ak.degradation}</span></p>`;

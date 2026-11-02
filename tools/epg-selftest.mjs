@@ -56,6 +56,19 @@ for (const kit of ["globalfiler", "yfilerplus"]) {
     const large = alleles.filter((p) => p.size > 300).reduce((s, p) => s + p.height, 0) / Math.max(1, alleles.filter((p) => p.size > 300).length);
     ok(small > large, `globalfiler/degraded: small fragments taller than large (${small.toFixed(0)} > ${large.toFixed(0)})`);
 
+    // mixture realism: the answer key carries an observed Mx estimate and the
+    // stacking / drop-out locus lists, and the proportions are sane.
+    {
+      const mx = generateCase({ kit, type: "mixture2", seed: "mxobs" });
+      const mo = mx.answerKey.mixtureObserved;
+      ok(mo && typeof mo.mxRatioLabel === "string" && mo.mxRatioLabel.includes(":"), "mixture2: observed Mx estimate present");
+      ok(Array.isArray(mo.stackedLoci) && Array.isArray(mo.dropoutLoci), "mixture2: stacking/drop-out loci listed");
+      ok(mo.mxProp.length === 2 && Math.abs(mo.mxProp.reduce((s, x) => s + x, 0) - 1) < 0.02, "mixture2: observed proportions sum to 1");
+      ok(mo.mxProp.every((x) => x > 0 && x < 1), "mixture2: both contributors carry observable signal");
+      // single-source cases carry no mixtureObserved
+      ok(!generateCase({ kit, type: "clean", seed: "cl" }).answerKey.mixtureObserved, "clean: no mixture Mx");
+    }
+
     // mixture: at least one locus shows >2 called alleles
     let sawTriple = false;
     for (let i = 0; i < 20 && !sawTriple; i++) {

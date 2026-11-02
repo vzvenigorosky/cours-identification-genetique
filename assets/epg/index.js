@@ -4,7 +4,7 @@
    returns the SVG(s), the contributor genotypes and an answer key.
    Shared by the in-browser lab (epg.html) and the batch CLI.
    ============================================================ */
-import { getKit } from "./panels.js";
+import { getKit, sizeOf } from "./panels.js";
 import { makeRng, seedFrom } from "./rng.js";
 import * as G from "./genetics.js";
 import { simulate } from "./simulate.js";
@@ -86,7 +86,54 @@ function build(spec, kit, type, seed, rng, cfg) {
   }
   const svg = renders.length === 1 ? renders[0].svg : renderStack(renders, width);
 
+  // Mixture realism: read the simulated trace back as an analyst would —
+  // estimate the mixture proportion (Mx) from peak heights, and flag the loci
+  // where a shared allele stacks into one taller peak or the minor contributor
+  // has dropped out. Teaching estimate (see docs), not a validated DI model.
+  if (MIXTURE.has(type)) {
+    answerKey.mixtureObserved = mixtureObserved(kit, samples[0].contributors.map((c) => c.geno), samples[0].sim);
+  }
+
   return { kit: kit.id, kitLabel: kit.label, type, seed: seedFrom(seed), samples, svg, answerKey };
+}
+
+/* Estimate the observed mixture proportions and stacking/drop-out, using the
+   known contributor genotypes to attribute each allele peak's height (a shared
+   allele's height is split equally among its owners). */
+function mixtureObserved(kit, genos, sim) {
+  const at = sim.thresholds.at;
+  const totals = genos.map(() => 0);
+  const stacked = [], dropout = [];
+  for (const l of kit.loci) {
+    if (l.type) continue; // autosomal only
+    const bySize = new Map();
+    for (const p of sim.peaks) if (p.locus === l.name && p.kind === "allele") bySize.set(Math.round(p.size), p);
+    const owners = new Map();
+    genos.forEach((g, ci) => {
+      for (const a of (g[l.name] || [])) {
+        const sz = Math.round(sizeOf(l, a));
+        if (!owners.has(sz)) owners.set(sz, []);
+        owners.get(sz).push(ci);
+      }
+    });
+    let anyStack = false, anyDrop = false;
+    for (const [sz, who] of owners) {
+      const pk = bySize.get(sz);
+      const h = pk ? pk.height : 0;
+      const share = h / who.length;
+      who.forEach((ci) => { totals[ci] += share; });
+      if (who.length > 1 && h >= at) anyStack = true;   // shared allele → stacked peak
+      if (h < at) anyDrop = true;                        // this allele dropped below AT
+    }
+    if (anyStack) stacked.push(l.name);
+    if (anyDrop) dropout.push(l.name);
+  }
+  const sum = totals.reduce((s, x) => s + x, 0) || 1;
+  const prop = totals.map((x) => x / sum);
+  const nonzero = prop.filter((x) => x > 0.0001);
+  const min = nonzero.length ? Math.min(...nonzero) : 1;
+  const ratioLabel = prop.map((x) => (x > 0.0001 ? Math.round(x / min) : 0)).join(":");
+  return { mxProp: prop.map((x) => +x.toFixed(2)), mxRatioLabel: ratioLabel, stackedLoci: stacked, dropoutLoci: dropout };
 }
 
 function buildRelationship(kit, type, rng) {
