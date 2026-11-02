@@ -172,7 +172,7 @@ for (const scenario of N.SCENARIOS) {
       const vague = N.generate({scenario, referenceMode:mode, seed, vague:true});
       const sloppy = N.generate({scenario, referenceMode:mode, seed, sloppy:true});
       const both = N.generate({scenario, referenceMode:mode, seed, vague:true, sloppy:true});
-      assert.deepEqual(vague.degraded.filter(e => e.kind === 'sloppy'), []);
+      assert.equal(vague.degraded.filter(e => e.kind === 'sloppy').length, 0);
       assert.equal(vague.degraded.filter(e => e.kind === 'vague').length, 1);
       assert.equal(sloppy.degraded.filter(e => e.kind === 'sloppy').length, 3);
       assert.equal(both.degraded.length, 4);
