@@ -139,8 +139,13 @@ for (const scenario of N.SCENARIOS) {
       const vagues = d.degraded.filter(e => e.kind === 'vague');
       const sloppies = d.degraded.filter(e => e.kind === 'sloppy');
       assert.equal(vagues.length, flags.vague ? 1 : 0);
-      assert.equal(sloppies.length, flags.sloppy ? 2 : 0);
-      if (flags.sloppy) assert(d.narrative.fr[0] === d.narrative.fr[0].toLowerCase(), 'sloppy punctuation is visible');
+      assert.equal(sloppies.length, flags.sloppy ? 3 : 0);
+      if (flags.sloppy) {
+        assert(d.narrative.fr.match(/resttes|corpss|persone/), 'French casework typo is visible');
+        assert(d.narrative.en.match(/remians|bodu|persn/), 'English casework typo is visible');
+        assert(d.mission.fr.includes('génetiques') && d.mission.en.includes('genetc'), 'mission typo is visible in both languages');
+        assert(d.degraded.some(e => e.field === 'mission'), 'corrigé identifies actual mission typo');
+      }
       assert(d.degraded.every(e => e.note.fr && e.note.en), 'corrigé bilingual');
       assert(vagues.every(e => e.was && e.field && e.archetype), 'withheld decisive fact preserved');
       assert(d.exhibits.every(e => /^S[0-9]+$/.test(e.id)));
@@ -157,9 +162,49 @@ assert.match(narrativeUI, /value="fnaegRandom"/);
 assert.match(narrativeUI, /value="narrative"/);
 assert.match(narrativeUI, /Math\.random\(\) < 0\.5/, 'mixed format must choose both families');
 assert.match(narrativeUI, /function renderNarrative\(/);
-assert.match(narrativeUI, /build\("mixed", \{\}\)/, 'mixed default preview');
+assert.match(narrativeUI, /build\("mixed", readOpts\(\)\)/, 'initial preview respects randomized quality');
 assert.match(narrativeUI, /requisitions-narrative\.js/);
-console.log('Requisitions: #61 narrative modes, seeds, bilingual cases, quality axes and mixed UI checked.');
+
+for (const scenario of N.SCENARIOS) {
+  for (const mode of scenario === 'johnDoe' ? N.MODES : ['random']) {
+    for (let seed = 0; seed < 120; seed++) {
+      const clean = N.generate({scenario, referenceMode:mode, seed});
+      const vague = N.generate({scenario, referenceMode:mode, seed, vague:true});
+      const sloppy = N.generate({scenario, referenceMode:mode, seed, sloppy:true});
+      const both = N.generate({scenario, referenceMode:mode, seed, vague:true, sloppy:true});
+      assert.equal(vague.degraded.filter(e => e.kind === 'sloppy').length, 0);
+      assert.equal(vague.degraded.filter(e => e.kind === 'vague').length, 1);
+      assert.equal(sloppy.degraded.filter(e => e.kind === 'sloppy').length, 3);
+      assert.equal(both.degraded.length, 4);
+      assert.equal(clean.degraded.length, 0);
+      assert.equal(clean.exhibits.length, vague.exhibits.length, 'defective wording does not discard evidence');
+      assert.equal(clean.references.length, vague.references.length, 'defective wording does not discard comparisons');
+      assert.deepEqual(checkBilingual(both).bad, [], 'defective variants remain bilingual');
+      const defect = vague.degraded[0];
+      if (defect.archetype === 'relationship-path-unstated') {
+        const ref = vague.references.find(x => defect.field === 'references.'+x.id+'.claimedSource');
+        assert(ref && !ref.claimedSource.fr.includes(ref.relationship.summary.fr));
+        assert(ref.claimedSource.fr.includes(ref.relationship.relativePerson.birthDate), 'dates remain available');
+      } else if (defect.archetype === 'comparison-attribution-unstated') {
+        const ref = vague.references.find(x => defect.field === 'references.'+x.id+'.claimedSource');
+        assert(ref && !ref.claimedSource.fr.includes(vague.candidate), 'claimed source is actually omitted');
+      } else if (defect.archetype === 'sample-nature-unstated') {
+        const e = vague.exhibits.find(x => defect.field === 'exhibits.'+x.id+'.label');
+        assert(e && !e.label.fr.includes(defect.was.fr), 'sample type/site was actually omitted');
+      } else if (defect.archetype === 'exhibit-origin-unstated') {
+        const e = vague.exhibits.find(x => defect.field === 'exhibits.'+x.id+'.provenance');
+        assert(e && !e.provenance.fr.includes(defect.was.fr), 'collection circumstances were actually omitted');
+      } else if (defect.archetype === 'comparison-status-unstated') {
+        assert.equal(mode, 'none');
+        assert(!vague.referenceStatus.fr.includes('Aucune référence'), 'availability no longer explicit');
+      } else {
+        assert.fail('Unexpected vague omission archetype '+defect.archetype);
+      }
+    }
+  }
+}
+
+console.log('Requisitions: narrative quality variants and meaningful omissions verified.');
 
 
 // ---- #62: parent-child ages, shared names, explicit and coherent pedigree ----
@@ -276,3 +321,103 @@ for (let seed = 0; seed < 1200; seed++) {
 assert(narrativeRefs > 1000, 'kinship cases exercised');
 assert.deepEqual([...seenDistant].sort(), [...distantIds].sort(), 'all distant relative types generated');
 console.log('Issue #62: 3,000 FNAEG family cases and 7,200 narrative configurations checked for kinship coherence.');
+
+
+// ---- UI / mock PDF integration: random quality must work for both document
+// families; force-quality modes must remain reliable. A lightweight jsPDF
+// double validates the actual page controller, not visual PDF layout. ----
+{
+  const source = narrativeUI.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+  assert(source && source.includes('function build('), 'inline requisition controller found');
+  const win = { REQUISITIONS: R, NARRATIVE_REQUISITIONS: N };
+  let currentLang = 'fr', randomSeed = 951233;
+  const i18n = { getLang: () => currentLang };
+  const math = Object.create(Math);
+  math.random = () => {
+    randomSeed = (Math.imul(randomSeed, 1664525) + 1013904223) >>> 0;
+    return randomSeed / 4294967296;
+  };
+  class PdfStub {
+    constructor() { this.texts = []; this.pages = 1; }
+    saveGraphicsState() {}
+    setFont() {} setFontSize() {} setTextColor() {} setFillColor() {}
+    setDrawColor() {} rect() {} line() {} setLineWidth() {} addImage() {}
+    addPage() { this.pages++; }
+    text(v) { this.texts.push(v); }
+    splitTextToSize(v) { return [String(v)]; }
+    output() { return 'blob:mock'; }
+    save() {}
+  }
+  win.jspdf = { jsPDF: PdfStub };
+  win.JsBarcode = () => {};
+  win.I18N = i18n;
+  const events = {}, elements = {};
+  function element(id) {
+    if (!elements[id]) {
+      const classes = new Set(['hidden']);
+      elements[id] = {
+        value: id === 'rtype' ? 'mixed' : 'random', style: {}, disabled: false,
+        textContent: '', innerHTML: '',
+        classList: {
+          add: x => classes.add(x), remove: x => classes.delete(x),
+          contains: x => classes.has(x),
+          toggle: x => classes.has(x) ? (classes.delete(x), false) : (classes.add(x), true)
+        },
+        addEventListener: (name, callback) => { events[id + ':' + name] = callback; }
+      };
+    }
+    return elements[id];
+  }
+  const doc = {
+    getElementById: element,
+    createElement: () => ({ toDataURL: () => 'data:image/png;base64,AAAA' }),
+    addEventListener: (name, callback) => { events['document:' + name] = callback; }
+  };
+  // This executes the actual HTML controller against deterministic DOM/PDF
+  // doubles; the generator modules above are the same modules exercised in CI.
+  new Function('window', 'document', 'I18N', 'Math', 'URL', source)(
+    win, doc, i18n, math, { revokeObjectURL() {} }
+  );
+  const counts = { fnaeg: 0, narrative: 0, clean: 0, vague: 0, sloppy: 0, both: 0 };
+  for (let i = 0; i < 320; i++) {
+    events['gen:click']();
+    const data = win.__lastReq;
+    counts[data.type === 'narrative' ? 'narrative' : 'fnaeg']++;
+    const q = data.quality;
+    counts[q.vague && q.sloppy ? 'both' : q.vague ? 'vague' : q.sloppy ? 'sloppy' : 'clean']++;
+    assert(element('corrige').classList.contains('hidden'), 'new case must hide prior answer key');
+    assert(!element('corrigeBtn').disabled, 'answer key also available on clean cases');
+    assert(!element('corrigeHint').textContent.includes('nette'), 'no clean-case spoilers');
+  }
+  for (const value of Object.values(counts)) assert(value >= 10, 'all formats/qualities appear with random default');
+  for (const q of ['nette', 'vague', 'sloppy', 'both']) {
+    element('rtype').value = 'narrative';
+    element('nscenario').value = 'johnDoe';
+    element('nreference').value = 'closeKin';
+    element('rquality').value = q;
+    events['gen:click']();
+    assert.equal(win.__lastReq.quality.vague, q === 'vague' || q === 'both');
+    assert.equal(win.__lastReq.quality.sloppy, q === 'sloppy' || q === 'both');
+  }
+  element('rquality').value = 'sloppy';
+  events['gen:click']();
+  const renderedFR = win.__lastDoc.texts.join(' ');
+  assert.match(renderedFR, /resttes|corpss/, 'typo is in student PDF text, not only its metadata');
+  assert.match(renderedFR, /génetiques/, 'mission typo also in PDF');
+  const originalData = JSON.stringify(win.__lastData);
+  currentLang = 'en';
+  events['document:langchange']();
+  assert.equal(JSON.stringify(win.__lastData), originalData, 'language change does not generate a new case');
+  const renderedEN = win.__lastDoc.texts.join(' ');
+  assert.match(renderedEN, /remians|bodu/);
+  assert.match(renderedEN, /genetc/);
+  // A clean answer is disclosed only after the user opens the corrigé.
+  element('rquality').value = 'nette';
+  events['gen:click']();
+  assert(!element('corrigeHint').textContent.includes('Clean requisition'));
+  events['corrigeBtn:click'].call(element('corrigeBtn'));
+  assert.match(element('corrigeBody').innerHTML, /No intentional defect/);
+  events['gen:click']();
+  assert(element('corrige').classList.contains('hidden'), 'fresh case re-hides a previously opened corrigé');
+  console.log('Requisitions UI: 320 mixed cases, four manual quality choices and bilingual PDF text smoke PASS', counts);
+}

@@ -173,38 +173,88 @@ window.NARRATIVE_REQUISITIONS = (function () {
       const options=[];
       const kin=data.references.find(ref=>ref.kind==="relative");
       const item=data.references.find(ref=>ref.kind==="personalItem");
-      if(kin)options.push({field:"references."+kin.id+".claimedSource",archetype:"relationship-path-unstated",
-        change(){const was=kin.claimedSource;kin.claimedSource=t("lien de parenté non précisé","kinship relationship not stated");return was;},
-        note:t("Le lien exact de parenté doit être demandé au requérant.","The precise claimed kinship relationship must be obtained from the requester.")});
-      if(item)options.push({field:"references."+item.id+".claimedSource",archetype:"comparison-provenance-unstated",
-        change(){const was=item.claimedSource;item.claimedSource=t("appartenance non précisée","ownership not stated");return was;},
-        note:t("L'attribution de l'effet personnel n'est pas précisée.","The attribution of the personal item is not stated.")});
-
-      const e=data.exhibits.find(x=>x.kind==="evidence"||x.kind==="personalItem");
-      if(e)options.push({field:"exhibits."+e.id+".provenance",archetype:"exhibit-origin-unstated",
-        change(){const was=e.provenance;e.provenance=t("origine non précisée","origin not stated");return was;},
-        note:t("L'origine d'un scellé est omise.","The origin of an exhibit is omitted.")});
-      // In a no-reference identification request the explicitly reported absence is
-      // itself a decisive fact: withholding it is different from having no references.
-      if(!options.length)options.push({field:"referenceStatus",archetype:"comparison-status-unstated",
-        change(){const was=data.referenceStatus;data.referenceStatus=t("Disponibilité des références non précisée.","Reference availability not stated.");return was;},
-        note:t("Il faut demander si des références sont disponibles ou pourraient être obtenues.","Ask whether comparison references exist or could be obtained.")});
+      if(kin) options.push({field:"references."+kin.id+".claimedSource",archetype:"relationship-path-unstated",
+        change() {
+          const was=kin.claimedSource,p=kin.relationship.relativePerson,name=(p.sex==="F"?"Mme ":"M. ")+p.name;
+          const candidate=kin.relationship.candidate;
+          kin.claimedSource=t(name+" (né(e) le "+p.birthDate+") : prélèvement proposé pour comparaison avec "+candidate,
+                              name+" (born "+p.birthDate+"): sample offered for comparison with "+candidate);
+          return was;
+        },
+        note:t("Le lien de parenté allégué est absent ; demander un pedigree explicite.",
+               "The alleged kinship relationship is missing; request an explicit pedigree.")});
+      if(item) options.push({field:"references."+item.id+".claimedSource",archetype:"comparison-attribution-unstated",
+        change() {
+          const was=item.claimedSource;
+          item.claimedSource=t("Effet personnel proposé pour comparaison génétique.",
+                               "Personal item proposed for genetic comparison.");
+          return was;
+        },
+        note:t("Le requérant n'indique pas à qui cet effet personnel est attribué.",
+               "The requester does not specify whose item this is claimed to be.")});
+      if(data.scenario==="sexualAssault") {
+        const e=data.exhibits.find(x=>x.kind==="evidence");
+        if(e) options.push({field:"exhibits."+e.id+".label",archetype:"sample-nature-unstated",
+          change() {
+            const was=e.label;
+            e.label=t("scellé "+e.id+" (contenu non détaillé)",
+                      "exhibit "+e.id+" (contents not described)");
+            return was;
+          },
+          note:t("La nature ou le site du prélèvement n'est pas communiqué ; demander l'inventaire précis.",
+                 "The sampling site or nature of the item is missing; request a precise inventory.")});
+      }
+      if(data.scenario==="johnDoe" && item) {
+        const e=data.exhibits.find(x=>x.id===item.exhibitId);
+        options.push({field:"exhibits."+e.id+".provenance",archetype:"exhibit-origin-unstated",
+          change() {
+            const was=e.provenance;
+            e.provenance=t("objet transmis sous scellé","item submitted under seal");
+            return was;
+          },
+          note:t("Le lieu et les circonstances de découverte de l'objet ne sont pas indiqués.",
+                 "The item's location and collection circumstances are omitted.")});
+      }
+      if(!options.length) options.push({field:"referenceStatus",archetype:"comparison-status-unstated",
+        change() {
+          const was=data.referenceStatus;
+          data.referenceStatus=t("La recherche d'éléments de comparaison se poursuit.",
+                                 "Investigators are looking into possible comparison material.");
+          return was;
+        },
+        note:t("Le dossier ne précise pas si des références sont disponibles.",
+               "The case does not state whether comparison references are available.")});
       const change=r.pick(options),was=change.change();
       data.facts.withheld[change.field]=was;
       data.degraded.push({field:change.field,kind:"vague",archetype:change.archetype,was,note:change.note});
     }
     if(opts.sloppy) {
-      // Actual drafting defects: do not classify the standard abbreviation OPJ
-      // as erroneous, and never alter the evidence or forensic case semantics.
-      const wasNarrative=data.narrative;
-      data.narrative=t(wasNarrative.fr.charAt(0).toLowerCase()+wasNarrative.fr.slice(1),
-                       wasNarrative.en.charAt(0).toLowerCase()+wasNarrative.en.slice(1));
-      data.degraded.push({field:"narrative",kind:"sloppy",was:wasNarrative,
-        note:t("La phrase commence sans majuscule.","The sentence begins without capitalization.")});
+      // Three visible textual defects, all non-semantic and bilingual.
+      // Do not corrupt biological relationships, sample IDs or dates.
+      const original=data.narrative;
+      const french=data.scenario==="johnDoe"
+        ? original.fr.replace(/restes|corps/,word=>word==="restes"?"resttes":"corpss")
+        : original.fr.replace("personne","persone");
+      const english=data.scenario==="johnDoe"
+        ? original.en.replace(/remains|body/,word=>word==="remains"?"remians":"bodu")
+        : original.en.replace("person","persn");
+      if(french===original.fr||english===original.en) throw Error("No applicable case typo for "+data.caseId);
+      data.narrative=t(french,english);
+      data.degraded.push({field:"narrative",kind:"sloppy",was:original,
+        note:t("Une coquille est présente dans la description des faits.",
+               "A typographical error appears in the description of the incident.")});
+      const wasMission=data.mission;
+      data.mission=t(wasMission.fr.replace("génétiques","génetiques"),
+                     wasMission.en.replace("genetic","genetc"));
+      if(data.mission.fr===wasMission.fr||data.mission.en===wasMission.en) throw Error("No mission typo target");
+      data.degraded.push({field:"mission",kind:"sloppy",was:wasMission,
+        note:t("Un terme scientifique est mal orthographié dans la mission.",
+               "A scientific term in the requested work is misspelled.")});
       const wasService=data.requerant.service;
       data.requerant.service=wasService.toLowerCase();
       data.degraded.push({field:"requerant.service",kind:"sloppy",was:wasService,
-        note:t("Le nom du service est composé sans la casse habituelle.","The unit name has inconsistent capitalization.")});
+        note:t("La dénomination du service est typographiée de façon négligée.",
+               "The requesting unit's name has inconsistent capitalization.")});
     }
     data.quality={vague:!!opts.vague,sloppy:!!opts.sloppy};
     return data;
