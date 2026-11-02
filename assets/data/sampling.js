@@ -50,7 +50,7 @@ window.SAMPLING = {
   // and FTA is swabbed as a reduced-efficiency alternative to punching).
   acceptTool: 0.5,
   dryStainPenalty: 0.15,
-  dryPenaltySubstrates: ["fabric", "metal", "hard", "paper"],
+  dryPenaltySubstrates: ["fabric", "metal", "hard", "paper", "shoe"],
 
   // Which fluids fluoresce under the (single) forensic light. The ALS/UV
   // distinction is intentionally hidden (#43): semen and saliva fluoresce,
@@ -105,7 +105,8 @@ window.SAMPLING = {
     bone:   { dremel: 1.0, cryo: 1.0, scalpel: 0.2 },
     tooth:  { dremel: 1.0, cryo: 0.9 },
     tissue: { scalpel: 1.0, swab_wet: 0.5, swab_dry: 0.5 },
-    liquid: { pipette: 1.0, swab_wet: 0.6, swab_dry: 0.6 }
+    liquid: { pipette: 1.0, swab_wet: 0.6, swab_dry: 0.6 },
+    shoe:   { swab_wet: 1.0, scissors: 0.6, scalpel: 0.55, swab_dry: 0.3 }
   },
 
   items: [
@@ -266,6 +267,20 @@ window.SAMPLING = {
       stainPool: [ { fluid: "tissue", auto: 1.0, degrad: 0.55, visible: false, maleMode: "random", weight: 1, single: true } ],
       touchZones: [],
       teach: { fr: "Comme l'os, une dent est un tissu minéralisé : on fraise (Dremel) ou on cryobroie la racine après section. Source unique → extraction classique.",
-               en: "Like bone, a tooth is mineralised tissue: drill it (Dremel) or cryo-grind the sectioned root. Single source → standard extraction." } }
+               en: "Like bone, a tooth is mineralised tissue: drill it (Dremel) or cryo-grind the sectioned root. Single source → standard extraction." } },
+
+    { id: "shoe", draw: "shoe", substrate: "shoe",
+      title: { fr: "Chaussure (scène d'agression)", en: "Shoe (assault scene)" },
+      context: { fr: "Chaussure saisie. ADN de contact du porteur à l'intérieur ; éventuel sang de la victime à l'extérieur.",
+                 en: "Seized shoe. Wearer's contact DNA inside; possible victim's blood outside." },
+      gen: { min: 0, max: 1, lightable: false },
+      stainSlots: [ { cx: 268, cy: 176, r: 18 } ],
+      stainPool: [
+        { fluid: "blood",      auto: 2.2, degrad: 0.4, visible: true, maleMode: "random", weight: 2 },
+        { fluid: "distractor", auto: 0,   degrad: 0,   visible: true, maleMode: "none",   weight: 1 }
+      ],
+      touchZones: [ { cx: 150, cy: 118, r: 19, auto: 0.11, maleMode: "random" } ], // insole / lining
+      teach: { fr: "Une chaussure portée contient toujours l'ADN de contact du porteur à l'intérieur (semelle de propreté, doublure) : on prélève l'intérieur à l'écouvillon humidifié, pas la surface extérieure. Une tache de sang à l'extérieur (semelle, dessus) peut être celle de la victime — on la caractérise (Peroxtesmo) et on la prélève. On distingue le porteur (contact) de la victime (sang).",
+               en: "A worn shoe always holds the wearer's contact DNA inside (insole, lining): swab the interior with a moistened swab, not the outer surface. A blood stain outside (sole, upper) may be the victim's — characterise it (Peroxtesmo) and sample it. Distinguish the wearer (contact) from the victim (blood)." } }
   ]
 };
