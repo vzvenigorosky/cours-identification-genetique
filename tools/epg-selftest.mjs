@@ -6,6 +6,8 @@
    ============================================================ */
 import { generateCase, CASE_TYPES } from "../assets/epg/index.js";
 import { getKit, allelesOf, sizeOf, maxSize } from "../assets/epg/panels.js";
+import { locusViewport } from "../assets/epg/render-svg.js";
+import { readFileSync } from "node:fs";
 
 let pass = 0, fail = 0;
 function ok(cond, msg) { if (cond) { pass++; } else { fail++; console.error("✗ " + msg); } }
@@ -159,6 +161,116 @@ for (const kit of ["globalfiler", "yfilerplus"]) {
   const c2 = generateCase({ kit: "globalfiler", type: "clean", seed: "x2", controls: true });
   const posOf = (svg) => svg.slice(svg.indexOf("Positive control"), svg.indexOf("Negative control"));
   ok(posOf(c1.svg) !== "" && posOf(c1.svg).length > 100, "render: positive-control track present");
+}
+
+
+// ---- per-locus zoom (#73 / #50.8): presentation, not resimulation ----
+{
+  const bare = generateCase({kit: "globalfiler", type: "clean", seed: "zoom-compat"});
+  const unchanged = generateCase({kit: "globalfiler", type: "clean", seed: "zoom-compat", zoomLocus: undefined});
+  ok(bare.svg === unchanged.svg, "zoom: omitted/undefined option yields identical default SVG");
+  ok(!/data-zoom-locus=/.test(bare.svg), "zoom: default overview has no zoom metadata");
+  for (const kitId of ["globalfiler", "yfilerplus"]) {
+    const kit = getKit(kitId);
+    // Every marker, including Amelogenin, Yindel and multicopy Y loci,
+    // may be selected independently without touching the underlying peaks.
+    const full = generateCase({kit: kitId, type: "clean", seed: "zoom-every-locus", width: 1200});
+    const core = JSON.stringify(full.samples.map((sample) => sample.sim));
+    const key = JSON.stringify(full.answerKey);
+    let sawPeak = false;
+    for (const locus of kit.loci) {
+      const interval = locusViewport(kit, locus.name);
+      const z = generateCase({
+        kit: kitId, type: "clean", seed: "zoom-every-locus", width: 1200,
+        zoomLocus: locus.name, showBins: true
+      });
+      const again = generateCase({
+        kit: kitId, type: "clean", seed: "zoom-every-locus", width: 1200,
+        zoomLocus: locus.name, showBins: true
+      });
+      ok(z.svg === again.svg, `zoom: ${kitId}/${locus.name} deterministic rendering`);
+      ok(JSON.stringify(z.samples.map((sample) => sample.sim)) === core,
+         `zoom: ${kitId}/${locus.name} original peak simulation unchanged`);
+      ok(JSON.stringify(z.answerKey) === key, `zoom: ${kitId}/${locus.name} answerKey unchanged`);
+      ok(interval.max > interval.min && interval.min >= 80, `zoom: ${locus.name} valid viewport`);
+      ok(z.svg.includes(`data-zoom-locus="${locus.name}"`) &&
+         z.svg.includes(`data-zoom-min="${interval.min}" data-zoom-max="${interval.max}"`),
+         `zoom: ${locus.name} viewport metadata present`);
+      const sizes = [...z.svg.matchAll(/<path class="pk" data-size="([0-9.]+)"/g)].map((match) => Number(match[1]));
+      ok(sizes.every((size) => size >= interval.min && size <= interval.max),
+         `zoom: ${locus.name} displayed peaks inside viewport`);
+      if (sizes.length) sawPeak = true;
+      ok(z.svg.includes('6-FAM') && z.svg.includes('VIC') &&
+         z.svg.includes('NED') && z.svg.includes('TAZ') && z.svg.includes('SID'),
+         `zoom: ${locus.name} retains five dye channels`);
+      ok(/class="bin"/.test(z.svg), `zoom: ${locus.name} optional bin overlay retained`);
+      const bins = [...z.svg.matchAll(/<line class="bin" x1="([0-9.]+)"/g)].map((match) => Number(match[1]));
+      ok(bins.every((x) => x >= 61 && x <= 1183), `zoom: ${locus.name} bin x-coordinates stay in plot`);
+      // The full plot uses 50-bp ticks. The selected locus has a finer
+      // 5/10-bp axis and is not a cropped bitmap.
+      const step = interval.max - interval.min <= 44 ? 5 : 10;
+      ok(z.svg.includes(`>${Math.ceil(interval.min / step) * step}</text>`),
+         `zoom: ${locus.name} displays fine-grained size ticks`);
+    }
+    ok(sawPeak, `zoom: ${kitId} shows signal across selected loci`);
+  }
+
+  // Mixtures and kinship pairs use the identical source simulations in either
+  // view; all samples in a stacked electropherogram share the same focus.
+  for (const type of ["clean", "degraded", "mixture2", "mixture3",
+                       "parent-child", "full-siblings", "grandparent"]) {
+    const opts = {kit:"globalfiler", type, seed:"zoom-"+type, controls:true, showBins:true};
+    const full = generateCase(opts);
+    const zoom = generateCase({...opts, zoomLocus:"D21S11"});
+    ok(JSON.stringify(full.answerKey) === JSON.stringify(zoom.answerKey),
+       `zoom: ${type} unchanged ground-truth answer key`);
+    ok(JSON.stringify(full.samples.map((x) => x.sim)) === JSON.stringify(zoom.samples.map((x) => x.sim)),
+       `zoom: ${type} no change to simulated source peaks`);
+    ok(zoom.svg.includes("Allelic ladder") && zoom.svg.includes("Positive control") &&
+       zoom.svg.includes("Negative control"), `zoom: ${type} preserves batch controls`);
+    ok((zoom.svg.match(/data-zoom-locus="D21S11"/g) || []).length === zoom.samples.length + 3,
+       `zoom: ${type} every sample/control track focused identically`);
+  }
+
+  // At least one tall true allele must exhibit a genuine aligned pull-up in
+  // a second dye, and the focus must not hide that diagnostic comparison.
+  let alignment = null;
+  for (let i = 0; i < 80 && !alignment; i++) {
+    const spec = {kit:"globalfiler", type:"clean", seed:"zoom-pullup-"+i, template:8000};
+    const generated = generateCase(spec);
+    const peaks = generated.samples[0].sim.peaks;
+    for (const pu of peaks.filter((p) => p.kind === "pullup")) {
+      const parent = peaks.find((p) => p.kind === "allele" && p.dye !== pu.dye &&
+        Math.abs(p.size - pu.size) < 0.1 && p.locus);
+      if (!parent) continue;
+      const focused = generateCase({...spec, zoomLocus:parent.locus});
+      const sizeTag = `data-size="${pu.size}"`;
+      if (focused.svg.includes(sizeTag) && focused.svg.includes(`data-dye="${pu.dye}"`) &&
+          focused.svg.includes(`data-dye="${parent.dye}"`)) {
+        alignment = {pu, parent, focused};
+        break;
+      }
+    }
+  }
+  ok(!!alignment, "zoom: aligned parent allele and different-dye pull-up remain visible");
+
+  let bad = false;
+  try { locusViewport(getKit("globalfiler"), "INVALID_LOCUS"); } catch (e) { bad = e instanceof RangeError; }
+  ok(bad, "zoom: unknown marker rejects rather than silently falling back");
+  bad = false;
+  try { generateCase({kit:"globalfiler", type:"clean", seed:0, zoomLocus:"INVALID_LOCUS"}); }
+  catch (e) { bad = e instanceof RangeError; }
+  ok(bad, "zoom: generateCase rejects invalid zoom marker");
+
+  const html = readFileSync(new URL("../epg.html", import.meta.url), "utf8");
+  ok(html.includes('id="zoomLocus"') &&
+     html.includes('data-fr="Zoom sur un locus"') &&
+     html.includes('data-en="Zoom to locus"'),
+     "zoom: bilingual lab control present");
+  ok(html.includes('s.zoomLocus = zoomLocus') && html.includes('"zoomLocus").addEventListener("change", generate)'),
+     "zoom: lab selector dispatches zoom to case renderer");
+  ok(html.includes('fillZoomLoci(); generate();') && html.includes('fillTypes(); fillZoomLoci(); fillArts();'),
+     "zoom: kit and page initialization populate selector");
 }
 
 console.log(`\n${fail === 0 ? "✓ ALL PASS" : "✗ FAILURES"} — ${pass} passed, ${fail} failed`);
