@@ -66,7 +66,11 @@ window.NARRATIVE_REQUISITIONS = (function () {
     const father=make("M",surname,birthYear-r.int(24,35));
     const mother=make("F",maiden,birthYear-r.int(22,34));
     const sibling=make(r.pick(["M","F"]),surname,birthYear+r.pick([-8,-6,-4,-2,2,4,6,8]));
-    const child=birthYear<=1987?make(r.pick(["M","F"]),surname,birthYear+r.int(21,2026-birthYear-18)):null;
+    // Patrilineal birth surname: the candidate's child carries the candidate's
+    // surname only if the candidate is male; a female candidate's child takes
+    // its own father's (different) surname.
+    const childSurname=candidate.sex==="M"?surname:r.pick(SURNAMES.filter(n=>n!==surname));
+    const child=birthYear<=1987?make(r.pick(["M","F"]),childSurname,birthYear+r.int(21,2026-birthYear-18)):null;
     const grandfather=make("M",surname,father.birthYear-r.int(20,28));
     const grandmother=make("F",r.pick(SURNAMES.filter(n=>n!==surname)),grandfather.birthYear+r.int(-6,8));
     const greatGrandfather=make("M",surname,grandfather.birthYear-r.int(23,32));
@@ -79,7 +83,10 @@ window.NARRATIVE_REQUISITIONS = (function () {
     const people={father,mother,fullSibling:sibling,child,greatAunt};
     function relative(id) {
       if(people[id])return people[id];
-      return make(r.pick(["M","F"]),id==="firstCousin"?surname:r.pick(SURNAMES),birthYear+r.int(-11,11));
+      // A first cousin on the paternal male line shares the surname; more distant
+      // collaterals carry an independent surname (not the paternal one).
+      const sn=id==="firstCousin"?surname:r.pick(SURNAMES.filter(n=>n!==surname));
+      return make(r.pick(["M","F"]),sn,birthYear+r.int(-11,11));
     }
     return {candidate,father,mother,sibling,child,grandfather,grandmother,greatAunt,ancestors,relative};
   }
@@ -100,6 +107,25 @@ window.NARRATIVE_REQUISITIONS = (function () {
     data.references.push({id:"R"+(data.references.length+1),exhibitId:exhibitData.id,kind,
       label:exhibitData.label,provenance:exhibitData.provenance,claimedSource,relationship:relationship||null});
   }
+  // Sex-agreeing description of a reported relationship (both languages).
+  function relationDesc(id,sex) {
+    const f=sex==="F";
+    switch(id){
+      case "mother": return t("mère biologique présumée","reported biological mother");
+      case "father": return t("père biologique présumé","reported biological father");
+      case "fullSibling": return f?t("sœur germaine présumée","reported full sister"):t("frère germain présumé","reported full brother");
+      case "child": return f?t("fille biologique présumée","reported biological daughter"):t("fils biologique présumé","reported biological son");
+      case "firstCousin": return f?t("cousine germaine présumée : grands-parents communs allégués","reported first cousin: claimed shared grandparents")
+                                  :t("cousin germain présumé : grands-parents communs allégués","reported first cousin: claimed shared grandparents");
+      case "secondCousin": return f?t("cousine issue de germains présumée : arrière-grands-parents communs allégués","reported second cousin: claimed shared great-grandparents")
+                                   :t("cousin issu de germains présumé : arrière-grands-parents communs allégués","reported second cousin: claimed shared great-grandparents");
+      case "greatAunt": return t("grand-tante présumée : sœur d'un grand-parent","reported great-aunt: sibling of a grandparent");
+      case "thirdCousin": return t("parent éloigné présumé : arrière-arrière-grands-parents communs allégués","reported distant relative: claimed shared great-great-grandparents");
+      case "fourthCousin": return t("parent éloigné présumé : arrière-arrière-arrière-grands-parents communs allégués","reported distant relative: claimed shared three-times-great-grandparents");
+      default: return t("parent présumé","reported relative");
+    }
+  }
+  const born=(sex)=>sex==="F"?"née le ":"né le ";
   function makeJohnDoe(r,mode) {
     const template=r.pick(REMAINS),data=base(r,"johnDoe",template,r.pick(PLACES));
     const family=buildPedigree(r),candidate=family.candidate;
@@ -109,7 +135,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
     data.objective=t("Rechercher les éléments génétiques utiles à l'identification des restes humains non identifiés.","Seek genetic information relevant to identifying the unidentified human remains.");
     exhibit(data,"unknownRemains",template.label,t("prélevé sur les restes non identifiés","sampled from the unidentified remains"));
     if(mode!=="none") {
-      data.narrative.fr+=" Une comparaison avec "+candidate.name+" (né(e) le "+candidate.birthDate+
+      data.narrative.fr+=" Une comparaison avec "+candidate.name+" ("+born(candidate.sex)+candidate.birthDate+
         "), personne signalée disparue, est envisagée sans que cette identité soit établie.";
       data.narrative.en+=" A comparison with "+candidate.name+" (born "+candidate.birthDate+
         "), a reported missing person, is being considered without any identification established.";
@@ -127,15 +153,15 @@ window.NARRATIVE_REQUISITIONS = (function () {
       const pool=mode==="closeKin"?close:mode==="distantKin"?distant:r.pick([close,distant]);
       const count=mode==="mixed"?r.int(1,2):r.int(1,Math.min(3,pool.length));
       for(const rel of r.shuffle(pool).slice(0,count)) {
-        const p=family.relative(rel.id),title=p.sex==="M"?"M.":"Mme";
+        const p=family.relative(rel.id),title=p.sex==="M"?"M.":"Mme",desc=relationDesc(rel.id,p.sex);
         const e=exhibit(data,"relativeSample",
           t("écouvillon buccal de "+title+" "+p.name,"cheek swab from "+title+" "+p.name),
           t("prélèvement de comparaison communiqué par les enquêteurs","comparison sample provided by investigators"));
         const ancestor=family.ancestors[rel.id];
         addRef(data,"relative",e,
-          t(title+" "+p.name+" (né(e) le "+p.birthDate+") : "+rel.desc.fr+" de "+candidate.name,
-            title+" "+p.name+" (born "+p.birthDate+"): "+rel.desc.en+" of "+candidate.name),
-          {id:rel.id,path:rel.path.slice(),summary:rel.desc,candidate:candidate.name,
+          t(title+" "+p.name+" ("+born(p.sex)+p.birthDate+") : "+desc.fr+" de "+candidate.name,
+            title+" "+p.name+" (born "+p.birthDate+"): "+desc.en+" of "+candidate.name),
+          {id:rel.id,path:rel.path.slice(),summary:desc,candidate:candidate.name,
            relativePerson:p,commonAncestor:ancestor?{name:ancestor.name,birthYear:ancestor.birthYear}:null});
       }
     }
@@ -177,7 +203,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
         change() {
           const was=kin.claimedSource,p=kin.relationship.relativePerson,name=(p.sex==="F"?"Mme ":"M. ")+p.name;
           const candidate=kin.relationship.candidate;
-          kin.claimedSource=t(name+" (né(e) le "+p.birthDate+") : prélèvement proposé pour comparaison avec "+candidate,
+          kin.claimedSource=t(name+" ("+born(p.sex)+p.birthDate+") : prélèvement proposé pour comparaison avec "+candidate,
                               name+" (born "+p.birthDate+"): sample offered for comparison with "+candidate);
           return was;
         },
@@ -228,35 +254,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
       data.facts.withheld[change.field]=was;
       data.degraded.push({field:change.field,kind:"vague",archetype:change.archetype,was,note:change.note});
     }
-    if(opts.sloppy) {
-      // Three visible textual defects, all non-semantic and bilingual.
-      // Do not corrupt biological relationships, sample IDs or dates.
-      const original=data.narrative;
-      const french=data.scenario==="johnDoe"
-        ? original.fr.replace(/restes|corps/,word=>word==="restes"?"resttes":"corpss")
-        : original.fr.replace("personne","persone");
-      const english=data.scenario==="johnDoe"
-        ? original.en.replace(/remains|body/,word=>word==="remains"?"remians":"bodu")
-        : original.en.replace("person","persn");
-      if(french===original.fr||english===original.en) throw Error("No applicable case typo for "+data.caseId);
-      data.narrative=t(french,english);
-      data.degraded.push({field:"narrative",kind:"sloppy",was:original,
-        note:t("Une coquille est présente dans la description des faits.",
-               "A typographical error appears in the description of the incident.")});
-      const wasMission=data.mission;
-      data.mission=t(wasMission.fr.replace("génétiques","génetiques"),
-                     wasMission.en.replace("genetic","genetc"));
-      if(data.mission.fr===wasMission.fr||data.mission.en===wasMission.en) throw Error("No mission typo target");
-      data.degraded.push({field:"mission",kind:"sloppy",was:wasMission,
-        note:t("Un terme scientifique est mal orthographié dans la mission.",
-               "A scientific term in the requested work is misspelled.")});
-      const wasService=data.requerant.service;
-      data.requerant.service=wasService.toLowerCase();
-      data.degraded.push({field:"requerant.service",kind:"sloppy",was:wasService,
-        note:t("La dénomination du service est typographiée de façon négligée.",
-               "The requesting unit's name has inconsistent capitalization.")});
-    }
-    data.quality={vague:!!opts.vague,sloppy:!!opts.sloppy};
+    data.quality={vague:!!opts.vague};
     return data;
   }
   function generate(opts) {
