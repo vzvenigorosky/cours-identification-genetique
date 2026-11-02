@@ -38,8 +38,8 @@ window.NARRATIVE_REQUISITIONS = (function () {
     {id:"firstCousin",path:["candidate","parent","sharedGrandparents","auntOrUncle","cousin"],desc:t("cousin(e) germain(e) présumé(e) : grands-parents communs allégués","reported first cousin: claimed shared grandparents")},
     {id:"secondCousin",path:["candidate","grandparent","sharedGreatGrandparents","otherGrandchild","cousin"],desc:t("cousin(e) issu(e) de germains présumé(e) : arrière-grands-parents communs allégués","reported second cousin: claimed shared great-grandparents")},
     {id:"greatAunt",path:["candidate","grandparent","sharedParentsWithGrandparent","greatAunt"],desc:t("grand-tante présumée : sœur d'un grand-parent","reported great-aunt: sibling of a grandparent"),sex:"F"},
-    {id:"thirdCousin",path:["candidate","lineageToGreatGreatGrandparents","sharedGreatGreatGrandparents","otherDescendantLine","relative"],desc:t("parent éloigné présenté comme cousin au troisième degré : arrière-arrière-grands-parents communs allégués","reported third cousin: claimed shared great-great-grandparents")},
-    {id:"fourthCousin",path:["candidate","lineageToThreeTimesGreatGrandparents","sharedThreeTimesGreatGrandparents","otherDescendantLine","relative"],desc:t("parent éloigné présenté comme cousin au quatrième degré : ancêtres communs allégués à cinq générations","reported fourth cousin: claimed shared three-times-great-grandparents")}
+    {id:"thirdCousin",path:["candidate","lineageToGreatGreatGrandparents","sharedGreatGreatGrandparents","otherDescendantLine","relative"],desc:t("parent éloigné : arrière-arrière-grands-parents communs allégués","reported third cousin: claimed shared great-great-grandparents")},
+    {id:"fourthCousin",path:["candidate","lineageToThreeTimesGreatGrandparents","sharedThreeTimesGreatGrandparents","otherDescendantLine","relative"],desc:t("parent très éloigné : arrière-arrière-arrière-grands-parents communs allégués","reported fourth cousin: claimed shared three-times-great-grandparents")}
   ];
   function rng(seed) {
     let x = (Number(seed) >>> 0) || 0x6d2b79f5;
