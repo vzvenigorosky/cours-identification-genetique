@@ -36,4 +36,65 @@ for (const f of P.fields) {
   }
 }
 for (const k of ['low', 'high']) assert(P.inputMsg[k], `inputMsg.${k}`);
-console.log(`MG3: ${P.fields.length} protocol fields, input model and ${bi.ok} bilingual strings checked.`);
+
+// Catastrophic kill thresholds must sit beyond the band, on the right side.
+for (const f of P.fields) {
+  for (const side of ['low', 'high']) {
+    const e = f[side];
+    if (e.kill !== undefined) {
+      if (side === 'low') assert(e.kill < f.band[0], `${f.id}.low.kill below the band`);
+      else assert(e.kill > f.band[1], `${f.id}.high.kill above the band`);
+    }
+  }
+}
+
+// ---- amount model behaviour (issue #42) ----
+assert.equal(typeof P.effectiveAmount, 'function', 'effectiveAmount exported');
+assert.equal(typeof P.applyHomozygous, 'function', 'applyHomozygous exported');
+assert(Number.isInteger(P.homozygousLoci) && P.homozygousLoci > 0, 'homozygousLoci is a positive integer');
+assert(P.cycleBase > 1.5, 'per-cycle gain steep enough for a low-cycle NULL');
+assert(P.cycleClamp[0] <= 0.05, 'cycle floor low enough to reach NULL');
+
+const defaults = {};
+for (const f of P.fields) defaults[f.id] = f.def;
+const withCycles = (o) => Object.assign({}, defaults, o);
+
+const good = P.effectiveAmount(defaults, P.input.targetNg);
+assert.equal(good.offenders.length, 0, 'in-band defaults raise no offender');
+assert(Math.abs(good.amount - P.A_OPT) < 1e-6, 'in-band defaults give the optimal amount');
+assert.equal(good.degradation, 0, 'in-band defaults: no degradation');
+
+// 150 °C initial denaturation → cooked → below detection (NULL).
+const cooked = P.effectiveAmount(withCycles({ initDenatT: 150 }), P.input.targetNg);
+assert(cooked.amount < P.thresholds.at, `150 °C must be catastrophic (amount ${cooked.amount.toFixed(1)} < ${P.thresholds.at})`);
+assert(cooked.offenders.length > 0, 'the catastrophic setting is reported');
+
+// A value just out of band is only a mild penalty, not catastrophic.
+const mild = P.effectiveAmount(withCycles({ initDenatT: 97 }), P.input.targetNg);
+assert(mild.amount > P.thresholds.st, 'a slightly-too-hot setting stays usable');
+assert(mild.amount < good.amount, 'but is still penalised vs in-band');
+
+// Low cycle count → NULL / very dropped; the in-band low edge stays usable.
+const fewCycles = P.effectiveAmount(withCycles({ cycles: 20 }), P.input.targetNg);
+assert(fewCycles.amount < P.thresholds.at, `low cycles must drop below detection (amount ${fewCycles.amount.toFixed(1)})`);
+const edgeCycles = P.effectiveAmount(withCycles({ cycles: 28 }), P.input.targetNg);
+assert.equal(edgeCycles.offenders.length, 0, '28 cycles (in band) raises no offender');
+assert(edgeCycles.amount > P.thresholds.st, '28 cycles stays usable');
+
+// Too many cycles → over-amplification (off-scale).
+const manyCycles = P.effectiveAmount(withCycles({ cycles: 34 }), P.input.targetNg);
+assert(manyCycles.amount > P.OVER, 'too many cycles over-amplifies');
+
+// Homozygote forcing: exactly n loci become single-peak, the rest untouched.
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+{
+  const geno = { L1: [12, 14], L2: [9, 10], L3: [15, 16], L4: [7, 8], L5: [20, 21], AMEL: ['X', 'Y'] };
+  const names = ['L1', 'L2', 'L3', 'L4', 'L5'];
+  const chosen = P.applyHomozygous(geno, names, 3, mulberry32(7));
+  assert.equal(chosen.length, 3, 'exactly 3 loci forced homozygous');
+  for (const nm of chosen) assert.equal(geno[nm][0], geno[nm][1], `${nm} is homozygous`);
+  for (const nm of names.filter((n) => !chosen.includes(n))) assert.notEqual(geno[nm][0], geno[nm][1], `${nm} left heterozygous`);
+  assert.deepEqual(geno.AMEL, ['X', 'Y'], 'non-autosomal loci untouched');
+}
+
+console.log(`MG3: ${P.fields.length} protocol fields, amount model (catastrophic kills, low-cycle NULL, ${P.homozygousLoci} forced homozygotes) and ${bi.ok} bilingual strings checked.`);
