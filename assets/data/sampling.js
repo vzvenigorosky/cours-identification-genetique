@@ -41,26 +41,35 @@
 window.SAMPLING = {
   threshold: 0.05, // ng/µL autosomal considered "usable DNA recovered"
 
-  // Which fluids fluoresce, PER LIGHT. ALS (Crimescope/Forenscope) is more
-  // sensitive than UV: it reveals saliva as well as semen. Blood never
-  // fluoresces (it absorbs and appears dark).
+  // Tool stringency (DRAFT/tunable, #43). An instrument whose suitability is
+  // below `acceptTool` is the WRONG tool for that substrate and fails the
+  // sampling, even if a little DNA is recovered. `dryStainPenalty` is the yield
+  // multiplier for using a DRY swab on a dried deposit (a moistened swab should
+  // be used to rehydrate and lift the cells).
+  acceptTool: 0.5,
+  dryStainPenalty: 0.15,
+
+  // Which fluids fluoresce under the (single) forensic light. The ALS/UV
+  // distinction is intentionally hidden (#43): semen and saliva fluoresce,
+  // blood never does (it absorbs and appears dark).
   fluorescence: {
-    semen:      { als: true,  uv: true  },
-    saliva:     { als: true,  uv: false },
-    urine:      { als: true,  uv: true  },
-    blood:      { als: false, uv: false },
-    touch:      { als: false, uv: false },
-    distractor: { als: false, uv: false },
-    paint:      { als: false, uv: false },
-    none:       { als: false, uv: false }
+    semen:      true,
+    saliva:     true,
+    urine:      true,
+    blood:      false,
+    touch:      false,
+    tissue:     false,
+    distractor: false,
+    paint:      false,
+    none:       false
   },
 
   // Colour coding (test ＋ markers & stains). Distractor = neutral brown.
-  colors: { blood: "#d64545", semen: "#2f6fb0", saliva: "#d6a516", paint: "#d64545", distractor: "#b08968", touch: "#9aa4ad", none: "#9aa4ad" },
+  colors: { blood: "#d64545", semen: "#2f6fb0", saliva: "#d6a516", paint: "#d64545", tissue: "#b5544f", distractor: "#b08968", touch: "#9aa4ad", none: "#9aa4ad" },
 
+  // One combined forensic-light button (Crimescope/Forenscope + UV merged, #43).
   lights: [
-    { id: "als", label: { fr: "Forenscope / Crimescope (ALS)", en: "Forenscope / Crimescope (ALS)" } },
-    { id: "uv",  label: { fr: "Lumière UV", en: "UV light" } }
+    { id: "light", label: { fr: "Lumière forensique (Crimescope / UV)", en: "Forensic light (Crimescope / UV)" } }
   ],
 
   tests: [
@@ -75,18 +84,25 @@ window.SAMPLING = {
     { id: "scissors",  footprint: "cut",  label: { fr: "Ciseaux (découpe)", en: "Scissors (cut-out)" } },
     { id: "scalpel",   footprint: "scalpel", label: { fr: "Scalpel", en: "Scalpel" } },
     { id: "fta_punch", footprint: "disc", label: { fr: "Poinçon FTA", en: "FTA puncher" } },
-    { id: "tape",      footprint: "tape", label: { fr: "Ruban adhésif (tape-lift)", en: "Tape-lift" } }
+    { id: "pipette",   footprint: "pipette", label: { fr: "Pipetage", en: "Pipetting" } },
+    { id: "dremel",    footprint: "bore", label: { fr: "Fraisage (Dremel)", en: "Drilling (Dremel)" } },
+    { id: "cryo",      footprint: "grind", label: { fr: "Cryobroyage", en: "Cryogenic grinding" } }
   ],
 
   // Instrument suitability per substrate (0–1). Any instrument NOT listed is
-  // incompatible (factor 0) — e.g. scissors can't cut a metal blade.
+  // incompatible (factor 0) — e.g. scissors can't cut a metal blade. A dry swab
+  // is below `acceptTool` wherever a dried deposit should be lifted wet (#43).
   substrateTools: {
     card:   { fta_punch: 1.0, scissors: 0.7, scalpel: 0.6 },
-    fabric: { scissors: 1.0, tape: 0.8, swab_wet: 0.6, scalpel: 0.5, swab_dry: 0.3 },
-    metal:  { swab_wet: 1.0, swab_dry: 0.6, scalpel: 0.4 },
+    fabric: { scissors: 1.0, swab_wet: 0.6, scalpel: 0.5, swab_dry: 0.3 },
+    metal:  { swab_wet: 1.0, scalpel: 0.4, swab_dry: 0.3 },
     paper:  { scissors: 1.0, swab_wet: 0.6, scalpel: 0.5 },
     swab:   { scissors: 1.0, scalpel: 0.7, swab_wet: 0.4 },
-    hard:   { swab_wet: 1.0, swab_dry: 0.8, scalpel: 0.3 }
+    hard:   { swab_wet: 1.0, scalpel: 0.3, swab_dry: 0.35 },
+    bone:   { dremel: 1.0, cryo: 1.0, scalpel: 0.2 },
+    tooth:  { dremel: 1.0, cryo: 0.9 },
+    tissue: { scalpel: 1.0, scissors: 0.6 },
+    liquid: { pipette: 1.0 }
   },
 
   items: [
@@ -96,10 +112,10 @@ window.SAMPLING = {
                  en: "Reference sample from a known individual, on an FTA card." },
       gen: { min: 1, max: 1, lightable: false, reference: true },
       stainSlots: [ { cx: 200, cy: 132, r: 46 } ],
-      stainPool: [ { fluid: "blood", auto: 5.0, degrad: 0.1, visible: true, maleMode: "random", weight: 1, refSample: true } ],
+      stainPool: [ { fluid: "blood", auto: 5.0, degrad: 0.1, visible: true, maleMode: "random", weight: 1, refSample: true, single: true } ],
       touchZones: [],
-      teach: { fr: "Échantillon de référence : aucun test d'orientation n'est nécessaire, on poinçonne un disque dans le spot. Selon le donneur, fraction féminine seule ou ADN masculin — jamais un mélange, donc jamais d'extraction différentielle.",
-               en: "Reference sample: no orientation test is needed — punch a disc in the spot. Depending on the donor, feminine-only or male DNA — never a mixture, hence never a differential extraction." } },
+      teach: { fr: "Échantillon de référence : aucun test d'orientation n'est nécessaire, on poinçonne un disque dans le spot. Source unique → extraction classique, jamais différentielle.",
+               en: "Reference sample: no orientation test is needed — punch a disc in the spot. Single source → standard extraction, never differential." } },
 
     { id: "shirt", draw: "shirt", substrate: "fabric",
       title: { fr: "T-shirt (scène d'agression)", en: "T-shirt (assault scene)" },
@@ -118,8 +134,8 @@ window.SAMPLING = {
         { cx: 148, cy: 140, r: 15, auto: 0.09, maleMode: "random" }, // left armpit
         { cx: 262, cy: 140, r: 15, auto: 0.09, maleMode: "random" }  // right armpit
       ],
-      teach: { fr: "Même sans tache, un vêtement porté offre de l'ADN de contact au col et aux aisselles : on y prélève par le tape-lift ou l'écouvillon, pas sur le devant. Le sperme fluoresce (ALS/UV), la salive sous ALS seulement, le sang ne fluoresce pas. Une tache brune peut être non biologique : un test l'écarte.",
-               en: "Even with no stain, a worn garment yields touch DNA at the collar and armpits: tape-lift / swab there, not the front. Semen fluoresces (ALS/UV), saliva under ALS only, blood doesn't. A brown stain may be non-biological: a test rules it out." } },
+      teach: { fr: "Même sans tache, un vêtement porté offre de l'ADN de contact au col et aux aisselles : on y prélève à l'écouvillon humidifié (ou par découpe), pas sur le devant. Sous lumière forensique, le sperme et la salive fluorescent, le sang ne fluoresce pas. Une tache brune peut être non biologique : un test l'écarte.",
+               en: "Even with no stain, a worn garment yields touch DNA at the collar and armpits: sample there with a moistened swab (or cut-out), not the front. Under forensic light, semen and saliva fluoresce, blood doesn't. A brown stain may be non-biological: a test rules it out." } },
 
     { id: "sheet", draw: "sheet", substrate: "fabric",
       title: { fr: "Drap (affaire de viol)", en: "Bedsheet (rape case)" },
@@ -134,8 +150,8 @@ window.SAMPLING = {
         { fluid: "distractor", auto: 0,   degrad: 0,   visible: true,  maleMode: "none",   weight: 2 }
       ],
       touchZones: [],
-      teach: { fr: "Grande surface : les taches de sperme/salive sont invisibles → l'ALS les localise avant tout test. Le sang se voit mais ne fluoresce pas. On caractérise chaque tache puis on découpe celles qui portent de l'ADN.",
-               en: "Large surface: semen/saliva stains are invisible → ALS locates them before any test. Blood is visible but doesn't fluoresce. Characterise each stain, then cut out the DNA-bearing ones." } },
+      teach: { fr: "Grande surface : les taches de sperme/salive sont invisibles → la lumière forensique les localise avant tout test. Le sang se voit mais ne fluoresce pas. On caractérise chaque tache puis on découpe celles qui portent de l'ADN.",
+               en: "Large surface: semen/saliva stains are invisible → the forensic light locates them before any test. Blood is visible but doesn't fluoresce. Characterise each stain, then cut out the DNA-bearing ones." } },
 
     { id: "underwear", draw: "underwear", substrate: "fabric",
       title: { fr: "Sous-vêtement (agression)", en: "Underwear (assault)" },
@@ -180,8 +196,8 @@ window.SAMPLING = {
       stainSlots: [ { cx: 262, cy: 128, r: 20 } ],
       stainPool: [ { fluid: "blood", auto: 2.2, degrad: 0.4, visible: true, maleMode: "random", weight: 1 } ],
       touchZones: [ { cx: 118, cy: 130, r: 24, auto: 0.09, maleMode: "random" } ], // handle
-      teach: { fr: "Le sang de la lame est visible et non fluorescent (ALS inutile, Peroxtesmo confirme). On ne découpe pas le métal → écouvillon humidifié. Le manche porte de l'ADN de contact invisible : on le prélève par le contexte. Du sang d'un homme → au besoin Y-STR, pas d'extraction différentielle.",
-               en: "Blade blood is visible and non-fluorescent (ALS useless, Peroxtesmo confirms). You can't cut metal → moistened swab. The handle carries invisible touch DNA: sample it from context. A man's blood → Y-STR if needed, not a differential extraction." } },
+      teach: { fr: "Le sang de la lame est visible et non fluorescent (la lumière est inutile, Peroxtesmo confirme). On ne découpe pas le métal → écouvillon humidifié. Le manche porte de l'ADN de contact invisible : on le prélève par le contexte. Du sang d'un homme → au besoin Y-STR, pas d'extraction différentielle.",
+               en: "Blade blood is visible and non-fluorescent (the light is useless here, Peroxtesmo confirms). You can't cut metal → moistened swab. The handle carries invisible touch DNA: sample it from context. A man's blood → Y-STR if needed, not a differential extraction." } },
 
     { id: "redstain", draw: "redstain", substrate: "hard",
       title: { fr: "Tache rouge sur surface dure", en: "Red stain on a hard surface" },
@@ -192,6 +208,61 @@ window.SAMPLING = {
       stainPool: [ { fluid: "blood", auto: 3.0, degrad: 0.2, visible: true, maleMode: "random", weight: 1, uncertain: true } ],
       touchZones: [],
       teach: { fr: "Une tache rouge n'est pas forcément du sang : un test d'orientation (Peroxtesmo) tranche. Si elle est négative (peinture, rouille), il n'y a rien à extraire : on le déclare au lieu de prélever inutilement.",
-               en: "A red stain isn't necessarily blood: an orientation test (Peroxtesmo) decides. If it's negative (paint, rust), there is nothing to extract: declare it rather than sampling for nothing." } }
+               en: "A red stain isn't necessarily blood: an orientation test (Peroxtesmo) decides. If it's negative (paint, rust), there is nothing to extract: declare it rather than sampling for nothing." } },
+
+    { id: "bone", draw: "bone", substrate: "bone",
+      title: { fr: "Os (reste humain)", en: "Bone (human remains)" },
+      context: { fr: "Fragment osseux d'un corps non identifié. ADN souvent dégradé.",
+                 en: "Bone fragment from an unidentified body. DNA often degraded." },
+      gen: { min: 1, max: 1, lightable: false },
+      stainSlots: [ { cx: 200, cy: 130, r: 44 } ],
+      stainPool: [ { fluid: "tissue", auto: 1.2, degrad: 0.55, visible: false, maleMode: "random", weight: 1, single: true } ],
+      touchZones: [],
+      teach: { fr: "Un os ne se prélève pas à l'écouvillon : on fraise (Dremel) pour obtenir de la poudre osseuse, ou on cryobroie un fragment nettoyé. ADN souvent dégradé, source unique → extraction classique.",
+               en: "A bone is not swabbed: drill it (Dremel) for bone powder, or cryo-grind a cleaned fragment. Often-degraded DNA, single source → standard extraction." } },
+
+    { id: "muscle", draw: "muscle", substrate: "tissue",
+      title: { fr: "Tissu musculaire", en: "Muscle tissue" },
+      context: { fr: "Prélèvement cadavérique de tissu mou pour identification.",
+                 en: "Cadaveric soft-tissue sample for identification." },
+      gen: { min: 1, max: 1, lightable: false },
+      stainSlots: [ { cx: 200, cy: 128, r: 44 } ],
+      stainPool: [ { fluid: "tissue", auto: 2.2, degrad: 0.4, visible: false, maleMode: "random", weight: 1, single: true } ],
+      touchZones: [],
+      teach: { fr: "On excise un fragment de tissu au scalpel (ou aux ciseaux), puis digestion. Source unique identifiée → extraction classique, ni différentielle ni Y-STR.",
+               en: "Excise a tissue fragment with a scalpel (or scissors), then digest. Single identified source → standard extraction, neither differential nor Y-STR." } },
+
+    { id: "bloodtube", draw: "bloodtube", substrate: "liquid",
+      title: { fr: "Tube de sang (référence)", en: "Blood tube (reference)" },
+      context: { fr: "Prélèvement sanguin de référence d'un individu connu, sur tube.",
+                 en: "Reference blood draw from a known individual, in a tube." },
+      gen: { min: 1, max: 1, lightable: false, reference: true },
+      stainSlots: [ { cx: 200, cy: 165, r: 24 } ],
+      stainPool: [ { fluid: "blood", auto: 5.0, degrad: 0.1, visible: false, maleMode: "random", weight: 1, single: true, refSample: true } ],
+      touchZones: [],
+      teach: { fr: "Sang liquide en tube : on pipette un aliquot — ni écouvillon ni découpe. Échantillon de référence, source unique → extraction classique.",
+               en: "Liquid blood in a tube: pipette an aliquot — no swab, no cut-out. Reference sample, single source → standard extraction." } },
+
+    { id: "salivafta", draw: "fta", substrate: "card",
+      title: { fr: "Salive sur carte FTA (référence)", en: "Saliva on FTA card (reference)" },
+      context: { fr: "Prélèvement salivaire de référence déposé sur carte FTA.",
+                 en: "Reference saliva sample deposited on an FTA card." },
+      gen: { min: 1, max: 1, lightable: false, reference: true },
+      stainSlots: [ { cx: 200, cy: 132, r: 46 } ],
+      stainPool: [ { fluid: "saliva", auto: 4.0, degrad: 0.1, visible: false, maleMode: "random", weight: 1, single: true, refSample: true } ],
+      touchZones: [],
+      teach: { fr: "Référence sur carte FTA : on poinçonne un disque, aucun test d'orientation nécessaire. Source unique → extraction classique.",
+               en: "FTA-card reference: punch a disc, no orientation test needed. Single source → standard extraction." } },
+
+    { id: "tooth", draw: "tooth", substrate: "tooth",
+      title: { fr: "Dent", en: "Tooth" },
+      context: { fr: "Dent prélevée sur un corps non identifié. ADN protégé mais parfois dégradé.",
+                 en: "Tooth taken from an unidentified body. Protected but sometimes degraded DNA." },
+      gen: { min: 1, max: 1, lightable: false },
+      stainSlots: [ { cx: 200, cy: 125, r: 42 } ],
+      stainPool: [ { fluid: "tissue", auto: 1.0, degrad: 0.55, visible: false, maleMode: "random", weight: 1, single: true } ],
+      touchZones: [],
+      teach: { fr: "Comme l'os, une dent est un tissu minéralisé : on fraise (Dremel) ou on cryobroie la racine après section. Source unique → extraction classique.",
+               en: "Like bone, a tooth is mineralised tissue: drill it (Dremel) or cryo-grind the sectioned root. Single source → standard extraction." } }
   ]
 };
