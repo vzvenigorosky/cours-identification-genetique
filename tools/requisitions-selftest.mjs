@@ -160,3 +160,119 @@ assert.match(narrativeUI, /function renderNarrative\(/);
 assert.match(narrativeUI, /build\("mixed", \{\}\)/, 'mixed default preview');
 assert.match(narrativeUI, /requisitions-narrative\.js/);
 console.log('Requisitions: #61 narrative modes, seeds, bilingual cases, quality axes and mixed UI checked.');
+
+
+// ---- #62: parent-child ages, shared names, explicit and coherent pedigree ----
+const yearOf = date => Number(date.split('/')[2]);
+const identifier = p => p.prenom + ' ' + p.nomNaissance;
+let legacyRelatives = 0;
+for (let i = 0; i < 3000; i++) {
+  const vague = i % 2 === 0;
+  const d = R.generate('disparu', { vague, sloppy: i % 7 === 0 });
+  const candidate = d.disparue, candidateYear = yearOf(candidate.dateNaissance);
+  const currentYear = new Date().getFullYear();
+  assert(candidateYear <= currentYear - 32 && candidateYear >= currentYear - 55);
+  assert.equal(d.parentele.length >= 1 && d.parentele.length <= 3, true);
+  assert.match(d.disparueSource, /attribu|présenté/i);
+  assert.equal(new Set(d.parentele.map(p => p.relationId)).size, d.parentele.length, 'no duplicate reported relationships');
+  const individuals = [candidate.prenoms + ' ' + candidate.nomNaissance, ...d.parentele.map(identifier)];
+  assert.equal(new Set(individuals).size, individuals.length, 'no duplicate person identities');
+  for (const p of d.parentele) {
+    legacyRelatives++;
+    const relativeYear = yearOf(p.dateNaissance);
+    assert(relativeYear <= currentYear - 18, 'reference donor adult');
+    assert.equal(p.accord, true, 'transmitted relative sample is recorded as consented');
+    if (p.relationId === 'father') {
+      assert.equal(p.sexe, 'M');
+      assert.equal(p.nomNaissance, candidate.nomNaissance);
+      assert(candidateYear - relativeYear >= 24 && candidateYear - relativeYear <= 37);
+      if (p.lien === 'LIEN NON PRÉCISÉ') assert.equal(candidate.pere, 'NON PRÉCISÉ');
+      else assert.equal(identifier(p), candidate.pere);
+      if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, /^PÈRE/);
+    }
+    if (p.relationId === 'mother') {
+      assert.equal(p.sexe, 'F');
+      assert.notEqual(p.nomNaissance, candidate.nomNaissance);
+      assert(candidateYear - relativeYear >= 22 && candidateYear - relativeYear <= 35);
+      if (p.lien === 'LIEN NON PRÉCISÉ') assert.equal(candidate.mere, 'NON PRÉCISÉ');
+      else assert.equal(identifier(p), candidate.mere);
+      if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, /^MÈRE/);
+    }
+    if (p.relationId === 'sibling') {
+      assert.equal(p.nomNaissance, candidate.nomNaissance);
+      assert(Math.abs(candidateYear - relativeYear) >= 1 && Math.abs(candidateYear - relativeYear) <= 9);
+      if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, p.sexe === 'M' ? /^FRÈRE/ : /^SŒUR/);
+    }
+    if (p.relationId === 'child') {
+      assert.equal(p.nomNaissance, candidate.nomNaissance);
+      assert(relativeYear - candidateYear >= 21 && relativeYear - candidateYear <= 37);
+      if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, p.sexe === 'M' ? /^FILS/ : /^FILLE/);
+    }
+  }
+}
+assert(legacyRelatives > 3000, 'sample numerous relatives');
+// The consented reference in a deliberately vague requisition still reflects
+// the same simulated person, only their stated relation is withheld.
+for (let i = 0; i < 500; i++) {
+  const d = R.generate('disparu', { vague: true });
+  assert.equal(d.parentele.filter(p => p.lien === 'LIEN NON PRÉCISÉ').length, 1);
+  const hidden = d.parentele.find(p => p.lien === 'LIEN NON PRÉCISÉ');
+  assert(d.degraded[0].was && d.degraded[0].was !== 'LIEN NON PRÉCISÉ');
+  if (hidden.relationId === 'father') assert.equal(d.disparue.pere, 'NON PRÉCISÉ');
+  if (hidden.relationId === 'mother') assert.equal(d.disparue.mere, 'NON PRÉCISÉ');
+}
+const distantIds = new Set(['firstCousin','secondCousin','greatAunt','thirdCousin','fourthCousin']);
+const distantDepth = {firstCousin:2,secondCousin:3,greatAunt:3,thirdCousin:4,fourthCousin:5};
+const seenDistant = new Set();
+let narrativeRefs = 0;
+for (let seed = 0; seed < 1200; seed++) {
+  for (const mode of N.MODES) {
+    const d = N.generate({scenario:'johnDoe',referenceMode:mode,seed});
+    const person = d.candidatePerson;
+    assert(person && person.name === d.candidate);
+    assert.equal(person.surname, d.family.father.surname);
+    assert.notEqual(d.family.father.surname, d.family.mother.surname);
+    assert(person.birthYear - d.family.father.birthYear >= 24);
+    assert(person.birthYear - d.family.mother.birthYear >= 22);
+    assert(d.narrative.fr.includes(person.birthDate) || mode === 'none', 'candidate DOB in request');
+    assert(d.narrative.en.includes(person.birthDate) || mode === 'none');
+    const named = [person.name]; // selected relatives may include these already-listed parents
+    const refs = d.references.filter(ref => ref.kind === 'relative');
+    for (const ref of refs) {
+      narrativeRefs++;
+      const rel = ref.relationship;
+      const donor = rel.relativePerson;
+      assert(donor && rel.candidate === person.name);
+      assert.equal(yearOf(donor.birthDate), donor.birthYear);
+      assert(donor.sex === 'M' || donor.sex === 'F');
+      assert(ref.label.fr.includes(donor.name), 'visible sample carries donor name');
+      assert(ref.claimedSource.fr.includes(donor.birthDate), 'visible comparison carries donor birth date');
+      assert(ref.claimedSource.en.includes(donor.birthDate));
+      assert(donor.birthYear <= 2008, 'adult donor');
+      named.push(donor.name);
+      if (rel.id === 'father') assert.equal(donor.name, d.family.father.name);
+      if (rel.id === 'mother') assert.equal(donor.name, d.family.mother.name);
+      if (rel.id === 'fullSibling') {
+        assert.equal(donor.surname, person.surname);
+        assert(Math.abs(donor.birthYear - person.birthYear) <= 8);
+      }
+      if (rel.id === 'child') {
+        assert.equal(donor.surname, person.surname);
+        assert(donor.birthYear - person.birthYear >= 21);
+      }
+      if (distantIds.has(rel.id)) {
+        seenDistant.add(rel.id);
+        assert(rel.commonAncestor, 'named reported shared ancestor for distant kin');
+        assert(rel.commonAncestor.birthYear < person.birthYear - 18 * distantDepth[rel.id],
+          'ancestral generation predates the candidate');
+        if (rel.id === 'greatAunt') assert(2026 - donor.birthYear <= 95);
+        else assert(Math.abs(donor.birthYear - person.birthYear) <= 11);
+      }
+    }
+    assert.equal(new Set(named).size, named.length, 'no repeated relative names');
+    assert.equal(new Set(refs.map(ref => ref.exhibitId)).size, refs.length, 'unique biological references');
+  }
+}
+assert(narrativeRefs > 1000, 'kinship cases exercised');
+assert.deepEqual([...seenDistant].sort(), [...distantIds].sort(), 'all distant relative types generated');
+console.log('Issue #62: 3,000 FNAEG family cases and 7,200 narrative configurations checked for kinship coherence.');

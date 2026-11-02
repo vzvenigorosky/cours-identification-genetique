@@ -49,7 +49,40 @@ window.NARRATIVE_REQUISITIONS = (function () {
     const shuffle = a => { const b=a.slice(); for(let i=b.length-1;i>0;i--){const j=int(0,i);[b[i],b[j]]=[b[j],b[i]];} return b; };
     return {float,int,pick,shuffle};
   }
-  const person = r => r.pick(GIVEN)+" "+r.pick(SURNAMES);
+  // One reported family per missing person. The references are alleged, not verified.
+  const MALE_NAMES = ["Paul","Louis","Thomas","Nicolas","Pierre","Jean","Hugo","Marc","Luc","David","Émile","Alexandre","Simon","Julien","Arthur","Gabriel"];
+  const FEMALE_NAMES = ["Marie","Claire","Sophie","Louise","Jeanne","Anne","Julie","Alice","Léa","Emma","Élise","Camille","Lucie","Chloé","Sarah","Agathe"];
+  function buildPedigree(r) {
+    const birthYear=2026-r.int(30,44),surname=r.pick(SURNAMES),
+          maiden=r.pick(SURNAMES.filter(n=>n!==surname)), used=new Set();
+    function make(sex,surname,year) {
+      const first=(sex==="M"?MALE_NAMES:FEMALE_NAMES).filter(n=>!used.has(n+" "+surname));
+      const name=r.pick(first.length?first:sex==="M"?MALE_NAMES:FEMALE_NAMES)+" "+surname;
+      used.add(name);
+      return {name,sex,surname,birthYear:year,birthDate:
+        String(r.int(1,28)).padStart(2,"0")+"/"+String(r.int(1,12)).padStart(2,"0")+"/"+year};
+    }
+    const candidate=make(r.pick(["M","F"]),surname,birthYear);
+    const father=make("M",surname,birthYear-r.int(24,35));
+    const mother=make("F",maiden,birthYear-r.int(22,34));
+    const sibling=make(r.pick(["M","F"]),surname,birthYear+r.pick([-8,-6,-4,-2,2,4,6,8]));
+    const child=birthYear<=1987?make(r.pick(["M","F"]),surname,birthYear+r.int(21,2026-birthYear-18)):null;
+    const grandfather=make("M",surname,father.birthYear-r.int(20,28));
+    const grandmother=make("F",r.pick(SURNAMES.filter(n=>n!==surname)),grandfather.birthYear+r.int(-6,8));
+    const greatGrandfather=make("M",surname,grandfather.birthYear-r.int(23,32));
+    const greatGreatGrandfather=make("M",surname,greatGrandfather.birthYear-r.int(23,32));
+    const greatGreatGreatGrandfather=make("M",surname,greatGreatGrandfather.birthYear-r.int(23,32));
+    const auntYear=grandfather.birthYear+r.int(-5,8);
+    const greatAunt=auntYear>=1931?make("F",surname,auntYear):null;
+    const ancestors={firstCousin:grandfather,secondCousin:greatGrandfather,greatAunt:greatGrandfather,
+      thirdCousin:greatGreatGrandfather,fourthCousin:greatGreatGreatGrandfather};
+    const people={father,mother,fullSibling:sibling,child,greatAunt};
+    function relative(id) {
+      if(people[id])return people[id];
+      return make(r.pick(["M","F"]),id==="firstCousin"?surname:r.pick(SURNAMES),birthYear+r.int(-11,11));
+    }
+    return {candidate,father,mother,sibling,child,grandfather,grandmother,greatAunt,ancestors,relative};
+  }
   const substitute = (pair,place) => t(pair.fr.replace("{place}",place),pair.en.replace("{place}",place));
   function base(r,scenario,template,place) {
     return {type:"narrative",scenario,caseId:template.id,referenceMode:null,seed:null,
@@ -69,44 +102,50 @@ window.NARRATIVE_REQUISITIONS = (function () {
   }
   function makeJohnDoe(r,mode) {
     const template=r.pick(REMAINS),data=base(r,"johnDoe",template,r.pick(PLACES));
-    data.referenceMode=mode;data.candidate=person(r);
+    const family=buildPedigree(r),candidate=family.candidate;
+    data.referenceMode=mode;data.candidate=candidate.name;data.candidatePerson=candidate;
+    data.family={father:family.father,mother:family.mother,
+      paternalGrandfather:family.grandfather,paternalGrandmother:family.grandmother};
     data.objective=t("Rechercher les éléments génétiques utiles à l'identification des restes humains non identifiés.","Seek genetic information relevant to identifying the unidentified human remains.");
     exhibit(data,"unknownRemains",template.label,t("prélevé sur les restes non identifiés","sampled from the unidentified remains"));
     if(mode!=="none") {
-      data.narrative.fr+=" Une comparaison avec la personne disparue "+data.candidate+" est envisagée, sans identification préalable.";
-      data.narrative.en+=" Investigators are considering a comparison with the missing person "+data.candidate+"; no identification has been established.";
+      data.narrative.fr+=" Une comparaison avec "+candidate.name+" (né(e) le "+candidate.birthDate+
+        "), personne signalée disparue, est envisagée sans que cette identité soit établie.";
+      data.narrative.en+=" A comparison with "+candidate.name+" (born "+candidate.birthDate+
+        "), a reported missing person, is being considered without any identification established.";
     }
     if(["singleItem","multipleItems","mixed"].includes(mode)) {
-      const number=mode==="singleItem"?1:mode==="multipleItems"?r.int(2,4):r.int(1,3);
-      for(const item of r.shuffle(ITEMS).slice(0,number)) {
-        const provenance=item[1]; // physical origin; claimed ownership is exclusively in the reference statement
-        const e=exhibit(data,"personalItem",item[0],provenance);
-        addRef(data,"personalItem",e,t("appartenance alléguée à "+data.candidate,"claimed belonging of "+data.candidate));
+      const count=mode==="singleItem"?1:mode==="multipleItems"?r.int(2,4):r.int(1,3);
+      for(const item of r.shuffle(ITEMS).slice(0,count)) {
+        const e=exhibit(data,"personalItem",item[0],item[1]);
+        addRef(data,"personalItem",e,t("appartenance alléguée à "+candidate.name,"claimed belonging of "+candidate.name));
       }
     }
     if(["closeKin","distantKin","mixed"].includes(mode)) {
-      const pool=mode==="closeKin"?CLOSE:mode==="distantKin"?DISTANT:r.pick([CLOSE,DISTANT]);
-      const number=mode==="mixed"?r.int(1,2):r.int(1,3);
-      const usedNames=new Set();
-      for(const rel of r.shuffle(pool).slice(0,number)) {
-        let name;
-        do {
-          const title=rel.sex==="F"?"Mme":rel.sex==="M"?"M.":r.pick(["Mme","M."]);
-          name=title+" "+person(r);
-        } while(usedNames.has(name));
-        usedNames.add(name);
-        const e=exhibit(data,"relativeSample",t("écouvillon buccal de "+name,"cheek swab from "+name),t("prélèvement de comparaison communiqué par les enquêteurs","comparison sample provided by investigators"));
-        addRef(data,"relative",e,t(name+" : "+rel.desc.fr+" de "+data.candidate,name+": "+rel.desc.en+" of "+data.candidate),
-          {id:rel.id,path:rel.path.slice(),summary:rel.desc,candidate:data.candidate});
+      const close=CLOSE.filter(x=>x.id!=="child"||family.child);
+      const distant=DISTANT.filter(x=>x.id!=="greatAunt"||family.greatAunt);
+      const pool=mode==="closeKin"?close:mode==="distantKin"?distant:r.pick([close,distant]);
+      const count=mode==="mixed"?r.int(1,2):r.int(1,Math.min(3,pool.length));
+      for(const rel of r.shuffle(pool).slice(0,count)) {
+        const p=family.relative(rel.id),title=p.sex==="M"?"M.":"Mme";
+        const e=exhibit(data,"relativeSample",
+          t("écouvillon buccal de "+title+" "+p.name,"cheek swab from "+title+" "+p.name),
+          t("prélèvement de comparaison communiqué par les enquêteurs","comparison sample provided by investigators"));
+        const ancestor=family.ancestors[rel.id];
+        addRef(data,"relative",e,
+          t(title+" "+p.name+" (né(e) le "+p.birthDate+") : "+rel.desc.fr+" de "+candidate.name,
+            title+" "+p.name+" (born "+p.birthDate+"): "+rel.desc.en+" of "+candidate.name),
+          {id:rel.id,path:rel.path.slice(),summary:rel.desc,candidate:candidate.name,
+           relativePerson:p,commonAncestor:ancestor?{name:ancestor.name,birthYear:ancestor.birthYear}:null});
       }
     }
-    const hasItems=data.references.some(ref=>ref.kind==="personalItem");
-    const hasKin=data.references.some(ref=>ref.kind==="relative");
+    const items=data.references.some(x=>x.kind==="personalItem");
+    const relatives=data.references.some(x=>x.kind==="relative");
     data.referenceStatus=mode==="none"
       ?t("Aucune référence de comparaison n'est disponible à ce stade.","No comparison reference material is currently available.")
-      :hasItems && hasKin
+      :items&&relatives
         ?t("L'attribution des objets et les liens de parenté mentionnés restent à vérifier.","The attribution of the items and reported relationships remain to be verified.")
-        :hasItems
+        :items
           ?t("L'attribution des effets personnels à la personne disparue reste à vérifier.","The attribution of personal items to the missing person remains to be verified.")
           :t("Les liens de parenté déclarés avec la personne disparue restent à vérifier.","The claimed relationships with the missing person remain to be verified.");
     data.facts.stated.referenceStatus=data.referenceStatus;
