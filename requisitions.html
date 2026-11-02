@@ -15,10 +15,10 @@
 <body data-page="exercices">
   <main class="wrap narrow">
     <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
-    <h1 class="page-title mt" data-fr="Générateur de réquisitions FNAEG" data-en="FNAEG requisition generator"></h1>
+    <h1 class="page-title mt" data-fr="Générateur de réquisitions génétiques" data-en="Forensic genetic requisition generator"></h1>
     <p class="page-intro"
-       data-fr="Génère des réquisitions d'analyse génétique réalistes et aléatoires pour l'entraînement : personne identifiée (suspect / condamné), trace(s) / personne décédée, personne disparue et parentèle. Chaque tirage produit un PDF téléchargeable."
-       data-en="Generates realistic, randomised DNA-analysis requisitions for training: identified person (suspect / convicted), trace(s) / deceased person, missing person and relatives. Each draw produces a downloadable PDF."></p>
+       data-fr="Génère au hasard un formulaire FNAEG structuré ou une réquisition narrative libre. Vous pouvez aussi imposer un format, une affaire ou des références pour vous exercer. Chaque tirage produit un PDF fictif."
+       data-en="Randomly generates either a structured FNAEG form or a free-form narrative requisition. You can also choose a format, case and comparison references for practice. Each draw produces a fictional PDF."></p>
 
     <p class="note-fictif"
        data-fr="⚠ Documents entièrement fictifs à usage pédagogique. Les noms, services, juridictions et numéros de scellés sont générés aléatoirement et ne désignent aucune personne ni aucun service réels. Les PDF portent la mention « document fictif » et n'ont aucune valeur légale."
@@ -26,13 +26,36 @@
 
     <div class="panel">
       <div class="controls-row">
-        <label for="rtype" data-fr="Type de réquisition :" data-en="Requisition type:"></label>
+        <label for="rtype" data-fr="Format :" data-en="Format:"></label>
         <select id="rtype" class="input">
+          <option value="mixed" data-fr="Mixte — au hasard (FNAEG ou libre)" data-en="Mixed — random (FNAEG or narrative)"></option>
+          <option value="fnaegRandom" data-fr="Formulaire FNAEG — au hasard" data-en="FNAEG form — random"></option>
+          <option value="narrative" data-fr="Réquisition libre — au hasard" data-en="Narrative requisition — random"></option>
           <option value="suspect" data-fr="Individu — suspect" data-en="Individual — suspect"></option>
           <option value="condamne" data-fr="Individu — condamné" data-en="Individual — convicted"></option>
           <option value="trace" data-fr="Trace(s) / personne décédée" data-en="Trace(s) / deceased person"></option>
           <option value="disparu" data-fr="Personne disparue &amp; parentèle" data-en="Missing person &amp; relatives"></option>
         </select>
+        <span id="narrativeControls" class="controls-row" style="display:none;gap:8px;margin:0">
+          <label for="nscenario" data-fr="Affaire :" data-en="Case:"></label>
+          <select id="nscenario" class="input">
+            <option value="random" data-fr="Aléatoire" data-en="Random"></option>
+            <option value="johnDoe" data-fr="Personne non identifiée" data-en="Unidentified person"></option>
+            <option value="sexualAssault" data-fr="Agression sexuelle" data-en="Sexual assault"></option>
+          </select>
+          <span id="referenceControls" style="display:flex;gap:8px;align-items:center">
+            <label for="nreference" data-fr="Comparaison :" data-en="Comparison:"></label>
+            <select id="nreference" class="input">
+              <option value="random" data-fr="Aléatoire" data-en="Random"></option>
+              <option value="singleItem" data-fr="Un effet personnel" data-en="One personal item"></option>
+              <option value="multipleItems" data-fr="Plusieurs effets personnels" data-en="Multiple personal items"></option>
+              <option value="closeKin" data-fr="Parentèle proche" data-en="Close relatives"></option>
+              <option value="distantKin" data-fr="Parentèle éloignée" data-en="Distant relatives"></option>
+              <option value="mixed" data-fr="Objets et parentèle" data-en="Items and relatives"></option>
+              <option value="none" data-fr="Aucune référence" data-en="No reference material"></option>
+            </select>
+          </span>
+        </span>
         <label for="rquality" data-fr="Qualité :" data-en="Quality:"></label>
         <select id="rquality" class="input">
           <option value="nette" data-fr="Nette" data-en="Clean"></option>
@@ -58,6 +81,7 @@
   <script src="assets/vendor/JsBarcode.all.min.js"></script>
   <script src="assets/i18n.js"></script>
   <script src="assets/data/requisitions.js"></script>
+  <script src="assets/data/requisitions-narrative.js"></script>
   <script src="assets/layout.js"></script>
   <script>
   (function () {
@@ -73,26 +97,26 @@
     }
 
     // ---- low-level drawing on a jsPDF doc, with a y cursor + watermark/footer ----
-    function Doc(title) {
+    function Doc(title, lang) {
       var d = new jsPDF({ unit: "mm", format: "a4" });
-      var self = { d: d, y: 0, titleWords: title };
-      watermark(d); footer(d);
+      var self = { d: d, y: 0, titleWords: title, lang: lang || "fr" };
+      watermark(d, self.lang); footer(d, self.lang);
       self.y = 14;
       return self;
     }
-    function watermark(d) {
+    function watermark(d, lang) {
       d.saveGraphicsState && d.saveGraphicsState();
       d.setFont("helvetica", "bold"); d.setFontSize(46); d.setTextColor(232, 232, 232);
-      d.text("DOCUMENT FICTIF", 105, 170, { align: "center", angle: 32 });
-      d.setFontSize(18); d.text("EXERCICE PÉDAGOGIQUE — SANS VALEUR LÉGALE", 105, 186, { align: "center", angle: 32 });
+      d.text(lang === "en" ? "FICTIONAL DOCUMENT" : "DOCUMENT FICTIF", 105, 170, { align: "center", angle: 32 });
+      d.setFontSize(18); d.text(lang === "en" ? "TEACHING EXERCISE — NOT A LEGAL DOCUMENT" : "EXERCICE PÉDAGOGIQUE — SANS VALEUR LÉGALE", 105, 186, { align: "center", angle: 32 });
       d.setTextColor(0, 0, 0);
     }
-    function footer(d) {
+    function footer(d, lang) {
       d.setFont("helvetica", "italic"); d.setFontSize(7); d.setTextColor(120);
-      d.text("Document fictif généré à des fins pédagogiques — sans valeur légale.", 105, 289, { align: "center" });
+      d.text(lang === "en" ? "Fictional document for teaching purposes only — no legal validity." : "Document fictif généré à des fins pédagogiques — sans valeur légale.", 105, 289, { align: "center" });
       d.setTextColor(0);
     }
-    function newPage(s) { s.d.addPage(); watermark(s.d); footer(s.d); s.y = 14; }
+    function newPage(s) { s.d.addPage(); watermark(s.d, s.lang); footer(s.d, s.lang); s.y = 14; }
     function need(s, h) { if (s.y + h > PAGE_H - 14) newPage(s); }
 
     function set(s, style, size, color) {
@@ -305,8 +329,57 @@
       return s.d;
     }
 
+
+    // The narrative layout is purposefully NOT a FNAEG/SCPPB legal form.
+    function renderNarrative(data, lang) {
+      var s = Doc("RequisitionNarrative", lang);
+      var en = lang === "en";
+      var label = function (fr, enText) { return en ? enText : fr; };
+      var str = function (pair) { return pair ? (en ? pair.en : pair.fr) : ""; };
+      var paragraph = function (heading, value) {
+        set(s, "bold", 9); para(s, heading + " : ", 9);
+        set(s, "normal", 9); para(s, value, 9); s.y += 2;
+      };
+      centered(s, label("RÉQUISITION AUX FINS D'EXAMENS GÉNÉTIQUES",
+                        "REQUEST FOR FORENSIC GENETIC EXAMINATION"), 11, "bold");
+      s.y += 8;
+      para(s, label("Document fictif : exemple pédagogique et non formulaire officiel.",
+                    "Fictional document: educational example, not an official form."), 8);
+      s.y += 3;
+      sectionBar(s, label("SERVICE REQUÉRANT", "REQUESTING AUTHORITY"));
+      paragraph(label("Service", "Unit"), data.requerant.service);
+      paragraph(label("Requérant", "Requester"), data.requerant.prenom + " " + data.requerant.nom + " (" + data.requerant.grade + ")");
+      paragraph(label("Procédure", "Case number"), data.requerant.procedure);
+      paragraph(label("Lieu et date des faits", "Location and date of incident"), str(data.place) + " — " + data.eventDate);
+      sectionBar(s, label("OBJET DE LA DEMANDE", "PURPOSE"));
+      para(s, str(data.objective), 9); s.y += 4;
+      sectionBar(s, label("ÉLÉMENTS DE CONTEXTE", "BACKGROUND"));
+      para(s, str(data.narrative), 9); s.y += 4;
+      sectionBar(s, label("SCELLÉS ET PRÉLÈVEMENTS TRANSMIS", "SUBMITTED EXHIBITS AND SAMPLES"));
+      data.exhibits.forEach(function (e) {
+        bullet(s, e.id + " — " + str(e.label) + " (" + str(e.provenance) + ")", 8.5);
+      });
+      s.y += 3;
+      sectionBar(s, label("COMPARAISONS ENVISAGÉES", "AVAILABLE COMPARISONS"));
+      para(s, str(data.referenceStatus), 8.5);
+      if (data.references.length) {
+        data.references.forEach(function (ref) {
+          bullet(s, ref.exhibitId + " — " + str(ref.claimedSource), 8.5);
+        });
+      }
+      s.y += 4;
+      sectionBar(s, label("MISSION CONFIÉE AU LABORATOIRE", "REQUESTED EXAMINATIONS"));
+      para(s, str(data.mission), 9);
+      s.y += 12;
+      need(s, 15);
+      set(s, "italic", 8);
+      para(s, label("À " + data.place.fr + ", le " + REQ.today() + " — Cachet et signature fictifs du requérant",
+                    "At " + data.place.en + ", on " + REQ.today() + " — Fictional requester signature / stamp"), 8);
+      return s.d;
+    }
+
     var REQ = window.REQUISITIONS;
-    var lastReq = null;
+    var lastReq = null, lastData = null;
     function L2(fr, en) { return (window.I18N && I18N.getLang() === "en") ? en : fr; }
     function pickNote(o) { return (o && typeof o === "object" && (o.fr != null || o.en != null)) ? L2(o.fr, o.en) : String(o || ""); }
     function esc2(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -315,20 +388,55 @@
       var q = document.getElementById("rquality").value;
       return { vague: q === "vague" || q === "both", sloppy: q === "sloppy" || q === "both" };
     }
-    function build(type, opts) {
-      var data = REQ.generate(type, opts || {});
-      var doc = type === "trace" ? renderTrace(data) : type === "disparu" ? renderDisparu(data) : renderIndividu(data);
-      var tag = type === "trace" ? "RequisitionTrace" : type === "disparu" ? "RequisitionDisparu" : "RequisitionIndividu";
-      var bc = data.prelevement || (data.scelles && data.scelles[0] && data.scelles[0].barcode) || data.disparueBarcode || "";
+    // In mixed mode each click independently draws a real FNAEG form or narrative.
+    function chooseType(selected) {
+      if (selected === "mixed") return Math.random() < 0.5 ? "narrative" : "fnaegRandom";
+      if (selected === "fnaegRandom") {
+        var forms = ["suspect", "condamne", "trace", "disparu"];
+        return forms[Math.floor(Math.random() * forms.length)];
+      }
+      return selected;
+    }
+    function updateNarrativeControls() {
+      var isNarrative = document.getElementById("rtype").value === "narrative";
+      document.getElementById("narrativeControls").style.display = isNarrative ? "flex" : "none";
+      var scenario = document.getElementById("nscenario").value;
+      document.getElementById("referenceControls").style.display = isNarrative && scenario !== "sexualAssault" ? "flex" : "none";
+    }
+    function displayData(data) {
+      lastData = data;
+      var type = data.type;
+      var lang = window.I18N && I18N.getLang() === "en" ? "en" : "fr";
+      var doc = type === "narrative" ? renderNarrative(data, lang)
+        : type === "trace" ? renderTrace(data)
+        : type === "disparu" ? renderDisparu(data) : renderIndividu(data);
+      var tag = type === "narrative" ? "RequisitionNarrative" : type === "trace" ? "RequisitionTrace"
+        : type === "disparu" ? "RequisitionDisparu" : "RequisitionIndividu";
+      var bc = type === "narrative" ? ("N" + data.requerant.procedure.replace(/\W/g, ""))
+        : (data.prelevement || (data.scelles && data.scelles[0] && data.scelles[0].barcode) || data.disparueBarcode || "");
       lastName = bc + "_" + tag + "_FICTIF_" + REQ.today().replace(/\//g, "") + ".pdf";
       if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
       lastBlobUrl = doc.output("bloburl");
       document.getElementById("preview").src = lastBlobUrl;
       document.getElementById("dl").disabled = false;
-      window.__lastDoc = doc; // for automated verification
-      lastReq = { type: data.type, quality: data.quality, degraded: data.degraded };
-      window.__lastReq = lastReq; // hidden record (#49)
+      window.__lastDoc = doc;
+      lastReq = { type: data.type, quality: data.quality, degraded: data.degraded,
+                  scenario: data.scenario || null, referenceMode: data.referenceMode || null, seed: data.seed };
+      window.__lastReq = lastReq;
+      window.__lastData = data;
       refreshCorrige();
+    }
+    function build(selected, opts) {
+      var type = chooseType(selected);
+      if (type === "fnaegRandom") type = chooseType(type);
+      var data = type === "narrative"
+        ? window.NARRATIVE_REQUISITIONS.generate({
+            scenario: selected === "narrative" ? document.getElementById("nscenario").value : "random",
+            referenceMode: selected === "narrative" ? document.getElementById("nreference").value : "random",
+            vague: !!opts.vague, sloppy: !!opts.sloppy
+          })
+        : REQ.generate(type, opts || {});
+      displayData(data);
     }
 
     // ---- corrigé: explain the degradations of a vague / poorly-written doc (#56) ----
@@ -356,7 +464,7 @@
                 L2("à reconnaître et à demander au requérant :", "to recognise and ask the requester about:") + "</p><ul>";
         vague.forEach(function (e) {
           html += "<li>" + esc2(pickNote(e.note));
-          if (e.was != null && e.was !== "") html += " <span class=\"muted-note\">(" + L2("valeur masquée", "hidden value") + " : " + esc2(e.was) + ")</span>";
+          if (e.was != null && e.was !== "") html += " <span class=\"muted-note\">(" + L2("valeur masquée", "hidden value") + " : " + esc2(pickNote(e.was)) + ")</span>";
           html += "</li>";
         });
         html += "</ul>";
@@ -369,6 +477,8 @@
       document.getElementById("corrigeBody").innerHTML = html;
     }
 
+    document.getElementById("rtype").addEventListener("change", updateNarrativeControls);
+    document.getElementById("nscenario").addEventListener("change", updateNarrativeControls);
     document.getElementById("gen").addEventListener("click", function () { build(document.getElementById("rtype").value, readOpts()); });
     document.getElementById("dl").addEventListener("click", function () { if (window.__lastDoc) window.__lastDoc.save(lastName); });
     document.getElementById("corrigeBtn").addEventListener("click", function () {
@@ -380,10 +490,12 @@
       document.getElementById("corrigeBtn").textContent = document.getElementById("corrigeBtn").disabled
         ? L2("Afficher le corrigé", "Show answer key")
         : (hidden ? L2("Afficher le corrigé", "Show answer key") : L2("Masquer le corrigé", "Hide answer key"));
-      refreshCorrige();
+      if (lastData && lastData.type === "narrative") displayData(lastData);
+      else refreshCorrige();
     });
-    // first preview
-    build("suspect", {});
+    // Mixed formats by default; the explicit old FNAEG options remain selectable.
+    updateNarrativeControls();
+    build("mixed", {});
   })();
   </script>
 </body>
