@@ -154,5 +154,27 @@ window.PCR = {
     var chosen = names.slice(0, Math.max(0, Math.min(n, names.length)));
     chosen.forEach(function (nm) { geno[nm] = [geno[nm][0], geno[nm][0]]; });
     return chosen;
+  },
+
+  // Per-cycle amplification trajectory for the animation (issue #40). A logistic
+  // (exponential rise → plateau) in cycle space, normalised so the value at the
+  // final cycle equals `amount` (the same effective amount the EPG is rendered
+  // from). So the curve and the electropherogram always agree, and grading is
+  // unchanged (it still uses `amount`). Reagent-limited plateau sits a few cycles
+  // before cycleRef: too few cycles end on the exponential part (cut off, low →
+  // NULL), too many sit flat on the plateau (over-amplified). A catastrophic
+  // protocol makes amount ≈ 0, so the whole curve is flat near zero.
+  // Returns [{ c, p }] for c = 0 … N. DRAFT teaching model, not real kinetics.
+  ampCurve: function (amount, cycles) {
+    amount = Math.max(0, amount || 0);
+    var N = Math.max(1, Math.round(isFinite(cycles) ? cycles : this.cycleRef));
+    var k = 0.5, c50 = this.cycleRef - 3;           // steepness; plateau knee
+    var LN = 1 / (1 + Math.exp(-k * (N - c50)));     // normaliser so p(N) = amount
+    var pts = [];
+    for (var c = 0; c <= N; c++) {
+      var L = 1 / (1 + Math.exp(-k * (c - c50)));
+      pts.push({ c: c, p: amount * (L / LN) });
+    }
+    return pts;
   }
 };

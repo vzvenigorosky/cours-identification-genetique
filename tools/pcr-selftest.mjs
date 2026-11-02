@@ -97,4 +97,26 @@ function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; le
   assert.deepEqual(geno.AMEL, ['X', 'Y'], 'non-autosomal loci untouched');
 }
 
-console.log(`MG3: ${P.fields.length} protocol fields, amount model (catastrophic kills, low-cycle NULL, ${P.homozygousLoci} forced homozygotes) and ${bi.ok} bilingual strings checked.`);
+// ---- amplification curve for the animation (issue #40) ----
+assert.equal(typeof P.ampCurve, 'function', 'ampCurve exported');
+{
+  const curve = P.ampCurve(P.A_OPT, 29);
+  assert.equal(curve.length, 30, 'one point per cycle 0..N');
+  assert(Math.abs(curve[curve.length - 1].p - P.A_OPT) < 1e-6, 'endpoint equals the amount');
+  assert.equal(curve[0].c, 0);
+  for (let i = 1; i < curve.length; i++) assert(curve[i].p >= curve[i - 1].p - 1e-9, 'non-decreasing');
+  assert(curve[0].p < curve[curve.length - 1].p, 'rises from seed to plateau');
+
+  // catastrophic amount → flat near-zero curve (NULL)
+  const dead = P.ampCurve(0, 29);
+  assert(dead.every((pt) => pt.p === 0), 'amount 0 → flat zero curve');
+
+  // fewer cycles → shorter x-axis, lower endpoint for the same amount scale
+  assert.equal(P.ampCurve(50, 20).length, 21, 'cycle count sets the x-extent');
+
+  // over-amplification endpoint sits above the saturation line
+  const over = P.ampCurve(P.OVER * 1.5, 34);
+  assert(over[over.length - 1].p > P.OVER, 'over-amplified endpoint exceeds the saturation line');
+}
+
+console.log(`MG3: ${P.fields.length} protocol fields, amount model (catastrophic kills, low-cycle NULL, ${P.homozygousLoci} forced homozygotes), amplification curve and ${bi.ok} bilingual strings checked.`);
