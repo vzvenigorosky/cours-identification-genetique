@@ -80,7 +80,7 @@ function build(spec, kit, type, seed, rng, cfg) {
   const renders = [];
   for (const s of samples) {
     s.sim = simulate(kit, s.contributors, { rng, art, thresholds });
-    s.render = renderEPG(kit, s.sim, { sampleLabel: s.label, title: kit.label, width });
+    s.render = renderEPG(kit, s.sim, { sampleLabel: s.label, title: kit.label, width, showBins: spec.showBins, revealKind: spec.revealKind });
     s.observed = observedProfile(kit, s.sim);
     renders.push(s.render);
   }

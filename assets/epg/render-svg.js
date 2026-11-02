@@ -79,9 +79,25 @@ export function renderEPG(kit, sim, opts = {}) {
     parts.push(`<text x="6" y="${top + 14}" font-size="11" font-weight="700" fill="${dye.color}">${dye.label}</text>`);
     // baseline
     parts.push(`<line x1="${padL}" y1="${bottom}" x2="${W - padR}" y2="${bottom}" stroke="#cbd3da"/>`);
-    // analytical threshold
+    // analytical threshold (AT) and, when it fits, the stochastic threshold (ST)
     const atY = yOf(sim.thresholds.at);
     parts.push(`<line x1="${padL}" y1="${atY.toFixed(1)}" x2="${W - padR}" y2="${atY.toFixed(1)}" stroke="#c8ccd1" stroke-dasharray="3 3"/>`);
+    parts.push(`<text x="${padL + 2}" y="${(atY - 2).toFixed(1)}" font-size="7" fill="#9aa0a6">AT</text>`);
+    if (sim.thresholds.st && sim.thresholds.st < disp) {
+      const stY = yOf(sim.thresholds.st);
+      parts.push(`<line x1="${padL}" y1="${stY.toFixed(1)}" x2="${W - padR}" y2="${stY.toFixed(1)}" stroke="#d9a441" stroke-width="0.8" stroke-dasharray="2 3"/>`);
+      parts.push(`<text x="${padL + 2}" y="${(stY - 2).toFixed(1)}" font-size="7" fill="#b9802a">ST</text>`);
+    }
+
+    // allele-bin position marks (teaching overlay) — opt-in via opts.showBins
+    if (opts.showBins) {
+      kit.loci.filter((l) => l.dye === dyeKey).forEach((l) => {
+        for (const a of allelesOf(l)) {
+          const bx = xOf(sizeOf(l, a));
+          parts.push(`<line class="bin" x1="${bx.toFixed(1)}" y1="${bottom}" x2="${bx.toFixed(1)}" y2="${(bottom - 6).toFixed(1)}" stroke="#aeb6bf" stroke-width="0.6" opacity="0.75"/>`);
+        }
+      });
+    }
     // y ticks (0 and disp)
     parts.push(`<text x="${padL - 4}" y="${bottom}" font-size="8" fill="#98a0a8" text-anchor="end">0</text>`);
     parts.push(`<text x="${padL - 4}" y="${top + 10}" font-size="8" fill="#98a0a8" text-anchor="end">${Math.round(disp)}</text>`);
@@ -96,7 +112,9 @@ export function renderEPG(kit, sim, opts = {}) {
       parts.push(`<path d="${d}" fill="none" stroke="${dye.color}" stroke-width="0.5" opacity="0.18"/>`);
     }
 
-    // peaks in this dye
+    // peaks in this dye. Each path carries class "pk" + data-* and a <title> so
+    // a viewer can hover/tap it to read size (bp) and RFU; the artefact `kind` is
+    // added only when opts.revealKind (answer mode), so exercises don't leak it.
     const dpk = sim.peaks.filter((p) => p.dye === dyeKey);
     for (const p of dpk) {
       const x = xOf(p.size);
@@ -105,12 +123,13 @@ export function renderEPG(kit, sim, opts = {}) {
       const op = opts.neutralArtifacts ? 1 : (KIND_OPACITY[p.kind] || 0.5);
       // off-scale: truly saturated, or (with a fixed ceiling) any peak at/above it
       const offscale = p.saturated || (opts.dispMax != null && p.height >= disp);
-      if (offscale) {
-        // flat-topped
-        parts.push(`<path d="M ${(x - 3).toFixed(1)} ${bottom} L ${(x - 2).toFixed(1)} ${(top + 2).toFixed(1)} L ${(x + 2).toFixed(1)} ${(top + 2).toFixed(1)} L ${(x + 3).toFixed(1)} ${bottom} Z" fill="${dye.color}" opacity="${op}"/>`);
-      } else {
-        parts.push(`<path d="M ${(x - 2.6).toFixed(1)} ${bottom} L ${x.toFixed(1)} ${yTop.toFixed(1)} L ${(x + 2.6).toFixed(1)} ${bottom} Z" fill="${dye.color}" opacity="${op}"/>`);
-      }
+      let attrs = `class="pk" data-size="${p.size}" data-rfu="${p.height}" data-dye="${dyeKey}" data-locus="${esc(p.locus || "")}" data-called="${p.called ? 1 : 0}"`;
+      let title = `${p.size} bp · ${p.height} RFU`;
+      if (opts.revealKind) { attrs += ` data-kind="${esc(p.kind)}"`; title += ` · ${p.kind}`; }
+      const d = offscale
+        ? `M ${(x - 3).toFixed(1)} ${bottom} L ${(x - 2).toFixed(1)} ${(top + 2).toFixed(1)} L ${(x + 2).toFixed(1)} ${(top + 2).toFixed(1)} L ${(x + 3).toFixed(1)} ${bottom} Z`
+        : `M ${(x - 2.6).toFixed(1)} ${bottom} L ${x.toFixed(1)} ${yTop.toFixed(1)} L ${(x + 2.6).toFixed(1)} ${bottom} Z`;
+      parts.push(`<path ${attrs} d="${d}" fill="${dye.color}" opacity="${op}"><title>${esc(title)}</title></path>`);
     }
     // marker (locus) names across the top of the panel, each centred over
     // its allele size-range with a thin bracket and a white halo for legibility.
