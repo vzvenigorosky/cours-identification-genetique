@@ -308,10 +308,11 @@
       signature(s, data.ville, REQ.today()); edition(s, REQ.today());
       // annex: scellé issu de la personne disparue + parentèle
       newPage(s); s.y = 18;
-      centered(s, "SCELLÉ(S) ISSU(S) DE LA PERSONNE DISPARUE", 11, "bold"); s.y += 8;
+      centered(s, "SCELLÉ(S) ATTRIBUÉ(S) À LA PERSONNE DISPARUE", 11, "bold"); s.y += 8;
       field(s, "N° procédure :", data.requerant.procedure, 42);
       field(s, "Service :", data.requerant.service, 42);
-      barcode(s, data.disparueBarcode, "Scellé rattaché à la personne disparue");
+      field(s, "Nature / attribution :", data.disparueSource, 48);
+      barcode(s, data.disparueBarcode, "Scellé présenté comme appartenant à la personne disparue");
       s.y += 2;
       sectionBar(s, "PRÉLÈVEMENTS SUR ASCENDANTS / DESCENDANTS / COLLATÉRAUX");
       data.parentele.forEach(function (p, i) {
