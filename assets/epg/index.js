@@ -4,7 +4,7 @@
    returns the SVG(s), the contributor genotypes and an answer key.
    Shared by the in-browser lab (epg.html) and the batch CLI.
    ============================================================ */
-import { getKit, sizeOf } from "./panels.js";
+import { getKit, sizeOf, allelesOf } from "./panels.js";
 import { makeRng, seedFrom } from "./rng.js";
 import * as G from "./genetics.js";
 import { simulate } from "./simulate.js";
@@ -84,7 +84,18 @@ function build(spec, kit, type, seed, rng, cfg) {
     s.observed = observedProfile(kit, s.sim);
     renders.push(s.render);
   }
-  const svg = renders.length === 1 ? renders[0].svg : renderStack(renders, width);
+  // Optional batch controls (#50): an allelic ladder (every bin), a fixed
+  // positive control and a blank negative control, stacked around the sample
+  // as a real GeneMapper run shows them.
+  let allRenders = renders;
+  if (spec.controls) {
+    const th = samples[0].sim.thresholds;
+    const ladderR = renderEPG(kit, ladderSim(kit, th), { sampleLabel: "Allelic ladder", title: kit.label, width });
+    const posR = renderEPG(kit, positiveControlSim(kit, th, art), { sampleLabel: "Positive control", title: kit.label, width });
+    const negR = renderEPG(kit, negativeControlSim(th), { sampleLabel: "Negative control", title: kit.label, width });
+    allRenders = [ladderR, posR, ...renders, negR];
+  }
+  const svg = allRenders.length === 1 ? allRenders[0].svg : renderStack(allRenders, width);
 
   // Mixture realism: read the simulated trace back as an analyst would —
   // estimate the mixture proportion (Mx) from peak heights, and flag the loci
@@ -198,6 +209,35 @@ function yHaplotypeMatch(kit, ga, gb) {
     if (JSON.stringify(ga[l.name]) === JSON.stringify(gb[l.name])) match++;
   }
   return { lociMatching: match, lociTotal: total, identical: match === total };
+}
+
+/* ---- batch-control tracks (#50) ---- */
+function fmtA(a) { return (typeof a === "number" && !Number.isInteger(a)) ? a.toFixed(1) : String(a); }
+
+/* Allelic ladder: every allele bin of every locus, at a uniform height — the
+   reference run that defines where the bins sit. */
+function ladderSim(kit, th) {
+  const peaks = [];
+  const h = Math.round(th.st * 2.2);
+  for (const l of kit.loci) {
+    for (const a of allelesOf(l)) {
+      peaks.push({ locus: l.name, dye: l.dye, size: Math.round(sizeOf(l, a)), height: h, label: fmtA(a), kind: "allele", called: true });
+    }
+  }
+  return { peaks, thresholds: th, maxHeight: Math.round(h * 1.1), noise: false };
+}
+
+/* Positive control: a FIXED known male profile (same every run), clean. */
+function positiveControlSim(kit, th, art) {
+  const rng = makeRng("positive-control-" + kit.id);
+  const prof = G.randomProfile(kit, rng, { sex: "M" });
+  const cleanArt = { ...art, dropin: false, spike: false, blob: false, offladder: false };
+  return simulate(kit, [{ geno: prof.geno, amount: 3000, degradation: 0 }], { rng, art: cleanArt, thresholds: th });
+}
+
+/* Negative control: a blank — baseline only, confirming no contamination. */
+function negativeControlSim(th) {
+  return { peaks: [], thresholds: th, maxHeight: th.st, noise: true };
 }
 
 export { observedProfile };
