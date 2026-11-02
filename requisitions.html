@@ -33,6 +33,13 @@
           <option value="trace" data-fr="Trace(s) / personne décédée" data-en="Trace(s) / deceased person"></option>
           <option value="disparu" data-fr="Personne disparue &amp; parentèle" data-en="Missing person &amp; relatives"></option>
         </select>
+        <label for="rquality" data-fr="Qualité :" data-en="Quality:"></label>
+        <select id="rquality" class="input">
+          <option value="nette" data-fr="Nette" data-en="Clean"></option>
+          <option value="vague" data-fr="Vague (fait décisif manquant)" data-en="Vague (missing decisive fact)"></option>
+          <option value="sloppy" data-fr="Mal rédigée" data-en="Poorly written"></option>
+          <option value="both" data-fr="Vague + mal rédigée" data-en="Vague + poorly written"></option>
+        </select>
         <button class="btn btn-primary" id="gen" data-fr="Générer" data-en="Generate"></button>
         <button class="btn btn-ghost" id="dl" data-fr="Télécharger le PDF" data-en="Download the PDF" disabled></button>
       </div>
@@ -292,8 +299,12 @@
     }
 
     var REQ = window.REQUISITIONS;
-    function build(type) {
-      var data = REQ.generate(type);
+    function readOpts() {
+      var q = document.getElementById("rquality").value;
+      return { vague: q === "vague" || q === "both", sloppy: q === "sloppy" || q === "both" };
+    }
+    function build(type, opts) {
+      var data = REQ.generate(type, opts || {});
       var doc = type === "trace" ? renderTrace(data) : type === "disparu" ? renderDisparu(data) : renderIndividu(data);
       var tag = type === "trace" ? "RequisitionTrace" : type === "disparu" ? "RequisitionDisparu" : "RequisitionIndividu";
       var bc = data.prelevement || (data.scelles && data.scelles[0] && data.scelles[0].barcode) || data.disparueBarcode || "";
@@ -303,12 +314,13 @@
       document.getElementById("preview").src = lastBlobUrl;
       document.getElementById("dl").disabled = false;
       window.__lastDoc = doc; // for automated verification
+      window.__lastReq = { type: data.type, quality: data.quality, degraded: data.degraded }; // hidden record (#49)
     }
 
-    document.getElementById("gen").addEventListener("click", function () { build(document.getElementById("rtype").value); });
+    document.getElementById("gen").addEventListener("click", function () { build(document.getElementById("rtype").value, readOpts()); });
     document.getElementById("dl").addEventListener("click", function () { if (window.__lastDoc) window.__lastDoc.save(lastName); });
     // first preview
-    build("suspect");
+    build("suspect", {});
   })();
   </script>
 </body>

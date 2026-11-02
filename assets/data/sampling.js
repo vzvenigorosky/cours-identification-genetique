@@ -104,7 +104,7 @@ window.SAMPLING = {
     hard:   { swab_wet: 1.0, scalpel: 0.3, swab_dry: 0.35 },
     bone:   { dremel: 1.0, cryo: 1.0, scalpel: 0.2 },
     tooth:  { dremel: 1.0, cryo: 0.9 },
-    tissue: { scalpel: 1.0, scissors: 0.6 },
+    tissue: { scalpel: 1.0, swab_wet: 0.5, swab_dry: 0.5 },
     liquid: { pipette: 1.0, swab_wet: 0.6, swab_dry: 0.6 }
   },
 
@@ -232,8 +232,8 @@ window.SAMPLING = {
       stainSlots: [ { cx: 200, cy: 128, r: 44 } ],
       stainPool: [ { fluid: "tissue", auto: 2.2, degrad: 0.4, visible: false, maleMode: "random", weight: 1, single: true } ],
       touchZones: [],
-      teach: { fr: "On excise un fragment de tissu au scalpel (ou aux ciseaux), puis digestion. Source unique identifiée → extraction classique, ni différentielle ni Y-STR.",
-               en: "Excise a tissue fragment with a scalpel (or scissors), then digest. Single identified source → standard extraction, neither differential nor Y-STR." } },
+      teach: { fr: "On excise un fragment de tissu au scalpel, puis digestion (pas aux ciseaux, qui écrasent le tissu). Un écouvillon est possible mais donne un très faible rendement. Source unique identifiée → extraction classique, ni différentielle ni Y-STR.",
+               en: "Excise a tissue fragment with a scalpel, then digest (not with scissors, which crush the tissue). A swab is possible but gives a very low yield. Single identified source → standard extraction, neither differential nor Y-STR." } },
 
     { id: "bloodtube", draw: "bloodtube", substrate: "liquid",
       title: { fr: "Tube de sang (référence)", en: "Blood tube (reference)" },

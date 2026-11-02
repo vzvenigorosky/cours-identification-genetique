@@ -13,6 +13,7 @@
     "sampling:test": "node tools/sampling-selftest.mjs",
     "extraction:test": "node tools/extraction-selftest.mjs",
     "pcr:test": "node tools/pcr-selftest.mjs",
-    "devis:test": "node tools/devis-selftest.mjs"
+    "devis:test": "node tools/devis-selftest.mjs",
+    "requisitions:test": "node tools/requisitions-selftest.mjs"
   }
 }

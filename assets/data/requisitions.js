@@ -136,12 +136,68 @@ window.REQUISITIONS = (function () {
     };
   }
 
-  function generate(type) {
-    if (type === "condamne") return genIndividu("condamne");
-    if (type === "suspect" || type === "individu") return genIndividu("suspect");
-    if (type === "trace") return genTrace();
-    if (type === "disparu") return genDisparu();
-    return genIndividu("suspect");
+  // ---- quality degradation (issue #49) ------------------------------------
+  // A réquisition can be generated "vague" (a decisive fact is left unstated,
+  // mapped to the devis-simulator archetypes, #32) and/or "mal rédigée" (text
+  // defects). What was degraded is recorded in data.degraded so a future
+  // exercise can grade against it. All values stay fictional; the watermark and
+  // footer live in the render layer and are untouched. DRAFT teaching content.
+  function stripAccents(str) { str = String(str); return str.normalize ? str.normalize("NFD").replace(/[̀-ͯ]/g, "") : str; }
+  function swapTypo(str) {
+    str = String(str); if (str.length < 4) return str;
+    var i = 1 + Math.floor(Math.random() * (str.length - 2));
+    return str.slice(0, i) + str.charAt(i + 1) + str.charAt(i) + str.slice(i + 2);
+  }
+  function abbrevGrade(g) { g = String(g); if (/OFFICIER/.test(g)) return "OPJ"; if (/AGENT/.test(g)) return "APJ"; return g; }
+
+  // Drop one decisive fact, chosen by type (mirrors the devis clarity archetypes).
+  function vaguify(data) {
+    var log = [];
+    if (data.type === "trace") {
+      data.scelles.forEach(function (sc) { sc.type = "Nature à déterminer"; });
+      log.push({ field: "scelles[].type", kind: "vague", archetype: "trace-nature-unstated",
+                 note: "La nature des traces n'est pas précisée — demander au requérant quels prélèvements analyser." });
+    } else if (data.type === "disparu") {
+      if (data.parentele && data.parentele.length) {
+        var idx = Math.floor(Math.random() * data.parentele.length);
+        data.parentele[idx].lien = "LIEN NON PRÉCISÉ";
+        log.push({ field: "parentele[" + idx + "].lien", kind: "vague", archetype: "relationship-unstated",
+                   note: "Le lien de parenté d'un membre n'est pas indiqué — il détermine l'analyse (autosomique / Y-STR / mtADN)." });
+      }
+    } else { // individu
+      data.infractions = "";
+      log.push({ field: "infractions", kind: "vague", archetype: "offence-unstated",
+                 note: "L'infraction 706-55 n'est pas précisée." });
+    }
+    return log;
+  }
+
+  // Inject realistic wording defects into free-text fields (not the barcodes).
+  function sloppify(data) {
+    var log = [];
+    var r = data.requerant;
+    if (r) {
+      r.grade = abbrevGrade(r.grade); log.push({ field: "requerant.grade", kind: "sloppy", note: "Grade abrégé (OPJ/APJ)." });
+      r.service = stripAccents(r.service).toLowerCase(); log.push({ field: "requerant.service", kind: "sloppy", note: "Casse et accents négligés." });
+    }
+    if (data.expert) { data.expert = swapTypo(data.expert); log.push({ field: "expert", kind: "sloppy", note: "Coquille (lettres inversées)." }); }
+    if (data.scelles) { data.scelles.forEach(function (sc) { if (sc.type) sc.type = stripAccents(sc.type).toLowerCase(); }); log.push({ field: "scelles[].type", kind: "sloppy", note: "Casse et accents négligés." }); }
+    return log;
+  }
+
+  function generate(type, opts) {
+    opts = opts || {};
+    var data;
+    if (type === "condamne") data = genIndividu("condamne");
+    else if (type === "trace") data = genTrace();
+    else if (type === "disparu") data = genDisparu();
+    else data = genIndividu("suspect");
+    var degraded = [];
+    if (opts.vague) degraded = degraded.concat(vaguify(data));
+    if (opts.sloppy) degraded = degraded.concat(sloppify(data));
+    data.quality = { vague: !!opts.vague, sloppy: !!opts.sloppy };
+    data.degraded = degraded;
+    return data;
   }
 
   return { generate: generate, today: function () { return dateStr(new Date()); } };
