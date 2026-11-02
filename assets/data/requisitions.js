@@ -39,7 +39,6 @@ window.REQUISITIONS = (function () {
   var EXPERTS = ["KEYSER CHRISTINE", "LEGRAND MARTIN", "ADAM SOPHIE", "RENARD JULIEN", "NOEL CAROLINE", "ROBIN PASCAL"];
   var SCELLE_LABELS = ["UN/PTS", "DEUX/PTS", "A/SRPJ", "B/SRPJ", "ECOUV-01", "ECOUV-02", "PV-1", "TRACE-A", "TRACE-B"];
   var TRACE_TYPES = ["Trace biologique sur objet", "Prélèvement sur cadavre", "Écouvillonnage de surface", "Mégot de cigarette", "Tache de sang séché", "Vêtement taché"];
-  var LIENS = ["PERE BIOLOGIQUE", "MERE BIOLOGIQUE", "FRATRIE BIOLOGIQUE (SAUF VRAI JUMEAU)", "DESCENDANT BIOLOGIQUE", "ASCENDANT BIOLOGIQUE"];
 
   function sex() { return Math.random() < 0.5 ? "M" : "F"; }
   function prenom(s) { return s === "M" ? pick(PRENOMS_M) : pick(PRENOMS_F); }
@@ -116,8 +115,14 @@ window.REQUISITIONS = (function () {
   // each relative's name, age and relationship independently. All ages are
   // plausible for a biological relationship, but the relationships are still
   // *reported*, not genetically established.
-  function datedPerson(nom, sexe, birthYear) {
-    return { nomNaissance: nom, prenom: prenom(sexe), sexe: sexe,
+  function datedPerson(nom, sexe, birthYear, used) {
+    var names = sexe === "M" ? PRENOMS_M : PRENOMS_F;
+    var available = names.filter(function (p) { return !used.has(p + " " + nom); });
+    // Our small example pedigrees cannot exhaust these name pools.
+    if (!available.length) throw new Error("No distinct names available for the generated pedigree");
+    var chosen = pick(available);
+    used.add(chosen + " " + nom);
+    return { nomNaissance: nom, prenom: chosen, sexe: sexe,
              dateNaissance: dateStr(new Date(birthYear, rint(0, 11), rint(1, 28))),
              lieuNaissance: pick(VILLES)[0], pays: "FRANCE" };
   }
@@ -131,15 +136,16 @@ window.REQUISITIONS = (function () {
     // All candidates are adults; parents remain in a realistic living age range.
     var age = rint(32, 55), candidateYear = currentYear - age;
     var fatherSurname = pick(NOMS), motherSurname = differentSurname(fatherSurname);
-    var father = datedPerson(fatherSurname, "M", candidateYear - rint(24, 37));
-    var mother = datedPerson(motherSurname, "F", candidateYear - rint(22, 35));
-    var candidate = datedPerson(fatherSurname, sex(), candidateYear);
+    var used = new Set();
+    var father = datedPerson(fatherSurname, "M", candidateYear - rint(24, 37), used);
+    var mother = datedPerson(motherSurname, "F", candidateYear - rint(22, 35), used);
+    var candidate = datedPerson(fatherSurname, sex(), candidateYear, used);
     candidate.lieuNaissance = vd[0];
     candidate.departement = DEPTS[vd[1]] || "";
     candidate.pere = father.prenom + " " + father.nomNaissance;
     candidate.mere = mother.prenom + " " + mother.nomNaissance;
     var siblingOffset = pick([-9, -7, -5, -3, -1, 1, 3, 5, 7, 9]);
-    var sibling = datedPerson(fatherSurname, sex(), candidateYear + siblingOffset);
+    var sibling = datedPerson(fatherSurname, sex(), candidateYear + siblingOffset, used);
     // A reported biological child is included only if old enough to supply an
     // adult reference sample without an impossible age-at-parenthood.
     var choices = [
@@ -149,7 +155,7 @@ window.REQUISITIONS = (function () {
     ];
     if (age >= 39) {
       var childYear = candidateYear + rint(21, age - 18);
-      var child = datedPerson(fatherSurname, sex(), childYear);
+      var child = datedPerson(fatherSurname, sex(), childYear, used);
       choices.push({ relationId: "child",
         lien: child.sexe === "M" ? "FILS BIOLOGIQUE PRÉSUMÉ" : "FILLE BIOLOGIQUE PRÉSUMÉE", person: child });
     }
@@ -210,6 +216,10 @@ window.REQUISITIONS = (function () {
         var idx = Math.floor(Math.random() * data.parentele.length);
         var wasLien = data.parentele[idx].lien;
         data.parentele[idx].lien = "LIEN NON PRÉCISÉ";
+        // Do not disclose the hidden parent relationship through the
+        // missing person's filiation in the same PDF.
+        if (data.parentele[idx].relationId === "father") data.disparue.pere = "NON PRÉCISÉ";
+        if (data.parentele[idx].relationId === "mother") data.disparue.mere = "NON PRÉCISÉ";
         log.push({ field: "parentele[" + idx + "].lien", kind: "vague", archetype: "relationship-unstated", was: wasLien,
                    note: { fr: "Le lien de parenté d'un membre n'est pas indiqué — il détermine l'analyse (autosomique / Y-STR / mtADN).",
                            en: "A relative's kinship link is not stated — it determines the analysis (autosomal / Y-STR / mtDNA)." } });
