@@ -52,7 +52,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
   function base(r,scenario,template,place) {
     return {type:"narrative",scenario,caseId:template.id,referenceMode:null,seed:null,
       requerant:{nom:r.pick(SURNAMES),prenom:r.pick(GIVEN),grade:"OFFICIER DE POLICE JUDICIAIRE",service:"UNITE PEDAGOGIQUE "+place.toUpperCase(),procedure:r.int(100,9999)+"/2026"},
-      place:t(place,place),eventDate:String(r.int(1,28)).padStart(2,"0")+"/"+String(r.int(1,12)).padStart(2,"0")+"/"+String(r.int(2023,2026)),
+      place:t(place,place),eventDate:String(r.int(1,28)).padStart(2,"0")+"/"+String(r.int(1,12)).padStart(2,"0")+"/"+String(r.int(2022,2025)),
       objective:null,narrative:substitute(template.background,place),
       mission:t("Procéder aux examens génétiques utiles à l'enquête, préciser les limites d'interprétation et rendre compte des résultats. Signaler toute information ou référence complémentaire nécessaire.","Carry out genetic examinations relevant to the investigation, explain interpretative limitations and report results. Indicate any further information or reference material needed."),
       exhibits:[],references:[],referenceStatus:t("",""),facts:{stated:{},withheld:{}},
@@ -77,7 +77,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
     if(["singleItem","multipleItems","mixed"].includes(mode)) {
       const number=mode==="singleItem"?1:mode==="multipleItems"?r.int(2,4):r.int(1,3);
       for(const item of r.shuffle(ITEMS).slice(0,number)) {
-        const provenance=t(item[1].fr+" ; présenté comme appartenant à "+data.candidate,item[1].en+"; said to belong to "+data.candidate);
+        const provenance=item[1]; // physical origin; claimed ownership is exclusively in the reference statement
         const e=exhibit(data,"personalItem",item[0],provenance);
         addRef(data,"personalItem",e,t("appartenance alléguée à "+data.candidate,"claimed belonging of "+data.candidate));
       }
@@ -127,18 +127,16 @@ window.NARRATIVE_REQUISITIONS = (function () {
       if(item)options.push({field:"references."+item.id+".claimedSource",archetype:"comparison-provenance-unstated",
         change(){const was=item.claimedSource;item.claimedSource=t("appartenance non précisée","ownership not stated");return was;},
         note:t("L'attribution de l'effet personnel n'est pas précisée.","The attribution of the personal item is not stated.")});
-      if(data.scenario==="sexualAssault")options.push({field:"referenceStatus",archetype:"assault-reference-status-unstated",
-        change(){const was=data.referenceStatus;data.referenceStatus=t("Disponibilité des références non précisée.","Reference availability not stated.");return was;},
-        note:t("La disponibilité des références n'est pas précisée.","The availability of references is not stated.")});
+
       const e=data.exhibits.find(x=>x.kind==="evidence"||x.kind==="personalItem");
       if(e)options.push({field:"exhibits."+e.id+".provenance",archetype:"exhibit-origin-unstated",
         change(){const was=e.provenance;e.provenance=t("origine non précisée","origin not stated");return was;},
         note:t("L'origine d'un scellé est omise.","The origin of an exhibit is omitted.")});
-      // The 'no available references' John Doe case has no decisive fact to erase
-      // in the comparison list; remove the remains provenance instead.
-      if(!options.length){const x=data.exhibits[0];options.push({field:"exhibits."+x.id+".provenance",archetype:"exhibit-origin-unstated",
-        change(){const was=x.provenance;x.provenance=t("origine non précisée","origin not stated");return was;},
-        note:t("L'origine du prélèvement est omise.","The origin of the sample is omitted.")});}
+      // In a no-reference identification request the explicitly reported absence is
+      // itself a decisive fact: withholding it is different from having no references.
+      if(!options.length)options.push({field:"referenceStatus",archetype:"comparison-status-unstated",
+        change(){const was=data.referenceStatus;data.referenceStatus=t("Disponibilité des références non précisée.","Reference availability not stated.");return was;},
+        note:t("Il faut demander si des références sont disponibles ou pourraient être obtenues.","Ask whether comparison references exist or could be obtained.")});
       const change=r.pick(options),was=change.change();
       data.facts.withheld[change.field]=was;
       data.degraded.push({field:change.field,kind:"vague",archetype:change.archetype,was,note:change.note});
@@ -158,7 +156,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
     const seed=opts.seed==null?Math.floor(Math.random()*4294967296):opts.seed;
     if(!Number.isInteger(Number(seed))||Number(seed)<0||Number(seed)>4294967295)throw Error("Invalid seed");
     const r=rng(seed),scenario=opts.scenario&&opts.scenario!=="random"?opts.scenario:r.pick(SCENARIOS);
-    const mode=opts.referenceMode&&opts.referenceMode!=="random"?opts.referenceMode:r.pick(MODES);
+    const mode=scenario==="johnDoe"?(opts.referenceMode&&opts.referenceMode!=="random"?opts.referenceMode:r.pick(MODES)):null;
     const d=scenario==="johnDoe"?makeJohnDoe(r,mode):makeAssault(r);
     d.seed=Number(seed);return degrade(d,opts,r);
   }
