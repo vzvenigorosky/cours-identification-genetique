@@ -33,8 +33,14 @@ window.PCR = {
   A_OPT: 1500,     // het-peak height at target input, 29 cycles, in-band protocol
   OVER: 7000,      // a called peak taller than this = over-amplified (fail)
   dispMax: 7000,   // FIXED electropherogram y-ceiling: peaks above it go off-scale
-  cycleRef: 29, cycleBase: 1.3, cycleClamp: [0.2, 6],
+  // Per-cycle gain is steep (≈1.9×/cycle) with a very low floor, so too few
+  // cycles fall below detection → NULL / very dropped profile (issue #42).
+  cycleRef: 29, cycleBase: 1.9, cycleClamp: [0.01, 8],
   degClamp: [0, 4],
+  // Autosomal loci forced homozygous per case, so single-peak loci must be read
+  // (true homozygote vs allele drop-out) instead of every locus being an easy
+  // heterozygote (issue #42). DRAFT/tunable.
+  homozygousLoci: 4,
 
   // GeneMapper-style realism knobs passed to the simulator (DRAFT, issue #12):
   // call artefacts above threshold (pull-ups labelled PU, imbalanced minor
@@ -55,29 +61,29 @@ window.PCR = {
   // effect: { effMul?, degAdd? } feeds amount/degradation; msg explains the failure mode.
   fields: [
     { id: "initDenatT", group: { fr: "Dénaturation initiale", en: "Initial denaturation" }, label: { fr: "Température", en: "Temperature" }, unit: "°C", def: 95, band: [94, 96], step: 1,
-      low:  { effMul: 0.5, degAdd: 0.8, msg: { fr: "dénaturation initiale insuffisante (ADN mal dénaturé) → rendement réduit", en: "insufficient initial denaturation (DNA poorly denatured) → reduced yield" } },
-      high: { degAdd: 1.3, msg: { fr: "température trop élevée → dégradation thermique de l'ADN (perte des grands fragments)", en: "temperature too high → thermal DNA degradation (loss of large fragments)" } } },
+      low:  { effMul: 0.5, degAdd: 0.8, kill: 80, msg: { fr: "dénaturation initiale insuffisante (ADN mal dénaturé) → rendement réduit", en: "insufficient initial denaturation (DNA poorly denatured) → reduced yield" } },
+      high: { degAdd: 1.3, kill: 100, msg: { fr: "température trop élevée → dégradation thermique de l'ADN (perte des grands fragments)", en: "temperature too high → thermal DNA degradation (loss of large fragments)" } } },
     { id: "initDenatS", group: { fr: "Dénaturation initiale", en: "Initial denaturation" }, label: { fr: "Durée", en: "Time" }, unit: "s", def: 60, band: [30, 90], step: 5,
       low:  { effMul: 0.6, degAdd: 0.6, msg: { fr: "dénaturation initiale trop courte → rendement réduit", en: "initial denaturation too short → reduced yield" } },
       high: { degAdd: 0.8, msg: { fr: "dénaturation initiale trop longue → dégradation", en: "initial denaturation too long → degradation" } } },
 
     { id: "denatT", group: { fr: "Cycle — dénaturation", en: "Cycling — denaturation" }, label: { fr: "Température", en: "Temperature" }, unit: "°C", def: 94, band: [93, 96], step: 1,
-      low:  { effMul: 0.6, degAdd: 0.7, msg: { fr: "dénaturation de cycle incomplète → rendement réduit", en: "incomplete cycle denaturation → reduced yield" } },
-      high: { degAdd: 1.2, msg: { fr: "dénaturation de cycle trop chaude → dégradation", en: "cycle denaturation too hot → degradation" } } },
+      low:  { effMul: 0.6, degAdd: 0.7, kill: 80, msg: { fr: "dénaturation de cycle incomplète → rendement réduit", en: "incomplete cycle denaturation → reduced yield" } },
+      high: { degAdd: 1.2, kill: 100, msg: { fr: "dénaturation de cycle trop chaude → dégradation", en: "cycle denaturation too hot → degradation" } } },
     { id: "denatS", group: { fr: "Cycle — dénaturation", en: "Cycling — denaturation" }, label: { fr: "Durée", en: "Time" }, unit: "s", def: 10, band: [5, 30], step: 1,
       low:  { effMul: 0.7, degAdd: 0.5, msg: { fr: "dénaturation de cycle trop brève → rendement réduit", en: "cycle denaturation too brief → reduced yield" } },
       high: { degAdd: 0.7, msg: { fr: "dénaturation de cycle trop longue → dégradation", en: "cycle denaturation too long → degradation" } } },
 
     { id: "annealT", group: { fr: "Cycle — hybridation", en: "Cycling — annealing" }, label: { fr: "Température", en: "Temperature" }, unit: "°C", def: 59, band: [57, 61], step: 1,
       low:  { effMul: 0.85, degAdd: 0.3, msg: { fr: "hybridation peu stringente → amorçage non spécifique (pics parasites) et déséquilibre", en: "low-stringency annealing → non-specific priming (artefact peaks) and imbalance" } },
-      high: { effMul: 0.25, degAdd: 1.0, msg: { fr: "hybridation trop stringente → amorçage inefficace → pertes d'allèles", en: "over-stringent annealing → inefficient priming → allele drop-out" } } },
+      high: { effMul: 0.25, degAdd: 1.0, kill: 70, msg: { fr: "hybridation trop stringente → amorçage inefficace → pertes d'allèles", en: "over-stringent annealing → inefficient priming → allele drop-out" } } },
     { id: "annealS", group: { fr: "Cycle — hybridation", en: "Cycling — annealing" }, label: { fr: "Durée", en: "Time" }, unit: "s", def: 60, band: [30, 90], step: 5,
       low:  { effMul: 0.6, degAdd: 0.3, msg: { fr: "hybridation trop courte → amorçage incomplet → rendement réduit", en: "annealing too short → incomplete priming → reduced yield" } },
       high: { effMul: 0.95, msg: { fr: "hybridation trop longue → léger amorçage non spécifique", en: "annealing too long → slight non-specific priming" } } },
 
     { id: "extendT", group: { fr: "Cycle — élongation", en: "Cycling — extension" }, label: { fr: "Température", en: "Temperature" }, unit: "°C", def: 72, band: [70, 74], step: 1,
-      low:  { effMul: 0.7, degAdd: 1.4, msg: { fr: "élongation trop froide → polymérase sous-optimale → perte des grands fragments", en: "extension too cold → sub-optimal polymerase → loss of large fragments" } },
-      high: { effMul: 0.7, degAdd: 1.0, msg: { fr: "élongation trop chaude → polymérase sous-optimale", en: "extension too hot → sub-optimal polymerase" } } },
+      low:  { effMul: 0.7, degAdd: 1.4, kill: 50, msg: { fr: "élongation trop froide → polymérase sous-optimale → perte des grands fragments", en: "extension too cold → sub-optimal polymerase → loss of large fragments" } },
+      high: { effMul: 0.7, degAdd: 1.0, kill: 95, msg: { fr: "élongation trop chaude → polymérase dénaturée → perte de rendement", en: "extension too hot → polymerase denatured → loss of yield" } } },
     { id: "extendS", group: { fr: "Cycle — élongation", en: "Cycling — extension" }, label: { fr: "Durée", en: "Time" }, unit: "s", def: 30, band: [20, 90], step: 5,
       low:  { degAdd: 1.7, msg: { fr: "élongation trop courte → extension incomplète des grands fragments (drop-out des grands loci)", en: "extension too short → incomplete extension of large fragments (large-locus drop-out)" } },
       high: { effMul: 0.97, msg: { fr: "élongation trop longue (sans gros risque mais inutile)", en: "extension too long (little risk but unnecessary)" } } },
@@ -92,5 +98,61 @@ window.PCR = {
     { id: "cycles", group: { fr: "Nombre de cycles", en: "Number of cycles" }, label: { fr: "Cycles", en: "Cycles" }, unit: "", def: 29, band: [28, 30], step: 1,
       low:  { msg: { fr: "pas assez de cycles → signal faible et pertes d'allèles", en: "too few cycles → weak signal and allele drop-out" } },
       high: { msg: { fr: "trop de cycles → sur-amplification : pics hors échelle, pull-up et pics dédoublés", en: "too many cycles → over-amplification: off-scale peaks, pull-up and split peaks" } } }
-  ]
+  ],
+
+  // ---- amount model (shared by the page and the Node self-test) ----
+  _clamp: function (x, lo, hi) { return Math.max(lo, Math.min(hi, x)); },
+
+  // Effective template amount the EPG is rendered from, for the given thermal
+  // values and the DNA loaded (ng). Each out-of-band field penalises efficiency
+  // and/or adds degradation; the penalty SCALES with how far past the band edge
+  // the value is, and a field carrying a `kill` value drives efficiency to ~0
+  // at/after that value — a catastrophic setting (e.g. 150 °C denaturation) then
+  // yields amount ≈ 0, i.e. a NULL profile (issue #42). Returns the amount, the
+  // degradation, the list of {fr,en} offenders, and the cycle factor.
+  effectiveAmount: function (vals, loadedNg) {
+    var P = this, offenders = [], eff = 1, deg = 0;
+
+    if (loadedNg < P.input.bandNg[0]) offenders.push(P.inputMsg.low);
+    else if (loadedNg > P.input.bandNg[1]) offenders.push(P.inputMsg.high);
+
+    P.fields.forEach(function (f) {
+      var v = vals[f.id];
+      if (!isFinite(v)) { offenders.push({ fr: "valeur manquante (" + f.group.fr + ")", en: "missing value (" + f.group.en + ")" }); return; }
+      var dir = v < f.band[0] ? "low" : (v > f.band[1] ? "high" : null);
+      if (!dir) return;
+      var e = f[dir], edge = dir === "low" ? f.band[0] : f.band[1];
+      if (e.kill != null) {
+        var span = Math.abs(e.kill - edge) || 1;
+        var sev = P._clamp(Math.abs(v - edge) / span, 0, 1); // 0 at the band edge → 1 at/after kill
+        eff *= (e.effMul != null ? e.effMul : 1) * (1 - sev);
+        deg += (e.degAdd || 0) * (0.3 + 0.7 * sev);
+      } else {
+        if (e.effMul != null) eff *= e.effMul;
+        if (e.degAdd != null) deg += e.degAdd;
+      }
+      offenders.push({ fr: f.group.fr + " : " + e.msg.fr, en: f.group.en + ": " + e.msg.en });
+    });
+
+    var cycles = vals.cycles;
+    var cycleFactor = isFinite(cycles)
+      ? P._clamp(Math.pow(P.cycleBase, cycles - P.cycleRef), P.cycleClamp[0], P.cycleClamp[1])
+      : 0; // a missing cycle count already raised an offender above
+    var inputFactor = loadedNg / P.input.targetNg;
+    var amount = Math.max(0, P.A_OPT * inputFactor * cycleFactor * eff);
+    return { amount: amount, degradation: P._clamp(deg, P.degClamp[0], P.degClamp[1]), offenders: offenders, cycleFactor: cycleFactor, eff: eff };
+  },
+
+  // Force up to n autosomal loci to be homozygous (a single-peak locus), so the
+  // student must distinguish a true homozygote from allele drop-out instead of
+  // reading only easy heterozygotes (issue #42). Mutates geno; returns the names
+  // of the loci changed. rnd → [0,1).
+  applyHomozygous: function (geno, autosomalNames, n, rnd) {
+    rnd = rnd || Math.random;
+    var names = autosomalNames.filter(function (nm) { return geno[nm] && geno[nm].length === 2; });
+    for (var i = names.length - 1; i > 0; i--) { var j = Math.floor(rnd() * (i + 1)), t = names[i]; names[i] = names[j]; names[j] = t; }
+    var chosen = names.slice(0, Math.max(0, Math.min(n, names.length)));
+    chosen.forEach(function (nm) { geno[nm] = [geno[nm][0], geno[nm][0]]; });
+    return chosen;
+  }
 };

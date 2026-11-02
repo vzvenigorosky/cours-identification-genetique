@@ -77,6 +77,9 @@
 
     const P = window.PCR, I18N = window.I18N;
     const kit = getKit("globalfiler");
+    const autosomalNames = kit.loci
+      .filter((l) => l.type !== "amel" && l.type !== "yindel" && l.type !== "ystr")
+      .map((l) => l.name);
     const fb = document.getElementById("fb");
     let state = {};
     const L = (fr, en) => (I18N.getLang() === "en" ? en : fr);
@@ -84,12 +87,12 @@
     const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const fmtAllele = (a) => (typeof a === "number" && !Number.isInteger(a)) ? a.toFixed(1) : String(a);
     const round = (n, d) => { const m = Math.pow(10, d); return Math.round(n * m) / m; };
-    const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
-    const fieldById = (id) => P.fields.find((f) => f.id === id);
 
     function newCase() {
       const rng = makeRng(Math.floor(Math.random() * 1e9));
       const profile = randomProfile(kit, rng);
+      // Force a few homozygous loci so single-peak loci must be read (#42).
+      P.applyHomozygous(profile.geno, autosomalNames, P.homozygousLoci, Math.random);
       const cr = P.input.concRange;
       const conc = round(cr[0] + Math.random() * (cr[1] - cr[0]), 3);
       state = { profile, conc };
@@ -139,35 +142,13 @@
     function compute() {
       const vals = readVals();
       const uL = parseFloat(document.getElementById("vol").value);
-      const offenders = [];
-      let eff = 1, deg = 0;
-
-      // input
-      const loadedNg = (isFinite(uL) && uL >= 0) ? state.conc * uL : 0;
       if (!isFinite(uL) || uL < 0) return { error: L("Entrez un volume d'extrait.", "Enter an extract volume.") };
-      if (uL > P.input.maxExtractVol) offenders.push(P.inputMsg.volTooMuch);
-      if (loadedNg < P.input.bandNg[0]) offenders.push(P.inputMsg.low);
-      else if (loadedNg > P.input.bandNg[1]) offenders.push(P.inputMsg.high);
-
-      // thermal fields
-      P.fields.forEach((f) => {
-        const v = vals[f.id];
-        if (!isFinite(v)) { offenders.push({ fr: "valeur manquante (" + f.group.fr + ")", en: "missing value (" + f.group.en + ")" }); return; }
-        let dir = null;
-        if (v < f.band[0]) dir = "low"; else if (v > f.band[1]) dir = "high";
-        if (!dir) return;
-        const e = f[dir];
-        if (e.effMul != null) eff *= e.effMul;
-        if (e.degAdd != null) deg += e.degAdd;
-        offenders.push({ fr: f.group.fr + " : " + e.msg.fr, en: f.group.en + ": " + e.msg.en });
-      });
-
-      const cycles = vals.cycles;
-      const cycleFactor = clamp(Math.pow(P.cycleBase, cycles - P.cycleRef), P.cycleClamp[0], P.cycleClamp[1]);
-      const inputFactor = loadedNg / P.input.targetNg;
-      const amount = Math.max(0, P.A_OPT * inputFactor * cycleFactor * eff);
-      const degradation = clamp(deg, P.degClamp[0], P.degClamp[1]);
-      return { amount, degradation, offenders, loadedNg };
+      const loadedNg = state.conc * uL;
+      // The amount model lives in pcr.js (shared with the self-test).
+      const res = P.effectiveAmount(vals, loadedNg);
+      const offenders = res.offenders.slice();
+      if (uL > P.input.maxExtractVol) offenders.unshift(P.inputMsg.volTooMuch);
+      return { amount: res.amount, degradation: res.degradation, offenders, loadedNg };
     }
 
     function run() {
