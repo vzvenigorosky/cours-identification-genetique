@@ -139,7 +139,8 @@ for (const scenario of N.SCENARIOS) {
       const vagues = d.degraded.filter(e => e.kind === 'vague');
       const sloppies = d.degraded.filter(e => e.kind === 'sloppy');
       assert.equal(vagues.length, flags.vague ? 1 : 0);
-      assert.equal(sloppies.length, flags.sloppy ? 1 : 0);
+      assert.equal(sloppies.length, flags.sloppy ? 2 : 0);
+      if (flags.sloppy) assert(d.narrative.fr[0] === d.narrative.fr[0].toLowerCase(), 'sloppy punctuation is visible');
       assert(d.degraded.every(e => e.note.fr && e.note.en), 'corrigé bilingual');
       assert(vagues.every(e => e.was && e.field && e.archetype), 'withheld decisive fact preserved');
       assert(d.exhibits.every(e => /^S[0-9]+$/.test(e.id)));
