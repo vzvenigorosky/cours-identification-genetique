@@ -10,7 +10,8 @@ for (const t of TYPES) {
   const d = R.generate(t);
   assert(d && d.type, `${t}: has a type`);
   assert(d.requerant && d.requerant.nom, `${t}: has a requérant`);
-  assert(d.quality.vague === false && d.quality.sloppy === false, `${t}: clean by default`);
+  assert(d.quality.vague === false, `${t}: clean by default`);
+  assert(!('sloppy' in d.quality), `${t}: the typo axis no longer exists (#68)`);
   assert.equal(d.degraded.length, 0, `${t}: no degradation when clean`);
 }
 assert.equal(R.generate('trace').type, 'trace');
@@ -34,33 +35,25 @@ for (let i = 0; i < 30; i++) {
   assert(d.degraded.some((x) => x.archetype === 'relationship-unstated'), 'disparu vague recorded');
 }
 
-// ---- sloppy: text defects applied and recorded; barcodes untouched ----
-for (let i = 0; i < 20; i++) {
-  const d = R.generate('trace', { sloppy: true });
-  assert(d.degraded.some((x) => x.kind === 'sloppy'), 'sloppy recorded');
-  assert(['OPJ', 'APJ'].includes(d.requerant.grade), 'grade abbreviated');
-  assert.equal(d.requerant.service, d.requerant.service.toLowerCase(), 'service lowercased');
-  assert(d.scelles.every((sc) => /^[0-9]+$/.test(String(sc.barcode))), 'barcodes stay numeric (not garbled)');
-  assert(/^[0-9]+$/.test(String(d.scelles[0].barcode)));
-}
-
-// ---- both axes combine ----
-{
-  const d = R.generate('disparu', { vague: true, sloppy: true });
-  assert(d.quality.vague && d.quality.sloppy, 'both flags set');
-  assert(d.degraded.some((x) => x.kind === 'vague') && d.degraded.some((x) => x.kind === 'sloppy'), 'both degradations recorded');
+// ---- the only quality axis is "vague"; no typo defect is ever produced ----
+for (const t of TYPES) {
+  for (let i = 0; i < 10; i++) {
+    const d = R.generate(t, { vague: true });
+    assert(d.degraded.every((x) => x.kind === 'vague'), `${t}: no non-vague degradation`);
+    assert(d.quality.vague === true, `${t}: vague flag set`);
+  }
 }
 
 // ---- data stays fictional: requérant/expert are from the fixed pools, no PII ----
 {
-  const d = R.generate('suspect', { sloppy: true });
+  const d = R.generate('suspect', { vague: true });
   assert(typeof d.expert === 'string' && d.expert.length > 0, 'expert present');
   assert(d.etatCivil && d.etatCivil.pere === 'INCONNU INCONNU', 'filiation stays fictional placeholder');
 }
 
 // ---- corrigé support (#56): bilingual notes + a preserved dropped value ----
 for (const t of TYPES) {
-  const d = R.generate(t, { vague: true, sloppy: true });
+  const d = R.generate(t, { vague: true });
   for (const e of d.degraded) {
     assert(e.note && typeof e.note.fr === 'string' && e.note.fr.trim(), `${t}/${e.field}: French note`);
     assert(typeof e.note.en === 'string' && e.note.en.trim(), `${t}/${e.field}: English note`);
@@ -75,9 +68,9 @@ for (let i = 0; i < 20; i++) {
   assert(v && v.was && v.was !== 'LIEN NON PRÉCISÉ', 'disparu: hidden lien preserved');
 }
 
-console.log(`Requisitions: clean / vague / sloppy / both generation and bilingual corrigé notes for ${TYPES.length} types checked.`);
+console.log(`Requisitions: clean / vague generation and bilingual corrigé notes for ${TYPES.length} types checked.`);
 
- 
+
 // ---- #61: bilingual, seeded narrative requisitions, independently of FNAEG forms ----
 const N = loadWindowData('assets/data/requisitions-narrative.js', 'NARRATIVE_REQUISITIONS');
 assert.deepEqual(Array.from(N.SCENARIOS), ['johnDoe', 'sexualAssault']);
@@ -95,6 +88,7 @@ for (const mode of N.MODES) {
     assert(d.references.every(x => d.exhibits.some(e => e.id === x.exhibitId)), 'reference links to submitted physical exhibit');
     assert.equal(d.degraded.length, 0);
     assert.equal(d.quality.vague, false);
+    assert(!('sloppy' in d.quality), 'narrative quality no longer carries a typo axis');
     const bilingual = checkBilingual(d);
     assert.deepEqual(bilingual.bad, [], 'all bilingual data complete');
     if (mode === 'none') {
@@ -134,18 +128,11 @@ for (let seed = 0; seed < 180; seed++) {
 for (const scenario of N.SCENARIOS) {
   const modes = scenario === 'johnDoe' ? N.MODES : ['random'];
   for (const mode of modes) {
-    for (const flags of [{vague:true}, {sloppy:true}, {vague:true,sloppy:true}]) {
+    for (const flags of [{}, {vague:true}]) {
       const d = N.generate({scenario, referenceMode:mode, seed:14, ...flags});
       const vagues = d.degraded.filter(e => e.kind === 'vague');
-      const sloppies = d.degraded.filter(e => e.kind === 'sloppy');
       assert.equal(vagues.length, flags.vague ? 1 : 0);
-      assert.equal(sloppies.length, flags.sloppy ? 3 : 0);
-      if (flags.sloppy) {
-        assert(d.narrative.fr.match(/resttes|corpss|persone/), 'French casework typo is visible');
-        assert(d.narrative.en.match(/remians|bodu|persn/), 'English casework typo is visible');
-        assert(d.mission.fr.includes('génetiques') && d.mission.en.includes('genetc'), 'mission typo is visible in both languages');
-        assert(d.degraded.some(e => e.field === 'mission'), 'corrigé identifies actual mission typo');
-      }
+      assert.equal(d.degraded.length, flags.vague ? 1 : 0, 'the only degradation axis is "vague"');
       assert(d.degraded.every(e => e.note.fr && e.note.en), 'corrigé bilingual');
       assert(vagues.every(e => e.was && e.field && e.archetype), 'withheld decisive fact preserved');
       assert(d.exhibits.every(e => /^S[0-9]+$/.test(e.id)));
@@ -164,22 +151,21 @@ assert.match(narrativeUI, /Math\.random\(\) < 0\.5/, 'mixed format must choose b
 assert.match(narrativeUI, /function renderNarrative\(/);
 assert.match(narrativeUI, /build\("mixed", readOpts\(\)\)/, 'initial preview respects randomized quality');
 assert.match(narrativeUI, /requisitions-narrative\.js/);
+// #69: the free-form document reads as a letter, not a sectioned FNAEG form.
+assert.match(narrativeUI, /Je vous fais parvenir, sous scellés,/, 'scellés are woven into prose');
+assert.match(narrativeUI, /Je vous prie d'agréer, Madame, Monsieur/, 'polite closing formula');
+assert.doesNotMatch(narrativeUI, /value="sloppy"|value="both"/, 'the typo quality options are gone (#68)');
 
 for (const scenario of N.SCENARIOS) {
   for (const mode of scenario === 'johnDoe' ? N.MODES : ['random']) {
     for (let seed = 0; seed < 120; seed++) {
       const clean = N.generate({scenario, referenceMode:mode, seed});
       const vague = N.generate({scenario, referenceMode:mode, seed, vague:true});
-      const sloppy = N.generate({scenario, referenceMode:mode, seed, sloppy:true});
-      const both = N.generate({scenario, referenceMode:mode, seed, vague:true, sloppy:true});
-      assert.equal(vague.degraded.filter(e => e.kind === 'sloppy').length, 0);
       assert.equal(vague.degraded.filter(e => e.kind === 'vague').length, 1);
-      assert.equal(sloppy.degraded.filter(e => e.kind === 'sloppy').length, 3);
-      assert.equal(both.degraded.length, 4);
       assert.equal(clean.degraded.length, 0);
       assert.equal(clean.exhibits.length, vague.exhibits.length, 'defective wording does not discard evidence');
       assert.equal(clean.references.length, vague.references.length, 'defective wording does not discard comparisons');
-      assert.deepEqual(checkBilingual(both).bad, [], 'defective variants remain bilingual');
+      assert.deepEqual(checkBilingual(vague).bad, [], 'defective variants remain bilingual');
       const defect = vague.degraded[0];
       if (defect.archetype === 'relationship-path-unstated') {
         const ref = vague.references.find(x => defect.field === 'references.'+x.id+'.claimedSource');
@@ -207,13 +193,13 @@ for (const scenario of N.SCENARIOS) {
 console.log('Requisitions: narrative quality variants and meaningful omissions verified.');
 
 
-// ---- #62: parent-child ages, shared names, explicit and coherent pedigree ----
+// ---- #62 / #67: parent-child ages, shared names, explicit + patrilineal pedigree ----
 const yearOf = date => Number(date.split('/')[2]);
 const identifier = p => p.prenom + ' ' + p.nomNaissance;
-let legacyRelatives = 0;
+let legacyRelatives = 0, femaleCandidateChildren = 0;
 for (let i = 0; i < 3000; i++) {
   const vague = i % 2 === 0;
-  const d = R.generate('disparu', { vague, sloppy: i % 7 === 0 });
+  const d = R.generate('disparu', { vague });
   const candidate = d.disparue, candidateYear = yearOf(candidate.dateNaissance);
   const currentYear = new Date().getFullYear();
   assert(candidateYear <= currentYear - 32 && candidateYear >= currentYear - 55);
@@ -229,6 +215,7 @@ for (let i = 0; i < 3000; i++) {
     assert.equal(p.accord, true, 'transmitted relative sample is recorded as consented');
     if (p.relationId === 'father') {
       assert.equal(p.sexe, 'M');
+      // Patrilineal: the candidate always carries the father's birth surname.
       assert.equal(p.nomNaissance, candidate.nomNaissance);
       assert(candidateYear - relativeYear >= 24 && candidateYear - relativeYear <= 37);
       if (p.lien === 'LIEN NON PRÉCISÉ') assert.equal(candidate.pere, 'NON PRÉCISÉ');
@@ -237,6 +224,7 @@ for (let i = 0; i < 3000; i++) {
     }
     if (p.relationId === 'mother') {
       assert.equal(p.sexe, 'F');
+      // A mother married into the family keeps a maiden surname.
       assert.notEqual(p.nomNaissance, candidate.nomNaissance);
       assert(candidateYear - relativeYear >= 22 && candidateYear - relativeYear <= 35);
       if (p.lien === 'LIEN NON PRÉCISÉ') assert.equal(candidate.mere, 'NON PRÉCISÉ');
@@ -244,18 +232,23 @@ for (let i = 0; i < 3000; i++) {
       if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, /^MÈRE/);
     }
     if (p.relationId === 'sibling') {
+      // Full siblings share the father's surname.
       assert.equal(p.nomNaissance, candidate.nomNaissance);
       assert(Math.abs(candidateYear - relativeYear) >= 1 && Math.abs(candidateYear - relativeYear) <= 9);
       if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, p.sexe === 'M' ? /^FRÈRE/ : /^SŒUR/);
     }
     if (p.relationId === 'child') {
-      assert.equal(p.nomNaissance, candidate.nomNaissance);
+      // #67 patrilineal: the child carries the candidate's surname only when the
+      // candidate is male; a female candidate's child takes its father's name.
+      if (candidate.sexe === 'M') assert.equal(p.nomNaissance, candidate.nomNaissance);
+      else { assert.notEqual(p.nomNaissance, candidate.nomNaissance); femaleCandidateChildren++; }
       assert(relativeYear - candidateYear >= 21 && relativeYear - candidateYear <= 37);
       if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, p.sexe === 'M' ? /^FILS/ : /^FILLE/);
     }
   }
 }
 assert(legacyRelatives > 3000, 'sample numerous relatives');
+assert(femaleCandidateChildren > 0, 'female-candidate children exercised the patrilineal naming branch');
 // The consented reference in a deliberately vague requisition still reflects
 // the same simulated person, only their stated relation is withheld.
 for (let i = 0; i < 500; i++) {
@@ -269,7 +262,13 @@ for (let i = 0; i < 500; i++) {
 const distantIds = new Set(['firstCousin','secondCousin','greatAunt','thirdCousin','fourthCousin']);
 const distantDepth = {firstCousin:2,secondCousin:3,greatAunt:3,thirdCousin:4,fourthCousin:5};
 const seenDistant = new Set();
-let narrativeRefs = 0;
+// #67 gender-agreeing relationship descriptions.
+const expectDescFR = {
+  father: 'père biologique présumé', mother: 'mère biologique présumée',
+  fullSibling: { M: 'frère germain présumé', F: 'sœur germaine présumée' },
+  child: { M: 'fils biologique présumé', F: 'fille biologique présumée' }
+};
+let narrativeRefs = 0, femaleRelatives = 0, maleRelatives = 0, femaleNarrativeChildren = 0;
 for (let seed = 0; seed < 1200; seed++) {
   for (const mode of N.MODES) {
     const d = N.generate({scenario:'johnDoe',referenceMode:mode,seed});
@@ -281,6 +280,11 @@ for (let seed = 0; seed < 1200; seed++) {
     assert(person.birthYear - d.family.mother.birthYear >= 22);
     assert(d.narrative.fr.includes(person.birthDate) || mode === 'none', 'candidate DOB in request');
     assert(d.narrative.en.includes(person.birthDate) || mode === 'none');
+    if (mode !== 'none') {
+      // The candidate's birth clause gender-agrees in French.
+      const cb = person.sex === 'F' ? 'née le ' : 'né le ';
+      assert(d.narrative.fr.includes('(' + cb + person.birthDate), 'candidate birth clause gender-agrees');
+    }
     const named = [person.name]; // selected relatives may include these already-listed parents
     const refs = d.references.filter(ref => ref.kind === 'relative');
     for (const ref of refs) {
@@ -290,10 +294,20 @@ for (let seed = 0; seed < 1200; seed++) {
       assert(donor && rel.candidate === person.name);
       assert.equal(yearOf(donor.birthDate), donor.birthYear);
       assert(donor.sex === 'M' || donor.sex === 'F');
-      assert(ref.label.fr.includes(donor.name), 'visible sample carries donor name');
-      assert(ref.claimedSource.fr.includes(donor.birthDate), 'visible comparison carries donor birth date');
+      if (donor.sex === 'F') femaleRelatives++; else maleRelatives++;
+      // Title and birth verb agree with the donor's sex.
+      const title = donor.sex === 'M' ? 'M. ' : 'Mme ';
+      assert(ref.label.fr.includes(title + donor.name), 'visible sample carries titled donor name');
+      const bornFR = donor.sex === 'F' ? 'née le ' : 'né le ';
+      assert(ref.claimedSource.fr.includes(bornFR + donor.birthDate), 'comparison birth verb gender-agrees');
       assert(ref.claimedSource.en.includes(donor.birthDate));
       assert(donor.birthYear <= 2008, 'adult donor');
+      // Relationship description gender-agrees.
+      const expect = expectDescFR[rel.id];
+      if (typeof expect === 'string') assert.equal(rel.summary.fr, expect, 'kinship description');
+      else if (expect) assert.equal(rel.summary.fr, expect[donor.sex], 'gender-agreeing kinship description');
+      else if (rel.id === 'firstCousin' || rel.id === 'secondCousin')
+        assert.match(rel.summary.fr, donor.sex === 'F' ? /^cousine/ : /^cousin /, 'cousin(e) agrees');
       named.push(donor.name);
       if (rel.id === 'father') assert.equal(donor.name, d.family.father.name);
       if (rel.id === 'mother') assert.equal(donor.name, d.family.mother.name);
@@ -302,7 +316,9 @@ for (let seed = 0; seed < 1200; seed++) {
         assert(Math.abs(donor.birthYear - person.birthYear) <= 8);
       }
       if (rel.id === 'child') {
-        assert.equal(donor.surname, person.surname);
+        // #67 patrilineal: a female candidate's child takes a different surname.
+        if (person.sex === 'M') assert.equal(donor.surname, person.surname);
+        else { assert.notEqual(donor.surname, person.surname); femaleNarrativeChildren++; }
         assert(donor.birthYear - person.birthYear >= 21);
       }
       if (distantIds.has(rel.id)) {
@@ -319,13 +335,16 @@ for (let seed = 0; seed < 1200; seed++) {
   }
 }
 assert(narrativeRefs > 1000, 'kinship cases exercised');
+assert(femaleRelatives > 0 && maleRelatives > 0, 'both sexes of relative exercised the descriptions');
+assert(femaleNarrativeChildren > 0, 'female-candidate narrative children exercised');
 assert.deepEqual([...seenDistant].sort(), [...distantIds].sort(), 'all distant relative types generated');
-console.log('Issue #62: 3,000 FNAEG family cases and 7,200 narrative configurations checked for kinship coherence.');
+console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configurations checked for patrilineal, gender-agreeing kinship coherence.');
 
 
 // ---- UI / mock PDF integration: random quality must work for both document
-// families; force-quality modes must remain reliable. A lightweight jsPDF
-// double validates the actual page controller, not visual PDF layout. ----
+// families; forced quality must remain reliable; the narrative must render as a
+// polite letter. A lightweight jsPDF double validates the actual page
+// controller, not visual PDF layout. ----
 {
   const source = narrativeUI.match(/<script>([\s\S]*?)<\/script>/)?.[1];
   assert(source && source.includes('function build('), 'inline requisition controller found');
@@ -378,39 +397,51 @@ console.log('Issue #62: 3,000 FNAEG family cases and 7,200 narrative configurati
   new Function('window', 'document', 'I18N', 'Math', 'URL', source)(
     win, doc, i18n, math, { revokeObjectURL() {} }
   );
-  const counts = { fnaeg: 0, narrative: 0, clean: 0, vague: 0, sloppy: 0, both: 0 };
+  const counts = { fnaeg: 0, narrative: 0, clean: 0, vague: 0 };
   for (let i = 0; i < 320; i++) {
     events['gen:click']();
     const data = win.__lastReq;
     counts[data.type === 'narrative' ? 'narrative' : 'fnaeg']++;
     const q = data.quality;
-    counts[q.vague && q.sloppy ? 'both' : q.vague ? 'vague' : q.sloppy ? 'sloppy' : 'clean']++;
+    counts[q.vague ? 'vague' : 'clean']++;
+    assert(!('sloppy' in q), 'no typo axis reaches the controller');
     assert(element('corrige').classList.contains('hidden'), 'new case must hide prior answer key');
     assert(!element('corrigeBtn').disabled, 'answer key also available on clean cases');
     assert(!element('corrigeHint').textContent.includes('nette'), 'no clean-case spoilers');
   }
   for (const value of Object.values(counts)) assert(value >= 10, 'all formats/qualities appear with random default');
-  for (const q of ['nette', 'vague', 'sloppy', 'both']) {
+  for (const q of ['nette', 'vague']) {
     element('rtype').value = 'narrative';
     element('nscenario').value = 'johnDoe';
     element('nreference').value = 'closeKin';
     element('rquality').value = q;
     events['gen:click']();
-    assert.equal(win.__lastReq.quality.vague, q === 'vague' || q === 'both');
-    assert.equal(win.__lastReq.quality.sloppy, q === 'sloppy' || q === 'both');
+    assert.equal(win.__lastReq.quality.vague, q === 'vague');
+    assert(!('sloppy' in win.__lastReq.quality));
   }
-  element('rquality').value = 'sloppy';
+  // The free-form narrative renders as a letter: polite formulations, woven
+  // scellés and the fictional watermark, in both languages. (#69)
+  element('rtype').value = 'narrative';
+  element('nscenario').value = 'johnDoe';
+  element('nreference').value = 'closeKin';
+  element('rquality').value = 'nette';
   events['gen:click']();
-  const renderedFR = win.__lastDoc.texts.join(' ');
-  assert.match(renderedFR, /resttes|corpss/, 'typo is in student PDF text, not only its metadata');
-  assert.match(renderedFR, /génetiques/, 'mission typo also in PDF');
+  assert.equal(win.__lastData.type, 'narrative');
+  const renderedFR = win.__lastDoc.texts.join(' \n ');
+  assert.match(renderedFR, /DOCUMENT FICTIF/, 'watermark present on the fictional letter');
+  assert.match(renderedFR, /Madame, Monsieur,/, 'letter salutation');
+  assert.match(renderedFR, /Je vous fais parvenir, sous scellés, .*\bS1\b/, 'scellés woven into prose with their codes');
+  assert.match(renderedFR, /Je vous prie d'agréer, Madame, Monsieur/, 'polite closing');
+  assert.doesNotMatch(renderedFR, /SCELLÉ\(S\)|REQUÉRANT|CADRE JURIDIQUE/, 'no FNAEG section bars in the free-form letter');
   const originalData = JSON.stringify(win.__lastData);
   currentLang = 'en';
   events['document:langchange']();
   assert.equal(JSON.stringify(win.__lastData), originalData, 'language change does not generate a new case');
-  const renderedEN = win.__lastDoc.texts.join(' ');
-  assert.match(renderedEN, /remians|bodu/);
-  assert.match(renderedEN, /genetc/);
+  const renderedEN = win.__lastDoc.texts.join(' \n ');
+  assert.match(renderedEN, /FICTIONAL DOCUMENT/);
+  assert.match(renderedEN, /Dear Sir or Madam,/);
+  assert.match(renderedEN, /I am sending you, under seal,/);
+  assert.match(renderedEN, /Yours faithfully,/);
   // A clean answer is disclosed only after the user opens the corrigé.
   element('rquality').value = 'nette';
   events['gen:click']();
@@ -419,5 +450,5 @@ console.log('Issue #62: 3,000 FNAEG family cases and 7,200 narrative configurati
   assert.match(element('corrigeBody').innerHTML, /No intentional defect/);
   events['gen:click']();
   assert(element('corrige').classList.contains('hidden'), 'fresh case re-hides a previously opened corrigé');
-  console.log('Requisitions UI: 320 mixed cases, four manual quality choices and bilingual PDF text smoke PASS', counts);
+  console.log('Requisitions UI: 320 mixed cases, forced quality choices and a bilingual letter-format PDF smoke PASS', counts);
 }

@@ -155,7 +155,10 @@ window.REQUISITIONS = (function () {
     ];
     if (age >= 39) {
       var childYear = candidateYear + rint(21, age - 18);
-      var child = datedPerson(fatherSurname, sex(), childYear, used);
+      // Patrilineal: the missing person's child carries the father's surname —
+      // the missing person's own surname only if the missing person is male.
+      var childSurname = candidate.sexe === "M" ? fatherSurname : differentSurname(fatherSurname);
+      var child = datedPerson(childSurname, sex(), childYear, used);
       choices.push({ relationId: "child",
         lien: child.sexe === "M" ? "FILS BIOLOGIQUE PRÉSUMÉ" : "FILLE BIOLOGIQUE PRÉSUMÉE", person: child });
     }
@@ -187,19 +190,12 @@ window.REQUISITIONS = (function () {
   }
 
   // ---- quality degradation (issue #49) ------------------------------------
-  // A réquisition can be generated "vague" (a decisive fact is left unstated,
-  // mapped to the devis-simulator archetypes, #32) and/or "mal rédigée" (text
-  // defects). What was degraded is recorded in data.degraded so a future
-  // exercise can grade against it. All values stay fictional; the watermark and
-  // footer live in the render layer and are untouched. DRAFT teaching content.
-  function stripAccents(str) { str = String(str); return str.normalize ? str.normalize("NFD").replace(/[̀-ͯ]/g, "") : str; }
-  function swapTypo(str) {
-    str = String(str); if (str.length < 4) return str;
-    var i = 1 + Math.floor(Math.random() * (str.length - 2));
-    return str.slice(0, i) + str.charAt(i + 1) + str.charAt(i) + str.slice(i + 2);
-  }
-  function abbrevGrade(g) { g = String(g); if (/OFFICIER/.test(g)) return "OPJ"; if (/AGENT/.test(g)) return "APJ"; return g; }
-
+  // A réquisition can be generated "vague": a decisive fact is left unstated,
+  // mapped to the devis-simulator archetypes (#32). What was degraded is
+  // recorded in data.degraded so a future exercise can grade against it. (The
+  // earlier "mal rédigée"/typo axis was removed in #68 — we do not teach typo
+  // detection.) All values stay fictional; the watermark and footer live in the
+  // render layer and are untouched. DRAFT teaching content.
   // Drop one decisive fact, chosen by type (mirrors the devis clarity archetypes).
   // Each entry carries a bilingual `note` and the hidden `was` value, so the
   // generator's corrigé (#56) can explain and reveal what was dropped.
@@ -233,27 +229,6 @@ window.REQUISITIONS = (function () {
     return log;
   }
 
-  // Inject realistic wording defects into free-text fields (not the barcodes).
-  function sloppify(data) {
-    var log = [];
-    var r = data.requerant;
-    if (r) {
-      r.grade = abbrevGrade(r.grade);
-      log.push({ field: "requerant.grade", kind: "sloppy", note: { fr: "Grade abrégé (OPJ/APJ).", en: "Grade abbreviated (OPJ/APJ)." } });
-      r.service = stripAccents(r.service).toLowerCase();
-      log.push({ field: "requerant.service", kind: "sloppy", note: { fr: "Casse et accents négligés.", en: "Case and accents neglected." } });
-    }
-    if (data.expert) {
-      data.expert = swapTypo(data.expert);
-      log.push({ field: "expert", kind: "sloppy", note: { fr: "Coquille (lettres inversées).", en: "Typo (transposed letters)." } });
-    }
-    if (data.scelles) {
-      data.scelles.forEach(function (sc) { if (sc.type) sc.type = stripAccents(sc.type).toLowerCase(); });
-      log.push({ field: "scelles[].type", kind: "sloppy", note: { fr: "Casse et accents négligés.", en: "Case and accents neglected." } });
-    }
-    return log;
-  }
-
   function generate(type, opts) {
     opts = opts || {};
     var data;
@@ -263,8 +238,7 @@ window.REQUISITIONS = (function () {
     else data = genIndividu("suspect");
     var degraded = [];
     if (opts.vague) degraded = degraded.concat(vaguify(data));
-    if (opts.sloppy) degraded = degraded.concat(sloppify(data));
-    data.quality = { vague: !!opts.vague, sloppy: !!opts.sloppy };
+    data.quality = { vague: !!opts.vague };
     data.degraded = degraded;
     return data;
   }

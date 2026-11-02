@@ -17,8 +17,8 @@
     <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
     <h1 class="page-title mt" data-fr="Générateur de réquisitions génétiques" data-en="Forensic genetic requisition generator"></h1>
     <p class="page-intro"
-       data-fr="Génère au hasard un formulaire FNAEG structuré ou une réquisition narrative libre, ainsi qu’une qualité de rédaction variable (nette, vague ou mal rédigée). Vous pouvez aussi imposer le format et la qualité pour vous exercer. Chaque tirage produit un PDF fictif."
-       data-en="Randomly generates either a structured FNAEG form or a free-form narrative requisition, with independently randomized writing quality (clean, vague or poorly written). You can also choose a format and quality for practice. Each draw produces a fictional PDF."></p>
+       data-fr="Génère au hasard un formulaire FNAEG structuré ou une réquisition narrative libre, ainsi qu’une qualité de demande variable (nette ou vague, un fait décisif pouvant manquer). Vous pouvez aussi imposer le format et la qualité pour vous exercer. Chaque tirage produit un PDF fictif."
+       data-en="Randomly generates either a structured FNAEG form or a free-form narrative requisition, with independently randomized request quality (clean or vague, a decisive fact possibly missing). You can also choose a format and quality for practice. Each draw produces a fictional PDF."></p>
 
     <p class="note-fictif"
        data-fr="⚠ Documents entièrement fictifs à usage pédagogique. Les noms, services, juridictions et numéros de scellés sont générés aléatoirement et ne désignent aucune personne ni aucun service réels. Les PDF portent la mention « document fictif » et n'ont aucune valeur légale."
@@ -58,11 +58,9 @@
         </span>
         <label for="rquality" data-fr="Qualité :" data-en="Quality:"></label>
         <select id="rquality" class="input">
-          <option value="random" data-fr="Aléatoire (toutes qualités)" data-en="Random (all quality levels)"></option>
+          <option value="random" data-fr="Aléatoire (nette ou vague)" data-en="Random (clean or vague)"></option>
           <option value="nette" data-fr="Nette" data-en="Clean"></option>
           <option value="vague" data-fr="Vague (fait décisif manquant)" data-en="Vague (missing decisive fact)"></option>
-          <option value="sloppy" data-fr="Mal rédigée" data-en="Poorly written"></option>
-          <option value="both" data-fr="Vague + mal rédigée" data-en="Vague + poorly written"></option>
         </select>
         <button class="btn btn-primary" id="gen" data-fr="Générer" data-en="Generate"></button>
         <button class="btn btn-ghost" id="dl" data-fr="Télécharger le PDF" data-en="Download the PDF" disabled></button>
@@ -333,50 +331,64 @@
 
 
     // The narrative layout is purposefully NOT a FNAEG/SCPPB legal form.
+    // A free-form réquisition reads as a LETTER to the expert (#69): no clean
+    // sections or bulleted scellé list — the scellés and their codes are woven
+    // into the prose, with polite formulations and a signature.
     function renderNarrative(data, lang) {
       var s = Doc("RequisitionNarrative", lang);
       var en = lang === "en";
       var label = function (fr, enText) { return en ? enText : fr; };
       var str = function (pair) { return pair ? (en ? pair.en : pair.fr) : ""; };
-      var paragraph = function (heading, value) {
-        set(s, "bold", 9); para(s, heading + " : ", 9);
-        set(s, "normal", 9); para(s, value, 9); s.y += 2;
-      };
-      centered(s, label("RÉQUISITION AUX FINS D'EXAMENS GÉNÉTIQUES",
-                        "REQUEST FOR FORENSIC GENETIC EXAMINATION"), 11, "bold");
+      var place = str(data.place), today = REQ.today();
+      var join = function (arr) { return arr.length <= 1 ? (arr[0] || "") : arr.slice(0, -1).join(", ") + (en ? " and " : " et ") + arr[arr.length - 1]; };
+
+      // Sender (requérant) block, then place + date on the right.
+      set(s, "bold", 9); para(s, data.requerant.service, 9);
+      set(s, "normal", 9);
+      para(s, data.requerant.prenom + " " + data.requerant.nom + ", " + data.requerant.grade, 9);
+      para(s, label("Procédure n° ", "Case no. ") + data.requerant.procedure, 9);
+      s.y += 1; s.d.text(label("Fait à " + place + ", le " + today, "At " + place + ", on " + today), R, s.y, { align: "right" });
       s.y += 8;
-      para(s, label("Document fictif : exemple pédagogique et non formulaire officiel.",
-                    "Fictional document: educational example, not an official form."), 8);
+      // Addressee + salutation.
+      para(s, label("À l'attention de l'expert ou du laboratoire désigné,", "To the designated expert or laboratory,"), 9);
+      s.y += 1; para(s, label("Madame, Monsieur,", "Dear Sir or Madam,"), 9);
+      set(s, "italic", 7.5, 120);
+      para(s, label("Document fictif : exemple pédagogique, sans valeur légale.", "Fictional document: an educational example, not legally valid."), 7.5);
+      set(s, "normal", 9, 0); s.y += 2;
+
+      // Body: the facts.
+      para(s, str(data.narrative), 9); s.y += 3;
+
+      // The scellés, with their codes, woven into a sentence.
+      var exParts = data.exhibits.map(function (e) { return label("le scellé ", "exhibit ") + e.id + " (" + str(e.label) + ", " + str(e.provenance) + ")"; });
+      para(s, label("Je vous fais parvenir, sous scellés, ", "I am sending you, under seal, ") + join(exParts) + ".", 9);
       s.y += 3;
-      sectionBar(s, label("SERVICE REQUÉRANT", "REQUESTING AUTHORITY"));
-      paragraph(label("Service", "Unit"), data.requerant.service);
-      paragraph(label("Requérant", "Requester"), data.requerant.prenom + " " + data.requerant.nom + " (" + data.requerant.grade + ")");
-      paragraph(label("Procédure", "Case number"), data.requerant.procedure);
-      paragraph(label("Lieu et date des faits", "Location and date of incident"), str(data.place) + " — " + data.eventDate);
-      sectionBar(s, label("OBJET DE LA DEMANDE", "PURPOSE"));
-      para(s, str(data.objective), 9); s.y += 4;
-      sectionBar(s, label("ÉLÉMENTS DE CONTEXTE", "BACKGROUND"));
-      para(s, str(data.narrative), 9); s.y += 4;
-      sectionBar(s, label("SCELLÉS ET PRÉLÈVEMENTS TRANSMIS", "SUBMITTED EXHIBITS AND SAMPLES"));
-      data.exhibits.forEach(function (e) {
-        bullet(s, e.id + " — " + str(e.label) + " (" + str(e.provenance) + ")", 8.5);
-      });
-      s.y += 3;
-      sectionBar(s, label("COMPARAISONS ENVISAGÉES", "AVAILABLE COMPARISONS"));
-      para(s, str(data.referenceStatus), 8.5);
+
+      // The comparison material, in prose.
       if (data.references.length) {
-        data.references.forEach(function (ref) {
-          bullet(s, ref.exhibitId + " — " + str(ref.claimedSource), 8.5);
-        });
+        var refParts = data.references.map(function (ref) { return label("le scellé ", "exhibit ") + ref.exhibitId + ", " + str(ref.claimedSource); });
+        para(s, label("À titre de comparaison, ", "For comparison, ") + join(refParts) + ". " + str(data.referenceStatus), 9);
+      } else {
+        para(s, str(data.referenceStatus), 9);
       }
+      s.y += 3;
+
+      // The request (mission), politely phrased.
+      para(s, label("À cette fin, je vous prie de bien vouloir procéder aux examens génétiques que vous jugerez utiles, de préciser les limites d'interprétation et de me rendre compte de vos conclusions.",
+                    "To this end, I would be grateful if you could carry out the genetic examinations you consider useful, explain the interpretative limitations and report your conclusions to me."), 9);
+      s.y += 2;
+      para(s, label("Je vous saurais gré de me signaler toute information ou référence complémentaire qui s'avérerait nécessaire.",
+                    "I would also be grateful if you would indicate any further information or reference material that may prove necessary."), 9);
       s.y += 4;
-      sectionBar(s, label("MISSION CONFIÉE AU LABORATOIRE", "REQUESTED EXAMINATIONS"));
-      para(s, str(data.mission), 9);
-      s.y += 12;
-      need(s, 15);
-      set(s, "italic", 8);
-      para(s, label("À " + data.place.fr + ", le " + REQ.today() + " — Cachet et signature fictifs du requérant",
-                    "At " + data.place.en + ", on " + REQ.today() + " — Fictional requester signature / stamp"), 8);
+
+      // Closing formula + signature.
+      need(s, 24);
+      para(s, label("Je vous prie d'agréer, Madame, Monsieur, l'expression de ma considération distinguée.", "Yours faithfully,"), 9);
+      s.y += 9;
+      set(s, "normal", 9); s.d.text(data.requerant.prenom + " " + data.requerant.nom, R, s.y, { align: "right" }); s.y += 4;
+      set(s, "italic", 8, 90);
+      s.d.text(label(data.requerant.grade + " — signature et cachet fictifs", data.requerant.grade + " — fictional signature and stamp"), R, s.y, { align: "right" });
+      set(s, "normal", 9, 0);
       return s.d;
     }
 
@@ -390,11 +402,8 @@
     // Quality is drawn once per Generate click, independently of the format.
     function readOpts() {
       var q = document.getElementById("rquality").value;
-      if (q === "random") {
-        var variants = ["nette", "vague", "sloppy", "both"];
-        q = variants[Math.floor(Math.random() * variants.length)];
-      }
-      return { vague: q === "vague" || q === "both", sloppy: q === "sloppy" || q === "both" };
+      if (q === "random") q = Math.random() < 0.5 ? "nette" : "vague";
+      return { vague: q === "vague" };
     }
     // In mixed mode each click independently draws a real FNAEG form or narrative.
     function chooseType(selected) {
@@ -441,7 +450,7 @@
         ? window.NARRATIVE_REQUISITIONS.generate({
             scenario: selected === "narrative" ? document.getElementById("nscenario").value : "random",
             referenceMode: selected === "narrative" ? document.getElementById("nreference").value : "random",
-            vague: !!opts.vague, sloppy: !!opts.sloppy
+            vague: !!opts.vague
           })
         : REQ.generate(type, opts || {});
       // Do not leave a previously opened answer key visible on the next case.
@@ -449,7 +458,7 @@
       displayData(data);
     }
 
-    // ---- corrigé: explain the degradations of a vague / poorly-written doc (#56) ----
+    // ---- corrigé: explain the withheld decisive fact of a vague doc (#56) ----
     function refreshCorrige() {
       var deg = (lastReq && lastReq.degraded) || [];
       var btn = document.getElementById("corrigeBtn");
@@ -467,7 +476,6 @@
     function renderCorrigeBody() {
       var deg = (lastReq && lastReq.degraded) || [];
       var vague = deg.filter(function (e) { return e.kind === "vague"; });
-      var sloppy = deg.filter(function (e) { return e.kind === "sloppy"; });
       var html = "";
       if (vague.length) {
         html += "<p><strong>" + L2("Fait décisif manquant", "Missing decisive fact") + "</strong> — " +
@@ -477,11 +485,6 @@
           if (e.was != null && e.was !== "") html += " <span class=\"muted-note\">(" + L2("valeur masquée", "hidden value") + " : " + esc2(pickNote(e.was)) + ")</span>";
           html += "</li>";
         });
-        html += "</ul>";
-      }
-      if (sloppy.length) {
-        html += "<p><strong>" + L2("Défauts de rédaction", "Wording defects") + "</strong></p><ul>";
-        sloppy.forEach(function (e) { html += "<li>" + esc2(pickNote(e.note)) + " <span class=\"muted-note\">(" + esc2(e.field) + ")</span></li>"; });
         html += "</ul>";
       }
       if (!deg.length) html = "<p>" + L2("Aucun défaut intentionnel : demande suffisamment précise et correctement rédigée.",
