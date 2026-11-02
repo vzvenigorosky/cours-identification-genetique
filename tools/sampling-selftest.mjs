@@ -58,6 +58,19 @@ for (const sub of ['liquid', 'card']) {
   assert(t.scalpel >= S.acceptTool, 'scalpel is the proper muscle tool');
   assert((t.swab_wet || 0) >= S.acceptTool && t.swab_wet < 0.8, 'a swab on muscle is possible but low-yield');
 }
+// #57: the shoe — wearer touch DNA inside + optional victim blood; swab is the
+// proper tool and a dry swab on the (dry) interior is penalised.
+{
+  const shoe = S.items.find((it) => it.id === 'shoe');
+  assert(shoe, 'shoe item present');
+  assert.equal(shoe.substrate, 'shoe', 'shoe uses the shoe substrate');
+  assert(shoe.touchZones.length >= 1 && shoe.touchZones.every((z) => z.auto > 0), 'shoe always carries wearer touch DNA');
+  assert(shoe.stainPool.some((p) => p.fluid === 'blood'), 'shoe can carry a blood stain');
+  const tools = S.substrateTools.shoe;
+  assert(tools.swab_wet >= 0.8, 'moistened swab is the proper shoe tool');
+  assert(S.dryPenaltySubstrates.indexOf('shoe') !== -1, 'dry swab on a shoe is penalised');
+}
+
 // Logic sanity: every tool named in any substrate table is a real instrument,
 // and no substrate is left with zero tools.
 for (const [sub, tools] of Object.entries(S.substrateTools)) {

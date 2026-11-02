@@ -172,6 +172,16 @@
       tooth: function () {
         return '<path d="M158 92 q-12 -36 22 -38 q22 -1 20 16 q-2 -17 20 -16 q34 2 22 38 q4 52 -16 96 q-9 20 -15 -6 q-5 -28 -11 -28 q-6 0 -11 28 q-6 26 -15 6 q-20 -44 -16 -96 Z" ' +
                'fill="#fbfaf3" stroke="#d8d2bf" stroke-width="2" stroke-linejoin="round"/>';
+      },
+      shoe: function () {
+        // side-view trainer: heel/opening at left, toe at right, dark sole below
+        var s = '';
+        s += '<path d="M70 196 Q66 182 86 181 L300 181 Q332 181 342 193 Q345 204 332 206 L92 206 Q70 206 70 196 Z" fill="#4a4f55" stroke="#343941" stroke-width="1.5" stroke-linejoin="round"/>'; // sole
+        s += '<path d="M96 181 Q100 132 126 120 L150 150 L300 150 Q320 152 322 181 Z" fill="#e9eef2" stroke="#b7c0c9" stroke-width="2" stroke-linejoin="round"/>'; // upper / toe
+        s += '<path d="M118 108 Q142 96 168 112 L150 150 L126 120 Q118 116 118 108 Z" fill="#dce4ea" stroke="#b7c0c9" stroke-width="1.6" stroke-linejoin="round"/>'; // ankle collar / opening
+        s += '<path d="M168 150 L240 150 Q236 165 212 166 L176 166 Q168 160 168 150 Z" fill="#f4f7f9" stroke="#cfd8df" stroke-width="1.2"/>'; // tongue area
+        for (var i = 0; i < 4; i++) { var y = 128 + i * 8; s += '<line x1="184" y1="' + y + '" x2="226" y2="' + (y + 3) + '" stroke="#9aa4ad" stroke-width="1.5"/>'; } // laces
+        return s;
       }
     };
 
