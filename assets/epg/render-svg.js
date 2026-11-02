@@ -268,7 +268,10 @@ export function renderStack(renders, width) {
   const totalH = renders.reduce((s, r) => s + r.height, 0) + gapY * (renders.length - 1);
   let y = 0;
   const inner = renders.map((r) => {
-    const g = `<svg x="0" y="${y}" width="${r.width}" height="${r.height}" viewBox="0 0 ${r.width} ${r.height}">${stripOuter(r.svg)}</svg>`;
+    // stripOuter removes each standalone SVG root. Preserve zoom metadata
+    // on its nested viewport so stacked control/sample tracks stay inspectable.
+    const zoomMeta = (r.svg.match(/ data-zoom-locus="[^"]+" data-zoom-min="[^"]+" data-zoom-max="[^"]+"/) || [""])[0];
+    const g = `<svg x="0" y="${y}" width="${r.width}" height="${r.height}" viewBox="0 0 ${r.width} ${r.height}"${zoomMeta}>${stripOuter(r.svg)}</svg>`;
     y += r.height + gapY;
     return g;
   }).join("");
