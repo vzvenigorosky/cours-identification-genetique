@@ -41,3 +41,5 @@ jobs:
         run: node tools/pcr-selftest.mjs
       - name: Devis simulator self-tests
         run: node tools/devis-selftest.mjs
+      - name: Requisition generator self-tests
+        run: node tools/requisitions-selftest.mjs
