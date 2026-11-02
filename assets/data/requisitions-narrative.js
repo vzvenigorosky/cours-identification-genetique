@@ -229,17 +229,32 @@ window.NARRATIVE_REQUISITIONS = (function () {
       data.degraded.push({field:change.field,kind:"vague",archetype:change.archetype,was,note:change.note});
     }
     if(opts.sloppy) {
-      // Actual drafting defects: do not classify the standard abbreviation OPJ
-      // as erroneous, and never alter the evidence or forensic case semantics.
-      const wasNarrative=data.narrative;
-      data.narrative=t(wasNarrative.fr.charAt(0).toLowerCase()+wasNarrative.fr.slice(1),
-                       wasNarrative.en.charAt(0).toLowerCase()+wasNarrative.en.slice(1));
-      data.degraded.push({field:"narrative",kind:"sloppy",was:wasNarrative,
-        note:t("La phrase commence sans majuscule.","The sentence begins without capitalization.")});
+      // Three visible textual defects, all non-semantic and bilingual.
+      // Do not corrupt biological relationships, sample IDs or dates.
+      const original=data.narrative;
+      const french=data.scenario==="johnDoe"
+        ? original.fr.replace(/restes|corps/,word=>word==="restes"?"resttes":"corpss")
+        : original.fr.replace("personne","persone");
+      const english=data.scenario==="johnDoe"
+        ? original.en.replace(/remains|body/,word=>word==="remains"?"remians":"bodu")
+        : original.en.replace("person","persn");
+      if(french===original.fr||english===original.en) throw Error("No applicable case typo for "+data.caseId);
+      data.narrative=t(french,english);
+      data.degraded.push({field:"narrative",kind:"sloppy",was:original,
+        note:t("Une coquille est présente dans la description des faits.",
+               "A typographical error appears in the description of the incident.")});
+      const wasMission=data.mission;
+      data.mission=t(wasMission.fr.replace("génétiques","génetiques"),
+                     wasMission.en.replace("genetic","genetc"));
+      if(data.mission.fr===wasMission.fr||data.mission.en===wasMission.en) throw Error("No mission typo target");
+      data.degraded.push({field:"mission",kind:"sloppy",was:wasMission,
+        note:t("Un terme scientifique est mal orthographié dans la mission.",
+               "A scientific term in the requested work is misspelled.")});
       const wasService=data.requerant.service;
       data.requerant.service=wasService.toLowerCase();
       data.degraded.push({field:"requerant.service",kind:"sloppy",was:wasService,
-        note:t("Le nom du service est composé sans la casse habituelle.","The unit name has inconsistent capitalization.")});
+        note:t("La dénomination du service est typographiée de façon négligée.",
+               "The requesting unit's name has inconsistent capitalization.")});
     }
     data.quality={vague:!!opts.vague,sloppy:!!opts.sloppy};
     return data;
