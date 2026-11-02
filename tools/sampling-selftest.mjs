@@ -50,6 +50,21 @@ for (const sub of ['liquid', 'card']) {
   assert(S.dryPenaltySubstrates.indexOf(sub) === -1, `${sub}: no dried-surface dry-swab penalty`);
 }
 
+// #51: muscle (tissue) — scissors removed (they crush the tissue); the scalpel
+// is the proper tool; a swab is possible but low-yield.
+{
+  const t = S.substrateTools.tissue;
+  assert(t.scissors === undefined, 'no scissors on muscle');
+  assert(t.scalpel >= S.acceptTool, 'scalpel is the proper muscle tool');
+  assert((t.swab_wet || 0) >= S.acceptTool && t.swab_wet < 0.8, 'a swab on muscle is possible but low-yield');
+}
+// Logic sanity: every tool named in any substrate table is a real instrument,
+// and no substrate is left with zero tools.
+for (const [sub, tools] of Object.entries(S.substrateTools)) {
+  assert(Object.keys(tools).length > 0, `${sub}: has at least one tool`);
+  for (const ins of Object.keys(tools)) assert(instruments.has(ins), `${sub}: ${ins} is a real instrument`);
+}
+
 const inCanvas = (z) => z.cx - z.r >= 0 && z.cx + z.r <= 400 && z.cy - z.r >= 0 && z.cy + z.r <= 260;
 const overlap = (a, b) => Math.hypot(a.cx - b.cx, a.cy - b.cy) < a.r + b.r;
 for (const it of S.items) {
