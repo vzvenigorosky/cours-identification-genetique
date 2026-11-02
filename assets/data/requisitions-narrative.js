@@ -37,7 +37,9 @@ window.NARRATIVE_REQUISITIONS = (function () {
   const DISTANT = [
     {id:"firstCousin",path:["candidate","parent","sharedGrandparents","auntOrUncle","cousin"],desc:t("cousin(e) germain(e) présumé(e) : grands-parents communs allégués","reported first cousin: claimed shared grandparents")},
     {id:"secondCousin",path:["candidate","grandparent","sharedGreatGrandparents","otherGrandchild","cousin"],desc:t("cousin(e) issu(e) de germains présumé(e) : arrière-grands-parents communs allégués","reported second cousin: claimed shared great-grandparents")},
-    {id:"greatAunt",path:["candidate","grandparent","sharedParentsWithGrandparent","greatAunt"],desc:t("grand-tante présumée : sœur d'un grand-parent","reported great-aunt: sibling of a grandparent"),sex:"F"}
+    {id:"greatAunt",path:["candidate","grandparent","sharedParentsWithGrandparent","greatAunt"],desc:t("grand-tante présumée : sœur d'un grand-parent","reported great-aunt: sibling of a grandparent"),sex:"F"},
+    {id:"thirdCousin",path:["candidate","lineageToGreatGreatGrandparents","sharedGreatGreatGrandparents","otherDescendantLine","relative"],desc:t("parent éloigné présenté comme cousin au troisième degré : arrière-arrière-grands-parents communs allégués","reported third cousin: claimed shared great-great-grandparents")},
+    {id:"fourthCousin",path:["candidate","lineageToThreeTimesGreatGrandparents","sharedThreeTimesGreatGrandparents","otherDescendantLine","relative"],desc:t("parent éloigné présenté comme cousin au quatrième degré : ancêtres communs allégués à cinq générations","reported fourth cousin: claimed shared three-times-great-grandparents")}
   ];
   function rng(seed) {
     let x = (Number(seed) >>> 0) || 0x6d2b79f5;
@@ -85,17 +87,28 @@ window.NARRATIVE_REQUISITIONS = (function () {
     if(["closeKin","distantKin","mixed"].includes(mode)) {
       const pool=mode==="closeKin"?CLOSE:mode==="distantKin"?DISTANT:r.pick([CLOSE,DISTANT]);
       const number=mode==="mixed"?r.int(1,2):r.int(1,3);
+      const usedNames=new Set();
       for(const rel of r.shuffle(pool).slice(0,number)) {
-        const title=rel.sex==="F"?"Mme":rel.sex==="M"?"M.":r.pick(["Mme","M."]);
-        const name=title+" "+person(r);
+        let name;
+        do {
+          const title=rel.sex==="F"?"Mme":rel.sex==="M"?"M.":r.pick(["Mme","M."]);
+          name=title+" "+person(r);
+        } while(usedNames.has(name));
+        usedNames.add(name);
         const e=exhibit(data,"relativeSample",t("écouvillon buccal de "+name,"cheek swab from "+name),t("prélèvement de comparaison communiqué par les enquêteurs","comparison sample provided by investigators"));
         addRef(data,"relative",e,t(name+" : "+rel.desc.fr+" de "+data.candidate,name+": "+rel.desc.en+" of "+data.candidate),
           {id:rel.id,path:rel.path.slice(),summary:rel.desc,candidate:data.candidate});
       }
     }
+    const hasItems=data.references.some(ref=>ref.kind==="personalItem");
+    const hasKin=data.references.some(ref=>ref.kind==="relative");
     data.referenceStatus=mode==="none"
       ?t("Aucune référence de comparaison n'est disponible à ce stade.","No comparison reference material is currently available.")
-      :t("L'attribution des objets et les liens de parenté indiqués n'ont pas été vérifiés génétiquement.","The attribution of items and the reported relationships have not been genetically verified.");
+      :hasItems && hasKin
+        ?t("L'attribution des objets et les liens de parenté mentionnés restent à vérifier.","The attribution of the items and reported relationships remain to be verified.")
+        :hasItems
+          ?t("L'attribution des effets personnels à la personne disparue reste à vérifier.","The attribution of personal items to the missing person remains to be verified.")
+          :t("Les liens de parenté déclarés avec la personne disparue restent à vérifier.","The claimed relationships with the missing person remain to be verified.");
     data.facts.stated.referenceStatus=data.referenceStatus;
     return data;
   }
