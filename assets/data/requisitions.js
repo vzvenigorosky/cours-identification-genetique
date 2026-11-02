@@ -112,23 +112,67 @@ window.REQUISITIONS = (function () {
       ville: vd[0]
     };
   }
+  // Build a small, internally consistent reported pedigree rather than drawing
+  // each relative's name, age and relationship independently. All ages are
+  // plausible for a biological relationship, but the relationships are still
+  // *reported*, not genetically established.
+  function datedPerson(nom, sexe, birthYear) {
+    return { nomNaissance: nom, prenom: prenom(sexe), sexe: sexe,
+             dateNaissance: dateStr(new Date(birthYear, rint(0, 11), rint(1, 28))),
+             lieuNaissance: pick(VILLES)[0], pays: "FRANCE" };
+  }
+  function differentSurname(avoid) {
+    var name;
+    do { name = pick(NOMS); } while (name === avoid);
+    return name;
+  }
   function genDisparu() {
-    var vd = pick(VILLES);
-    var np = rint(1, 3); // parentèle members
-    var parents = [];
-    for (var i = 0; i < np; i++) {
-      var n = fullName();
-      parents.push({ lien: pick(LIENS), nomNaissance: n.nom, prenom: n.prenom,
-                     dateNaissance: randPastDate(20, 75), lieuNaissance: pick(VILLES)[0], pays: "FRANCE",
-                     accord: Math.random() < 0.7, barcode: barcode("42", 12) });
+    var vd = pick(VILLES), currentYear = new Date().getFullYear();
+    // All candidates are adults; parents remain in a realistic living age range.
+    var age = rint(32, 55), candidateYear = currentYear - age;
+    var fatherSurname = pick(NOMS), motherSurname = differentSurname(fatherSurname);
+    var father = datedPerson(fatherSurname, "M", candidateYear - rint(24, 37));
+    var mother = datedPerson(motherSurname, "F", candidateYear - rint(22, 35));
+    var candidate = datedPerson(fatherSurname, sex(), candidateYear);
+    candidate.lieuNaissance = vd[0];
+    candidate.departement = DEPTS[vd[1]] || "";
+    candidate.pere = father.prenom + " " + father.nomNaissance;
+    candidate.mere = mother.prenom + " " + mother.nomNaissance;
+    var siblingOffset = pick([-9, -7, -5, -3, -1, 1, 3, 5, 7, 9]);
+    var sibling = datedPerson(fatherSurname, sex(), candidateYear + siblingOffset);
+    // A reported biological child is included only if old enough to supply an
+    // adult reference sample without an impossible age-at-parenthood.
+    var choices = [
+      { relationId: "father", lien: "PÈRE BIOLOGIQUE PRÉSUMÉ", person: father },
+      { relationId: "mother", lien: "MÈRE BIOLOGIQUE PRÉSUMÉE", person: mother },
+      { relationId: "sibling", lien: sibling.sexe === "M" ? "FRÈRE GERMAIN PRÉSUMÉ" : "SŒUR GERMAINE PRÉSUMÉE", person: sibling }
+    ];
+    if (age >= 39) {
+      var childYear = candidateYear + rint(21, age - 18);
+      var child = datedPerson(fatherSurname, sex(), childYear);
+      choices.push({ relationId: "child",
+        lien: child.sexe === "M" ? "FILS BIOLOGIQUE PRÉSUMÉ" : "FILLE BIOLOGIQUE PRÉSUMÉE", person: child });
     }
+    // No duplicate parents/relations, and every named individual is unique.
+    var selected = shuffle(choices).slice(0, rint(1, Math.min(3, choices.length)));
+    var parents = selected.map(function (entry) {
+      var p = entry.person;
+      return { relationId: entry.relationId, lien: entry.lien,
+               nomNaissance: p.nomNaissance, prenom: p.prenom, sexe: p.sexe,
+               dateNaissance: p.dateNaissance, lieuNaissance: p.lieuNaissance,
+               pays: p.pays, accord: true, barcode: barcode("42", 12) };
+    });
     return {
       type: "disparu",
       cadre: pick(["74-1", "80-4"]),
       juridiction: "TJ " + vd[0] + " (" + vd[1] + ")",
       infractions: "",
       requerant: requerant(vd[0]),
-      disparue: etatCivil(),
+      disparue: candidate,
+      // A claimed personal effect, not a biological sample taken from a missing person.
+      disparueSource: pick(["Brosse à dents attribuée à la personne disparue",
+                           "Rasoir présenté comme ayant appartenu à la personne disparue",
+                           "Peigne attribué à la personne disparue"]),
       disparueBarcode: barcode("42", 12),
       parentele: parents,
       expert: expert(),
