@@ -107,9 +107,10 @@ for (const mode of N.MODES) {
       assert(d.references.length >= 2 && d.references.every(x => x.kind === 'personalItem'));
     } else if (mode === 'closeKin' || mode === 'distantKin') {
       assert(d.references.length >= 1 && d.references.every(x => x.kind === 'relative'));
+      assert.equal(new Set(d.references.map(x => x.label.fr)).size, d.references.length, 'no duplicate relative identities');
       for (const ref of d.references) {
         assert(ref.relationship.path.length >= 2 && ref.relationship.candidate === d.candidate);
-        const distant = ['firstCousin','secondCousin','greatAunt'].includes(ref.relationship.id);
+        const distant = ['firstCousin','secondCousin','greatAunt','thirdCousin','fourthCousin'].includes(ref.relationship.id);
         assert.equal(distant, mode === 'distantKin');
       }
     } else if (mode === 'mixed') {
