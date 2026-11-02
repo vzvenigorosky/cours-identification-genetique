@@ -45,9 +45,12 @@ window.SAMPLING = {
   // below `acceptTool` is the WRONG tool for that substrate and fails the
   // sampling, even if a little DNA is recovered. `dryStainPenalty` is the yield
   // multiplier for using a DRY swab on a dried deposit (a moistened swab should
-  // be used to rehydrate and lift the cells).
+  // be used to rehydrate and lift the cells) — it applies only on the dried
+  // SURFACES in `dryPenaltySubstrates` (#47: on liquid blood a dry swab is fine,
+  // and FTA is swabbed as a reduced-efficiency alternative to punching).
   acceptTool: 0.5,
   dryStainPenalty: 0.15,
+  dryPenaltySubstrates: ["fabric", "metal", "hard", "paper"],
 
   // Which fluids fluoresce under the (single) forensic light. The ALS/UV
   // distinction is intentionally hidden (#43): semen and saliva fluoresce,
@@ -93,7 +96,7 @@ window.SAMPLING = {
   // incompatible (factor 0) — e.g. scissors can't cut a metal blade. A dry swab
   // is below `acceptTool` wherever a dried deposit should be lifted wet (#43).
   substrateTools: {
-    card:   { fta_punch: 1.0, scissors: 0.7, scalpel: 0.6 },
+    card:   { fta_punch: 1.0, scissors: 0.7, scalpel: 0.6, swab_wet: 0.55, swab_dry: 0.55 },
     fabric: { scissors: 1.0, swab_wet: 0.6, scalpel: 0.5, swab_dry: 0.3 },
     metal:  { swab_wet: 1.0, scalpel: 0.4, swab_dry: 0.3 },
     paper:  { scissors: 1.0, swab_wet: 0.6, scalpel: 0.5 },
@@ -102,7 +105,7 @@ window.SAMPLING = {
     bone:   { dremel: 1.0, cryo: 1.0, scalpel: 0.2 },
     tooth:  { dremel: 1.0, cryo: 0.9 },
     tissue: { scalpel: 1.0, scissors: 0.6 },
-    liquid: { pipette: 1.0 }
+    liquid: { pipette: 1.0, swab_wet: 0.6, swab_dry: 0.6 }
   },
 
   items: [

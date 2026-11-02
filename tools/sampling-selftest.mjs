@@ -39,6 +39,17 @@ for (const [sub, tools] of Object.entries(S.substrateTools)) {
   assert(Object.values(tools).some((f) => f >= S.acceptTool), `${sub}: at least one acceptable tool exists`);
 }
 
+// #47: a swab works on liquid blood and on an FTA card, at reduced (acceptable,
+// sub-optimal) efficiency — and the dried-surface dry-swab penalty does not
+// apply to those substrates.
+assert(Array.isArray(S.dryPenaltySubstrates), 'dryPenaltySubstrates list present');
+for (const sub of ['liquid', 'card']) {
+  const sw = S.substrateTools[sub];
+  assert(sw.swab_wet >= S.acceptTool || sw.swab_dry >= S.acceptTool, `${sub}: a swab is an acceptable option`);
+  assert((sw.swab_wet || 0) < 1 && (sw.swab_dry || 0) < 1, `${sub}: swab is sub-optimal (reduced efficiency)`);
+  assert(S.dryPenaltySubstrates.indexOf(sub) === -1, `${sub}: no dried-surface dry-swab penalty`);
+}
+
 const inCanvas = (z) => z.cx - z.r >= 0 && z.cx + z.r <= 400 && z.cy - z.r >= 0 && z.cy + z.r <= 260;
 const overlap = (a, b) => Math.hypot(a.cx - b.cx, a.cy - b.cy) < a.r + b.r;
 for (const it of S.items) {
