@@ -236,7 +236,7 @@ for (let seed = 0; seed < 1200; seed++) {
     assert(person.birthYear - d.family.mother.birthYear >= 22);
     assert(d.narrative.fr.includes(person.birthDate) || mode === 'none', 'candidate DOB in request');
     assert(d.narrative.en.includes(person.birthDate) || mode === 'none');
-    const named = [person.name, d.family.father.name, d.family.mother.name];
+    const named = [person.name]; // selected relatives may include these already-listed parents
     const refs = d.references.filter(ref => ref.kind === 'relative');
     for (const ref of refs) {
       narrativeRefs++;
