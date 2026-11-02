@@ -17,6 +17,29 @@ function fmtAllele(a) {
   return (typeof a === "number" && !Number.isInteger(a)) ? a.toFixed(1) : String(a);
 }
 
+/* A small seeded PRNG + a stable hash of the peak set, so the baseline noise is
+   reproducible for a given trace but differs between cases (no more identical
+   deterministic sine on every render). */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashPeaks(peaks) {
+  let h = 2166136261;
+  for (const p of peaks) {
+    h = Math.imul(h ^ Math.round(p.size), 16777619);
+    h = Math.imul(h ^ Math.round(p.height), 16777619);
+  }
+  return h >>> 0;
+}
+
+/* Short tag for an artefact kind, used by the answer-mode overlay. */
+const ARTEFACT_TAG = { stutter: "St", minusA: "-A", pullup: "PU", dropin: "DI", spike: "Sp", blob: "Bl" };
+
 /* GeneMapper-style bin call: a peak is labelled with the allele of the bin it
    falls in (nearest allele within ~0.5 bp in its dye), else "OL" (off-ladder).
    Artefacts landing in a bin thus read as ordinary allele calls — no artefact
@@ -66,6 +89,9 @@ export function renderEPG(kit, sim, opts = {}) {
   parts.push(`<text x="${padL}" y="22" font-size="14" font-weight="700" fill="#24292e">${sample}</text>`);
   parts.push(`<text x="${W - padR}" y="22" font-size="12" fill="#6a737d" text-anchor="end">${title}</text>`);
 
+  // Baseline-noise seed: stable for a given trace, different between cases.
+  const noiseSeed = (opts.noiseSeed != null ? opts.noiseSeed : hashPeaks(sim.peaks)) >>> 0;
+
   dyes.forEach((dyeKey, i) => {
     const dye = DYES[dyeKey];
     const top = headerH + i * (panelH + gap);
@@ -102,11 +128,14 @@ export function renderEPG(kit, sim, opts = {}) {
     parts.push(`<text x="${padL - 4}" y="${bottom}" font-size="8" fill="#98a0a8" text-anchor="end">0</text>`);
     parts.push(`<text x="${padL - 4}" y="${top + 10}" font-size="8" fill="#98a0a8" text-anchor="end">${Math.round(disp)}</text>`);
 
-    // baseline noise (subtle)
+    // baseline noise (subtle) — a seeded, smoothed random walk per dye, so it
+    // looks like real baseline fluctuation and differs from case to case.
     if (sim.noise) {
-      let d = `M ${padL} ${bottom}`;
-      for (let x = padL; x <= W - padR; x += 6) {
-        const n = bottom - Math.abs(Math.sin(x * 12.9 + i * 7.3) * Math.cos(x * 4.1)) * 5;
+      const rnd = mulberry32((noiseSeed + i * 0x9e3779b1) >>> 0);
+      let d = `M ${padL} ${bottom}`, w = 0;
+      for (let x = padL; x <= W - padR; x += 5) {
+        w = w * 0.55 + (rnd() - 0.5) * 2 * 0.45;
+        const n = bottom - Math.abs(w) * 5;
         d += ` L ${x} ${n.toFixed(1)}`;
       }
       parts.push(`<path d="${d}" fill="none" stroke="${dye.color}" stroke-width="0.5" opacity="0.18"/>`);
@@ -162,6 +191,27 @@ export function renderEPG(kit, sim, opts = {}) {
         `<text x="${x.toFixed(1)}" y="${yA.toFixed(1)}" font-size="8.5" font-weight="700" fill="${dye.color}" text-anchor="middle">${label}</text>` +
         `<text x="${x.toFixed(1)}" y="${(yA + 8).toFixed(1)}" font-size="7" fill="#8a929a" text-anchor="middle">${p.height}</text>`
       );
+    }
+
+    // Answer-mode artefact overlay (#50): ring + tag each visible artefact
+    // (above AT) and each off-ladder true allele, so the answer key points out
+    // exactly what the analyst had to recognise. Opt-in via opts.revealKind.
+    if (opts.revealKind) {
+      let lastOX = -99, orow = 0;
+      for (const p of dpk) {
+        const isOL = p.kind === "allele" && p.offladder;
+        const isArt = p.kind !== "allele" && p.height >= sim.thresholds.at;
+        if (!isOL && !isArt) continue;
+        const tag = isOL ? "OL" : (ARTEFACT_TAG[p.kind] || "?");
+        const col = isOL ? "#b9802a" : "#b5179e";
+        const x = xOf(p.size), yt = yOf(p.height);
+        orow = (x - lastOX < 16) ? (orow + 1) % 3 : 0; // stagger crowded tags over 3 rows
+        lastOX = x;
+        parts.push(
+          `<circle cx="${x.toFixed(1)}" cy="${(yt - 3).toFixed(1)}" r="5" fill="none" stroke="${col}" stroke-width="1.1"/>` +
+          `<text x="${x.toFixed(1)}" y="${(yt - 10 - orow * 7).toFixed(1)}" font-size="6.5" font-weight="700" fill="${col}" text-anchor="middle">${tag}</text>`
+        );
+      }
     }
   });
 
