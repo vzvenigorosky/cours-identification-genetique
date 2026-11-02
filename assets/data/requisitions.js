@@ -151,23 +151,30 @@ window.REQUISITIONS = (function () {
   function abbrevGrade(g) { g = String(g); if (/OFFICIER/.test(g)) return "OPJ"; if (/AGENT/.test(g)) return "APJ"; return g; }
 
   // Drop one decisive fact, chosen by type (mirrors the devis clarity archetypes).
+  // Each entry carries a bilingual `note` and the hidden `was` value, so the
+  // generator's corrigé (#56) can explain and reveal what was dropped.
   function vaguify(data) {
     var log = [];
     if (data.type === "trace") {
+      var wasTypes = data.scelles.map(function (sc) { return sc.type; }).join(", ");
       data.scelles.forEach(function (sc) { sc.type = "Nature à déterminer"; });
-      log.push({ field: "scelles[].type", kind: "vague", archetype: "trace-nature-unstated",
-                 note: "La nature des traces n'est pas précisée — demander au requérant quels prélèvements analyser." });
+      log.push({ field: "scelles[].type", kind: "vague", archetype: "trace-nature-unstated", was: wasTypes,
+                 note: { fr: "La nature des traces n'est pas précisée — demander au requérant quels prélèvements analyser.",
+                         en: "The nature of the traces is not stated — ask the requester which samples to analyse." } });
     } else if (data.type === "disparu") {
       if (data.parentele && data.parentele.length) {
         var idx = Math.floor(Math.random() * data.parentele.length);
+        var wasLien = data.parentele[idx].lien;
         data.parentele[idx].lien = "LIEN NON PRÉCISÉ";
-        log.push({ field: "parentele[" + idx + "].lien", kind: "vague", archetype: "relationship-unstated",
-                   note: "Le lien de parenté d'un membre n'est pas indiqué — il détermine l'analyse (autosomique / Y-STR / mtADN)." });
+        log.push({ field: "parentele[" + idx + "].lien", kind: "vague", archetype: "relationship-unstated", was: wasLien,
+                   note: { fr: "Le lien de parenté d'un membre n'est pas indiqué — il détermine l'analyse (autosomique / Y-STR / mtADN).",
+                           en: "A relative's kinship link is not stated — it determines the analysis (autosomal / Y-STR / mtDNA)." } });
       }
     } else { // individu
+      var wasInf = data.infractions;
       data.infractions = "";
-      log.push({ field: "infractions", kind: "vague", archetype: "offence-unstated",
-                 note: "L'infraction 706-55 n'est pas précisée." });
+      log.push({ field: "infractions", kind: "vague", archetype: "offence-unstated", was: wasInf,
+                 note: { fr: "L'infraction 706-55 n'est pas précisée.", en: "The 706-55 offence is not stated." } });
     }
     return log;
   }
@@ -177,11 +184,19 @@ window.REQUISITIONS = (function () {
     var log = [];
     var r = data.requerant;
     if (r) {
-      r.grade = abbrevGrade(r.grade); log.push({ field: "requerant.grade", kind: "sloppy", note: "Grade abrégé (OPJ/APJ)." });
-      r.service = stripAccents(r.service).toLowerCase(); log.push({ field: "requerant.service", kind: "sloppy", note: "Casse et accents négligés." });
+      r.grade = abbrevGrade(r.grade);
+      log.push({ field: "requerant.grade", kind: "sloppy", note: { fr: "Grade abrégé (OPJ/APJ).", en: "Grade abbreviated (OPJ/APJ)." } });
+      r.service = stripAccents(r.service).toLowerCase();
+      log.push({ field: "requerant.service", kind: "sloppy", note: { fr: "Casse et accents négligés.", en: "Case and accents neglected." } });
     }
-    if (data.expert) { data.expert = swapTypo(data.expert); log.push({ field: "expert", kind: "sloppy", note: "Coquille (lettres inversées)." }); }
-    if (data.scelles) { data.scelles.forEach(function (sc) { if (sc.type) sc.type = stripAccents(sc.type).toLowerCase(); }); log.push({ field: "scelles[].type", kind: "sloppy", note: "Casse et accents négligés." }); }
+    if (data.expert) {
+      data.expert = swapTypo(data.expert);
+      log.push({ field: "expert", kind: "sloppy", note: { fr: "Coquille (lettres inversées).", en: "Typo (transposed letters)." } });
+    }
+    if (data.scelles) {
+      data.scelles.forEach(function (sc) { if (sc.type) sc.type = stripAccents(sc.type).toLowerCase(); });
+      log.push({ field: "scelles[].type", kind: "sloppy", note: { fr: "Casse et accents négligés.", en: "Case and accents neglected." } });
+    }
     return log;
   }
 

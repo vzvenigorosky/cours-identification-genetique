@@ -57,4 +57,21 @@ for (let i = 0; i < 20; i++) {
   assert(d.etatCivil && d.etatCivil.pere === 'INCONNU INCONNU', 'filiation stays fictional placeholder');
 }
 
-console.log(`Requisitions: clean / vague / sloppy / both generation for ${TYPES.length} types checked.`);
+// ---- corrigé support (#56): bilingual notes + a preserved dropped value ----
+for (const t of TYPES) {
+  const d = R.generate(t, { vague: true, sloppy: true });
+  for (const e of d.degraded) {
+    assert(e.note && typeof e.note.fr === 'string' && e.note.fr.trim(), `${t}/${e.field}: French note`);
+    assert(typeof e.note.en === 'string' && e.note.en.trim(), `${t}/${e.field}: English note`);
+  }
+  const vagueEntry = d.degraded.find((e) => e.kind === 'vague');
+  assert(vagueEntry && 'was' in vagueEntry, `${t}: vague entry records the dropped value`);
+}
+// the dropped value is the real original (disparu: a true LIENS entry, not the placeholder)
+for (let i = 0; i < 20; i++) {
+  const d = R.generate('disparu', { vague: true });
+  const v = d.degraded.find((e) => e.archetype === 'relationship-unstated');
+  assert(v && v.was && v.was !== 'LIEN NON PRÉCISÉ', 'disparu: hidden lien preserved');
+}
+
+console.log(`Requisitions: clean / vague / sloppy / both generation and bilingual corrigé notes for ${TYPES.length} types checked.`);

@@ -42,8 +42,15 @@
         </select>
         <button class="btn btn-primary" id="gen" data-fr="Générer" data-en="Generate"></button>
         <button class="btn btn-ghost" id="dl" data-fr="Télécharger le PDF" data-en="Download the PDF" disabled></button>
+        <button class="btn btn-ghost" id="corrigeBtn" data-fr="Afficher le corrigé" data-en="Show answer key" disabled></button>
+        <span id="corrigeHint" class="muted-note" style="font-size:.85rem"></span>
       </div>
       <iframe id="preview" title="aperçu réquisition"></iframe>
+    </div>
+
+    <div class="panel hidden" id="corrige" style="margin-top:14px">
+      <h2 style="margin-top:0" data-fr="Corrigé — défauts de la réquisition" data-en="Answer key — requisition defects"></h2>
+      <div id="corrigeBody"></div>
     </div>
   </main>
 
@@ -299,6 +306,11 @@
     }
 
     var REQ = window.REQUISITIONS;
+    var lastReq = null;
+    function L2(fr, en) { return (window.I18N && I18N.getLang() === "en") ? en : fr; }
+    function pickNote(o) { return (o && typeof o === "object" && (o.fr != null || o.en != null)) ? L2(o.fr, o.en) : String(o || ""); }
+    function esc2(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
     function readOpts() {
       var q = document.getElementById("rquality").value;
       return { vague: q === "vague" || q === "both", sloppy: q === "sloppy" || q === "both" };
@@ -314,11 +326,62 @@
       document.getElementById("preview").src = lastBlobUrl;
       document.getElementById("dl").disabled = false;
       window.__lastDoc = doc; // for automated verification
-      window.__lastReq = { type: data.type, quality: data.quality, degraded: data.degraded }; // hidden record (#49)
+      lastReq = { type: data.type, quality: data.quality, degraded: data.degraded };
+      window.__lastReq = lastReq; // hidden record (#49)
+      refreshCorrige();
+    }
+
+    // ---- corrigé: explain the degradations of a vague / poorly-written doc (#56) ----
+    function refreshCorrige() {
+      var deg = (lastReq && lastReq.degraded) || [];
+      var btn = document.getElementById("corrigeBtn");
+      var hint = document.getElementById("corrigeHint");
+      if (!deg.length) {
+        btn.disabled = true;
+        document.getElementById("corrige").classList.add("hidden");
+        btn.textContent = L2("Afficher le corrigé", "Show answer key");
+        hint.textContent = L2("Réquisition nette : aucun défaut à corriger.", "Clean requisition: nothing to correct.");
+        return;
+      }
+      btn.disabled = false; hint.textContent = "";
+      renderCorrigeBody();
+    }
+    function renderCorrigeBody() {
+      var deg = (lastReq && lastReq.degraded) || [];
+      var vague = deg.filter(function (e) { return e.kind === "vague"; });
+      var sloppy = deg.filter(function (e) { return e.kind === "sloppy"; });
+      var html = "";
+      if (vague.length) {
+        html += "<p><strong>" + L2("Fait décisif manquant", "Missing decisive fact") + "</strong> — " +
+                L2("à reconnaître et à demander au requérant :", "to recognise and ask the requester about:") + "</p><ul>";
+        vague.forEach(function (e) {
+          html += "<li>" + esc2(pickNote(e.note));
+          if (e.was != null && e.was !== "") html += " <span class=\"muted-note\">(" + L2("valeur masquée", "hidden value") + " : " + esc2(e.was) + ")</span>";
+          html += "</li>";
+        });
+        html += "</ul>";
+      }
+      if (sloppy.length) {
+        html += "<p><strong>" + L2("Défauts de rédaction", "Wording defects") + "</strong></p><ul>";
+        sloppy.forEach(function (e) { html += "<li>" + esc2(pickNote(e.note)) + " <span class=\"muted-note\">(" + esc2(e.field) + ")</span></li>"; });
+        html += "</ul>";
+      }
+      document.getElementById("corrigeBody").innerHTML = html;
     }
 
     document.getElementById("gen").addEventListener("click", function () { build(document.getElementById("rtype").value, readOpts()); });
     document.getElementById("dl").addEventListener("click", function () { if (window.__lastDoc) window.__lastDoc.save(lastName); });
+    document.getElementById("corrigeBtn").addEventListener("click", function () {
+      var hidden = document.getElementById("corrige").classList.toggle("hidden");
+      this.textContent = hidden ? L2("Afficher le corrigé", "Show answer key") : L2("Masquer le corrigé", "Hide answer key");
+    });
+    document.addEventListener("langchange", function () {
+      var hidden = document.getElementById("corrige").classList.contains("hidden");
+      document.getElementById("corrigeBtn").textContent = document.getElementById("corrigeBtn").disabled
+        ? L2("Afficher le corrigé", "Show answer key")
+        : (hidden ? L2("Afficher le corrigé", "Show answer key") : L2("Masquer le corrigé", "Hide answer key"));
+      refreshCorrige();
+    });
     // first preview
     build("suspect", {});
   })();
