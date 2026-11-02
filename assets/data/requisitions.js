@@ -203,7 +203,10 @@ window.REQUISITIONS = (function () {
     var log = [];
     if (data.type === "trace") {
       var wasTypes = data.scelles.map(function (sc) { return sc.type; }).join(", ");
-      data.scelles.forEach(function (sc) { sc.type = "Nature à déterminer"; });
+      // Withhold the nature silently: a generic, plausible seal description, NOT
+      // a flag like "Nature à déterminer". The student must notice that no
+      // biological nature is given, rather than be told so.
+      data.scelles.forEach(function (sc) { sc.type = "Objet placé sous scellé"; });
       log.push({ field: "scelles[].type", kind: "vague", archetype: "trace-nature-unstated", was: wasTypes,
                  note: { fr: "La nature des traces n'est pas précisée — demander au requérant quels prélèvements analyser.",
                          en: "The nature of the traces is not stated — ask the requester which samples to analyse." } });
@@ -211,11 +214,14 @@ window.REQUISITIONS = (function () {
       if (data.parentele && data.parentele.length) {
         var idx = Math.floor(Math.random() * data.parentele.length);
         var wasLien = data.parentele[idx].lien;
-        data.parentele[idx].lien = "LIEN NON PRÉCISÉ";
+        // Leave the relationship field blank rather than flagging it: a missing
+        // "lien" is a silent omission the student must catch, not an announced
+        // "LIEN NON PRÉCISÉ" that gives the exercise away.
+        data.parentele[idx].lien = "";
         // Do not disclose the hidden parent relationship through the
-        // missing person's filiation in the same PDF.
-        if (data.parentele[idx].relationId === "father") data.disparue.pere = "NON PRÉCISÉ";
-        if (data.parentele[idx].relationId === "mother") data.disparue.mere = "NON PRÉCISÉ";
+        // missing person's filiation in the same PDF (blank, not flagged).
+        if (data.parentele[idx].relationId === "father") data.disparue.pere = "";
+        if (data.parentele[idx].relationId === "mother") data.disparue.mere = "";
         log.push({ field: "parentele[" + idx + "].lien", kind: "vague", archetype: "relationship-unstated", was: wasLien,
                    note: { fr: "Le lien de parenté d'un membre n'est pas indiqué — il détermine l'analyse (autosomique / Y-STR / mtADN).",
                            en: "A relative's kinship link is not stated — it determines the analysis (autosomal / Y-STR / mtDNA)." } });

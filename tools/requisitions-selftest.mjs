@@ -25,13 +25,18 @@ for (let i = 0; i < 20; i++) {
 }
 for (let i = 0; i < 20; i++) {
   const d = R.generate('trace', { vague: true });
-  assert(d.scelles.every((sc) => sc.type === 'Nature à déterminer'), 'trace vague: nature unstated');
+  // The withheld nature is replaced by a plausible generic seal description —
+  // never a flag like "Nature à déterminer" that would announce the omission.
+  assert(d.scelles.every((sc) => sc.type === 'Objet placé sous scellé'), 'trace vague: nature silently unstated');
+  assert(d.scelles.every((sc) => !/à déterminer|non (détaillé|précisé|spécifié|communiqué|indiqué)/i.test(sc.type)), 'no self-announcing placeholder');
   assert(d.degraded.some((x) => x.archetype === 'trace-nature-unstated'), 'trace vague recorded');
 }
 for (let i = 0; i < 30; i++) {
   const d = R.generate('disparu', { vague: true });
-  const missing = d.parentele.filter((p) => p.lien === 'LIEN NON PRÉCISÉ');
-  assert.equal(missing.length, 1, 'disparu vague: exactly one relative relationship unstated');
+  // The withheld relationship is a blank field, not an announced "LIEN NON PRÉCISÉ".
+  const missing = d.parentele.filter((p) => p.lien === '');
+  assert.equal(missing.length, 1, 'disparu vague: exactly one relative relationship silently unstated');
+  assert(d.parentele.every((p) => !/non précisé|non spécifié/i.test(p.lien)), 'no self-announcing lien placeholder');
   assert(d.degraded.some((x) => x.archetype === 'relationship-unstated'), 'disparu vague recorded');
 }
 
@@ -61,11 +66,11 @@ for (const t of TYPES) {
   const vagueEntry = d.degraded.find((e) => e.kind === 'vague');
   assert(vagueEntry && 'was' in vagueEntry, `${t}: vague entry records the dropped value`);
 }
-// the dropped value is the real original (disparu: a true LIENS entry, not the placeholder)
+// the dropped value is the real original (disparu: a true LIENS entry, not a blank)
 for (let i = 0; i < 20; i++) {
   const d = R.generate('disparu', { vague: true });
   const v = d.degraded.find((e) => e.archetype === 'relationship-unstated');
-  assert(v && v.was && v.was !== 'LIEN NON PRÉCISÉ', 'disparu: hidden lien preserved');
+  assert(v && v.was && v.was.trim() !== '', 'disparu: hidden lien preserved for the corrigé');
 }
 
 console.log(`Requisitions: clean / vague generation and bilingual corrigé notes for ${TYPES.length} types checked.`);
@@ -177,6 +182,9 @@ for (const scenario of N.SCENARIOS) {
       } else if (defect.archetype === 'sample-nature-unstated') {
         const e = vague.exhibits.find(x => defect.field === 'exhibits.'+x.id+'.label');
         assert(e && !e.label.fr.includes(defect.was.fr), 'sample type/site was actually omitted');
+        // Silent omission: the replacement names the exhibit generically and must
+        // NOT announce the gap (no "contenu non détaillé" / "contents not described").
+        assert(!/non détaillé|non précisé|non spécifié|contents not described|not (described|specified|stated)/i.test(e.label.fr + ' ' + e.label.en), 'no self-announcing label');
       } else if (defect.archetype === 'exhibit-origin-unstated') {
         const e = vague.exhibits.find(x => defect.field === 'exhibits.'+x.id+'.provenance');
         assert(e && !e.provenance.fr.includes(defect.was.fr), 'collection circumstances were actually omitted');
@@ -218,24 +226,25 @@ for (let i = 0; i < 3000; i++) {
       // Patrilineal: the candidate always carries the father's birth surname.
       assert.equal(p.nomNaissance, candidate.nomNaissance);
       assert(candidateYear - relativeYear >= 24 && candidateYear - relativeYear <= 37);
-      if (p.lien === 'LIEN NON PRÉCISÉ') assert.equal(candidate.pere, 'NON PRÉCISÉ');
+      // A withheld relationship is a blank field (not an announced placeholder).
+      if (p.lien === '') assert.equal(candidate.pere, '');
       else assert.equal(identifier(p), candidate.pere);
-      if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, /^PÈRE/);
+      if (p.lien) assert.match(p.lien, /^PÈRE/);
     }
     if (p.relationId === 'mother') {
       assert.equal(p.sexe, 'F');
       // A mother married into the family keeps a maiden surname.
       assert.notEqual(p.nomNaissance, candidate.nomNaissance);
       assert(candidateYear - relativeYear >= 22 && candidateYear - relativeYear <= 35);
-      if (p.lien === 'LIEN NON PRÉCISÉ') assert.equal(candidate.mere, 'NON PRÉCISÉ');
+      if (p.lien === '') assert.equal(candidate.mere, '');
       else assert.equal(identifier(p), candidate.mere);
-      if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, /^MÈRE/);
+      if (p.lien) assert.match(p.lien, /^MÈRE/);
     }
     if (p.relationId === 'sibling') {
       // Full siblings share the father's surname.
       assert.equal(p.nomNaissance, candidate.nomNaissance);
       assert(Math.abs(candidateYear - relativeYear) >= 1 && Math.abs(candidateYear - relativeYear) <= 9);
-      if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, p.sexe === 'M' ? /^FRÈRE/ : /^SŒUR/);
+      if (p.lien) assert.match(p.lien, p.sexe === 'M' ? /^FRÈRE/ : /^SŒUR/);
     }
     if (p.relationId === 'child') {
       // #67 patrilineal: the child carries the candidate's surname only when the
@@ -243,21 +252,22 @@ for (let i = 0; i < 3000; i++) {
       if (candidate.sexe === 'M') assert.equal(p.nomNaissance, candidate.nomNaissance);
       else { assert.notEqual(p.nomNaissance, candidate.nomNaissance); femaleCandidateChildren++; }
       assert(relativeYear - candidateYear >= 21 && relativeYear - candidateYear <= 37);
-      if (p.lien !== 'LIEN NON PRÉCISÉ') assert.match(p.lien, p.sexe === 'M' ? /^FILS/ : /^FILLE/);
+      if (p.lien) assert.match(p.lien, p.sexe === 'M' ? /^FILS/ : /^FILLE/);
     }
   }
 }
 assert(legacyRelatives > 3000, 'sample numerous relatives');
 assert(femaleCandidateChildren > 0, 'female-candidate children exercised the patrilineal naming branch');
 // The consented reference in a deliberately vague requisition still reflects
-// the same simulated person, only their stated relation is withheld.
+// the same simulated person, only their stated relation is withheld — silently.
 for (let i = 0; i < 500; i++) {
   const d = R.generate('disparu', { vague: true });
-  assert.equal(d.parentele.filter(p => p.lien === 'LIEN NON PRÉCISÉ').length, 1);
-  const hidden = d.parentele.find(p => p.lien === 'LIEN NON PRÉCISÉ');
-  assert(d.degraded[0].was && d.degraded[0].was !== 'LIEN NON PRÉCISÉ');
-  if (hidden.relationId === 'father') assert.equal(d.disparue.pere, 'NON PRÉCISÉ');
-  if (hidden.relationId === 'mother') assert.equal(d.disparue.mere, 'NON PRÉCISÉ');
+  assert.equal(d.parentele.filter(p => p.lien === '').length, 1);
+  const hidden = d.parentele.find(p => p.lien === '');
+  assert(d.degraded[0].was && d.degraded[0].was.trim() !== '');
+  // The filiation that would reveal the hidden parent is blanked, not flagged.
+  if (hidden.relationId === 'father') assert.equal(d.disparue.pere, '');
+  if (hidden.relationId === 'mother') assert.equal(d.disparue.mere, '');
 }
 const distantIds = new Set(['firstCousin','secondCousin','greatAunt','thirdCousin','fourthCousin']);
 const distantDepth = {firstCousin:2,secondCousin:3,greatAunt:3,thirdCousin:4,fourthCousin:5};

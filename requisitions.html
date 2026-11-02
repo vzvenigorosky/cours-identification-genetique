@@ -316,7 +316,7 @@
       sectionBar(s, "PRÉLÈVEMENTS SUR ASCENDANTS / DESCENDANTS / COLLATÉRAUX");
       data.parentele.forEach(function (p, i) {
         need(s, 34);
-        set(s, "bold", 9); s.d.text("Parent " + (i + 1) + " — lien : " + p.lien, L, s.y); set(s, "normal", 9); s.y += 5;
+        set(s, "bold", 9); s.d.text(p.lien ? ("Parent " + (i + 1) + " — lien : " + p.lien) : ("Parent " + (i + 1)), L, s.y); set(s, "normal", 9); s.y += 5;
         field(s, "Nom de naissance :", p.nomNaissance, 42);
         field(s, "Prénom :", p.prenom, 42);
         field(s, "Date de naissance :", p.dateNaissance, 42);
