@@ -173,22 +173,57 @@ window.NARRATIVE_REQUISITIONS = (function () {
       const options=[];
       const kin=data.references.find(ref=>ref.kind==="relative");
       const item=data.references.find(ref=>ref.kind==="personalItem");
-      if(kin)options.push({field:"references."+kin.id+".claimedSource",archetype:"relationship-path-unstated",
-        change(){const was=kin.claimedSource;kin.claimedSource=t("lien de parenté non précisé","kinship relationship not stated");return was;},
-        note:t("Le lien exact de parenté doit être demandé au requérant.","The precise claimed kinship relationship must be obtained from the requester.")});
-      if(item)options.push({field:"references."+item.id+".claimedSource",archetype:"comparison-provenance-unstated",
-        change(){const was=item.claimedSource;item.claimedSource=t("appartenance non précisée","ownership not stated");return was;},
-        note:t("L'attribution de l'effet personnel n'est pas précisée.","The attribution of the personal item is not stated.")});
-
-      const e=data.exhibits.find(x=>x.kind==="evidence"||x.kind==="personalItem");
-      if(e)options.push({field:"exhibits."+e.id+".provenance",archetype:"exhibit-origin-unstated",
-        change(){const was=e.provenance;e.provenance=t("origine non précisée","origin not stated");return was;},
-        note:t("L'origine d'un scellé est omise.","The origin of an exhibit is omitted.")});
-      // In a no-reference identification request the explicitly reported absence is
-      // itself a decisive fact: withholding it is different from having no references.
-      if(!options.length)options.push({field:"referenceStatus",archetype:"comparison-status-unstated",
-        change(){const was=data.referenceStatus;data.referenceStatus=t("Disponibilité des références non précisée.","Reference availability not stated.");return was;},
-        note:t("Il faut demander si des références sont disponibles ou pourraient être obtenues.","Ask whether comparison references exist or could be obtained.")});
+      if(kin) options.push({field:"references."+kin.id+".claimedSource",archetype:"relationship-path-unstated",
+        change() {
+          const was=kin.claimedSource,p=kin.relationship.relativePerson,name=(p.sex==="F"?"Mme ":"M. ")+p.name;
+          const candidate=kin.relationship.candidate;
+          kin.claimedSource=t(name+" (né(e) le "+p.birthDate+") : prélèvement proposé pour comparaison avec "+candidate,
+                              name+" (born "+p.birthDate+"): sample offered for comparison with "+candidate);
+          return was;
+        },
+        note:t("Le lien de parenté allégué est absent ; demander un pedigree explicite.",
+               "The alleged kinship relationship is missing; request an explicit pedigree.")});
+      if(item) options.push({field:"references."+item.id+".claimedSource",archetype:"comparison-attribution-unstated",
+        change() {
+          const was=item.claimedSource;
+          item.claimedSource=t("Effet personnel proposé pour comparaison génétique.",
+                               "Personal item proposed for genetic comparison.");
+          return was;
+        },
+        note:t("Le requérant n'indique pas à qui cet effet personnel est attribué.",
+               "The requester does not specify whose item this is claimed to be.")});
+      if(data.scenario==="sexualAssault") {
+        const e=data.exhibits.find(x=>x.kind==="evidence");
+        if(e) options.push({field:"exhibits."+e.id+".label",archetype:"sample-nature-unstated",
+          change() {
+            const was=e.label;
+            e.label=t("scellé "+e.id+" (contenu non détaillé)",
+                      "exhibit "+e.id+" (contents not described)");
+            return was;
+          },
+          note:t("La nature ou le site du prélèvement n'est pas communiqué ; demander l'inventaire précis.",
+                 "The sampling site or nature of the item is missing; request a precise inventory.")});
+      }
+      if(data.scenario==="johnDoe" && item) {
+        const e=data.exhibits.find(x=>x.id===item.exhibitId);
+        options.push({field:"exhibits."+e.id+".provenance",archetype:"exhibit-origin-unstated",
+          change() {
+            const was=e.provenance;
+            e.provenance=t("objet transmis sous scellé","item submitted under seal");
+            return was;
+          },
+          note:t("Le lieu et les circonstances de découverte de l'objet ne sont pas indiqués.",
+                 "The item's location and collection circumstances are omitted.")});
+      }
+      if(!options.length) options.push({field:"referenceStatus",archetype:"comparison-status-unstated",
+        change() {
+          const was=data.referenceStatus;
+          data.referenceStatus=t("La recherche d'éléments de comparaison se poursuit.",
+                                 "Investigators are looking into possible comparison material.");
+          return was;
+        },
+        note:t("Le dossier ne précise pas si des références sont disponibles.",
+               "The case does not state whether comparison references are available.")});
       const change=r.pick(options),was=change.change();
       data.facts.withheld[change.field]=was;
       data.degraded.push({field:change.field,kind:"vague",archetype:change.archetype,was,note:change.note});
