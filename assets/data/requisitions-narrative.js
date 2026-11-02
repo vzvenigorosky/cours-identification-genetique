@@ -223,8 +223,10 @@ window.NARRATIVE_REQUISITIONS = (function () {
         if(e) options.push({field:"exhibits."+e.id+".label",archetype:"sample-nature-unstated",
           change() {
             const was=e.label;
-            e.label=t("scellé "+e.id+" (contenu non détaillé)",
-                      "exhibit "+e.id+" (contents not described)");
+            // Withhold the nature/site by naming the exhibit only generically —
+            // do NOT flag the omission (no "contenu non détaillé"): the student
+            // must notice that this scellé, unlike the others, is unspecified.
+            e.label=t("un prélèvement","a sample");
             return was;
           },
           note:t("La nature ou le site du prélèvement n'est pas communiqué ; demander l'inventaire précis.",
