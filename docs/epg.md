@@ -10,8 +10,15 @@
 - `index.js` – top-level EPG case generator
 
 ## `generateCase(spec)` contract
-Input fields: `kit`, `type`, `seed`, `template`, `degradation`, `ratio`, `art`, `width`.
+Input fields: `kit`, `type`, `seed`, `template`, `degradation`, `ratio`, `art`, `width`. Optional presentation fields: `zoomLocus`, `showBins`, `revealKind`, `controls`.
+
 Output shape: `{ samples, svg, answerKey }`.
+
+## Per-locus zoom (issue #73)
+
+`generateCase({ kit: "globalfiler", type: "clean", seed: "demo", zoomLocus: "D21S11" })` magnifies the fragment-size axis around the selected locus's allele bins, with at least two repeat units of flanking context for neighbouring stutter and minus-A. **It does not resimulate or alter genotypes, peaks or the answer key**: only the rendered SVG, its local RFU scale and bin/size-axis labels change. All five dye channels retain one common base-pair axis so aligned pull-up peaks in different dyes remain comparable. An invalid locus for the kit raises `RangeError`.
+
+The EPG lab (`epg.html`) provides a bilingual `Vue globale / Full electropherogram` selector and one option per kit locus. Changing the selection reuses the same seed, case type and settings; allelic ladder and controls, when requested, are displayed with the same zoom. Omitting `zoomLocus` preserves the ordinary full-view display. The per-locus interval, kit bins and stochastic threshold remain approximate teaching values, not validated sizing or analytical thresholds.
 
 ## Case types
 The `CASE_TYPES` list exported from `assets/epg/index.js`:

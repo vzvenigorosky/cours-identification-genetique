@@ -47,6 +47,10 @@
           <select id="type" class="input"></select>
         </div>
         <div class="ctl">
+          <label for="zoomLocus" data-fr="Zoom sur un locus" data-en="Zoom to locus"></label>
+          <select id="zoomLocus" class="input"></select>
+        </div>
+        <div class="ctl">
           <label data-fr="Ratio de mélange" data-en="Mixture ratio"></label>
           <input id="ratio" class="input" type="text" placeholder="ex. 3:1" />
         </div>
@@ -72,6 +76,9 @@
       <div class="art-grid" style="margin-top:12px">
         <label><input type="checkbox" id="showBins"> <span data-fr="Repères d'allèles (bins)" data-en="Allele bin marks"></span></label>
         <label><input type="checkbox" id="controls"> <span data-fr="Témoins &amp; échelle allélique" data-en="Controls &amp; allelic ladder"></span></label>
+        <span class="muted-note"
+          data-fr="Le zoom agrandit la fenêtre de taille d'un locus sans changer le profil ; les cinq canaux restent visibles pour comparer les pull-ups."
+          data-en="Locus zoom enlarges a fragment-size window without changing the profile; all five dye channels remain visible to compare pull-ups."></span>
         <span class="muted-note" data-fr="Survolez (ou touchez) un pic pour lire sa taille (bp) et sa hauteur (RFU). Le type de pic apparaît quand le corrigé est affiché."
               data-en="Hover (or tap) a peak to read its size (bp) and height (RFU). The peak type appears once the answer key is shown."></span>
       </div>
@@ -99,6 +106,7 @@
   <script src="assets/layout.js"></script>
   <script type="module">
     import { generateCase, CASE_TYPES } from "./assets/epg/index.js";
+    import { getKit } from "./assets/epg/panels.js";
 
     const L = (fr, en) => (I18N.getLang() === "en" ? en : fr);
     const TYPE_LABELS = {
@@ -145,6 +153,25 @@
       }
       if (keep) $("type").value = keep;
     }
+    function fillZoomLoci() {
+      const menu = $("zoomLocus");
+      const previous = menu.value;
+      const loci = getKit($("kit").value).loci;
+      menu.innerHTML = "";
+      const overview = document.createElement("option");
+      overview.value = "";
+      overview.textContent = L("Vue globale (tous les loci)", "Full electropherogram (all loci)");
+      menu.appendChild(overview);
+      for (const locus of loci) {
+        const opt = document.createElement("option");
+        opt.value = locus.name;
+        opt.textContent = locus.name + " (" + locus.dye + ")";
+        menu.appendChild(opt);
+      }
+      // Keep the selection through a language change; reset on kit changes
+      // when the locus is absent from the new kit.
+      menu.value = loci.some((l) => l.name === previous) ? previous : "";
+    }
     function fillArts() {
       $("artGrid").innerHTML = "";
       for (const [k, fr, en] of ART_KEYS) {
@@ -178,6 +205,8 @@
       if (r && (type === "mixture2" || type === "mixture3")) s.ratio = r;
       s.showBins = $("showBins").checked;
       s.controls = $("controls").checked;
+      const zoomLocus = $("zoomLocus").value;
+      if (zoomLocus) s.zoomLocus = zoomLocus;
       // Expose the peak `kind` (in data-* and the hover title) only while the
       // answer key is shown, so inspection doesn't give the artefacts away early.
       s.revealKind = !$("answer").classList.contains("hidden");
@@ -306,6 +335,8 @@
     $("gen").addEventListener("click", generate);
     $("showBins").addEventListener("change", generate);
     $("controls").addEventListener("change", generate);
+    $("zoomLocus").addEventListener("change", generate);
+    $("kit").addEventListener("change", () => { fillZoomLoci(); generate(); });
     wirePeakTip();
     $("dice").addEventListener("click", () => { $("seed").value = String(Math.floor(Math.random() * 1e6)); generate(); });
     $("template").addEventListener("input", () => ($("templateOut").textContent = $("template").value));
@@ -321,12 +352,12 @@
       new Blob([JSON.stringify({ spec: spec(), answerKey: lastCase.answerKey }, null, 2)], { type: "application/json" })));
     $("dlPng").addEventListener("click", async () => { if (lastCase) download(baseName() + ".png", await svgToPng(lastCase.svg)); });
 
-    document.addEventListener("langchange", () => { fillTypes(); fillArts(); renderAnswer();
+    document.addEventListener("langchange", () => { fillTypes(); fillZoomLoci(); fillArts(); renderAnswer();
       $("answerBtn").textContent = $("answer").classList.contains("hidden") ? L("Afficher le corrigé", "Show answer key") : L("Masquer le corrigé", "Hide answer key");
     });
 
     // init
-    fillTypes(); fillArts();
+    fillTypes(); fillZoomLoci(); fillArts();
     $("templateOut").textContent = $("template").value;
     $("degradationOut").textContent = (+$("degradation").value).toFixed(1);
     generate();

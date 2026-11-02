@@ -80,7 +80,7 @@ function build(spec, kit, type, seed, rng, cfg) {
   const renders = [];
   for (const s of samples) {
     s.sim = simulate(kit, s.contributors, { rng, art, thresholds });
-    s.render = renderEPG(kit, s.sim, { sampleLabel: s.label, title: kit.label, width, showBins: spec.showBins, revealKind: spec.revealKind });
+    s.render = renderEPG(kit, s.sim, { sampleLabel: s.label, title: kit.label, width, showBins: spec.showBins, revealKind: spec.revealKind, zoomLocus: spec.zoomLocus });
     s.observed = observedProfile(kit, s.sim);
     renders.push(s.render);
   }
@@ -90,9 +90,9 @@ function build(spec, kit, type, seed, rng, cfg) {
   let allRenders = renders;
   if (spec.controls) {
     const th = samples[0].sim.thresholds;
-    const ladderR = renderEPG(kit, ladderSim(kit, th), { sampleLabel: "Allelic ladder", title: kit.label, width });
-    const posR = renderEPG(kit, positiveControlSim(kit, th, art), { sampleLabel: "Positive control", title: kit.label, width });
-    const negR = renderEPG(kit, negativeControlSim(th), { sampleLabel: "Negative control", title: kit.label, width });
+    const ladderR = renderEPG(kit, ladderSim(kit, th), { sampleLabel: "Allelic ladder", title: kit.label, width, zoomLocus: spec.zoomLocus, showBins: !!spec.zoomLocus && !!spec.showBins });
+    const posR = renderEPG(kit, positiveControlSim(kit, th, art), { sampleLabel: "Positive control", title: kit.label, width, zoomLocus: spec.zoomLocus, showBins: !!spec.zoomLocus && !!spec.showBins });
+    const negR = renderEPG(kit, negativeControlSim(th), { sampleLabel: "Negative control", title: kit.label, width, zoomLocus: spec.zoomLocus, showBins: !!spec.zoomLocus && !!spec.showBins });
     allRenders = [ladderR, posR, ...renders, negR];
   }
   const svg = allRenders.length === 1 ? allRenders[0].svg : renderStack(allRenders, width);
