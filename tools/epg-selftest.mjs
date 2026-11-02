@@ -116,6 +116,23 @@ for (const kit of ["globalfiler", "yfilerplus"]) {
 
   const revealed = generateCase({ kit: "globalfiler", type: "clean", seed: "render50", revealKind: true });
   ok(/data-kind=/.test(revealed.svg), "render: peak kind exposed only with revealKind");
+
+  // answer-mode artefact overlay: a ring/tag appears for an above-AT artefact
+  // (stutter at a tall allele is near-certain), and never in the default render.
+  ok(!/#b5179e/.test(base.svg), "render: no artefact overlay by default");
+  let sawOverlay = false;
+  for (let s = 0; s < 8 && !sawOverlay; s++) {
+    const r = generateCase({ kit: "globalfiler", type: "clean", seed: `ov${s}`, revealKind: true });
+    if (/#b5179e/.test(r.svg) && /(>St<|>PU<|>DI<|>-A<)/.test(r.svg)) sawOverlay = true;
+  }
+  ok(sawOverlay, "render: answer-mode overlay rings/tags artefacts");
+
+  // seeded baseline noise: different cases → different baseline path, same seed → identical
+  const a = generateCase({ kit: "globalfiler", type: "clean", seed: "noiseA" });
+  const a2 = generateCase({ kit: "globalfiler", type: "clean", seed: "noiseA" });
+  const bca = generateCase({ kit: "globalfiler", type: "clean", seed: "noiseB" });
+  ok(a.svg === a2.svg, "render: noise reproducible for a fixed seed");
+  ok(a.svg !== bca.svg, "render: different cases differ (noise varies)");
 }
 
 console.log(`\n${fail === 0 ? "✓ ALL PASS" : "✗ FAILURES"} — ${pass} passed, ${fail} failed`);

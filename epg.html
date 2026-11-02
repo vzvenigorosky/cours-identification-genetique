@@ -234,6 +234,9 @@
       let html = "";
       html += `<p><strong>${L("Type", "Type")} :</strong> ${L(TYPE_LABELS[ak.type][0], TYPE_LABELS[ak.type][1])}` +
               ` &nbsp;•&nbsp; <strong>${L("Graine", "Seed")} :</strong> <span class="mono">${$("seed").value}</span></p>`;
+      html += `<p class="muted-note">${L(
+        "Repères sur l'électrophorégramme : <b style='color:#b5179e'>PU</b> pull-up · <b style='color:#b5179e'>St</b> stutter · <b style='color:#b5179e'>-A</b> pic −A · <b style='color:#b5179e'>DI</b> drop-in · <b style='color:#b9802a'>OL</b> hors échelle allélique.",
+        "Marks on the electropherogram: <b style='color:#b5179e'>PU</b> pull-up · <b style='color:#b5179e'>St</b> stutter · <b style='color:#b5179e'>-A</b> −A peak · <b style='color:#b5179e'>DI</b> drop-in · <b style='color:#b9802a'>OL</b> off-ladder allele.")}</p>`;
 
       if (ak.relationship) {
         html += `<p><strong>${L("Relation", "Relationship")} :</strong> ` +
