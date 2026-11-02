@@ -144,6 +144,24 @@
       redstain: function () {
         return '<rect x="40" y="40" width="320" height="180" rx="6" fill="#eceff1" stroke="#cfd4d8" stroke-width="1.5"/>' +
                '<line x1="40" y1="100" x2="360" y2="100" stroke="#e1e5e8"/><line x1="40" y1="160" x2="360" y2="160" stroke="#e1e5e8"/>';
+      },
+      bone: function () {
+        return '<path d="M86 108 a16 16 0 0 0 -4 30 a15 15 0 0 0 20 10 h196 a15 15 0 0 0 20 -10 a16 16 0 0 0 -4 -30 a16 16 0 0 0 -4 -30 a15 15 0 0 0 -20 10 h-184 a15 15 0 0 0 -20 -10 a16 16 0 0 0 -4 30 Z" ' +
+               'fill="#f1ecdd" stroke="#cdc5ac" stroke-width="2" stroke-linejoin="round"/>';
+      },
+      muscle: function () {
+        var s = '<path d="M92 118 q24 -44 108 -38 q92 6 108 38 q-16 44 -108 50 q-84 -6 -108 -50 Z" fill="#b5544f" stroke="#8f3f3b" stroke-width="2" stroke-linejoin="round"/>';
+        for (var i = 0; i < 5; i++) { var y = 108 + i * 10; s += '<path d="M112 ' + y + ' q88 -14 180 0" fill="none" stroke="#9a443f" stroke-width="1.4" opacity="0.6"/>'; }
+        return s;
+      },
+      bloodtube: function () {
+        return '<rect x="170" y="36" width="60" height="14" rx="4" fill="#d7dde2" stroke="#b9c2cb" stroke-width="1.5"/>' +
+               '<path d="M176 48 L176 188 a24 24 0 0 0 48 0 L224 48 Z" fill="#f3f6f9" stroke="#b9c2cb" stroke-width="2"/>' +
+               '<path d="M176 118 L176 188 a24 24 0 0 0 48 0 L224 118 Z" fill="#c0352f"/>';
+      },
+      tooth: function () {
+        return '<path d="M158 92 q-12 -36 22 -38 q22 -1 20 16 q-2 -17 20 -16 q34 2 22 38 q4 52 -16 96 q-9 20 -15 -6 q-5 -28 -11 -28 q-6 0 -11 28 q-6 26 -15 6 q-20 -44 -16 -96 Z" ' +
+               'fill="#fbfaf3" stroke="#d8d2bf" stroke-width="2" stroke-linejoin="round"/>';
       }
     };
 
@@ -180,6 +198,11 @@
                                '<path d="M' + (+x + 10) + ' ' + (y - 14) + ' l5 -2 -2 5" fill="none" stroke="#1e6bb8" stroke-width="2"/>';
         case "cut": return '<rect x="' + (x - 24) + '" y="' + (y - 18) + '" width="48" height="36" rx="4" fill="#1e6bb8" fill-opacity="0.1" stroke="#1e6bb8" stroke-width="2" stroke-dasharray="6 4"/>';
         case "tape": return '<rect x="' + (x - 21) + '" y="' + (y - 14) + '" width="42" height="28" fill="#1e6bb8" fill-opacity="0.12" stroke="#1e6bb8" stroke-width="2" stroke-dasharray="4 3"/>';
+        case "bore": return '<circle cx="' + x + '" cy="' + y + '" r="9" fill="#1e6bb8" fill-opacity="0.25" stroke="#1e6bb8" stroke-width="2"/>' +
+                            '<circle cx="' + x + '" cy="' + y + '" r="3" fill="#1e6bb8"/>';
+        case "grind": return '<rect x="' + (x - 28) + '" y="' + (y - 20) + '" width="56" height="40" rx="6" fill="#1e6bb8" fill-opacity="0.1" stroke="#1e6bb8" stroke-width="2" stroke-dasharray="3 3"/>' +
+                             '<path d="M' + (x - 18) + ' ' + (+y + 10) + ' L' + (+x + 18) + ' ' + (y - 10) + ' M' + (x - 18) + ' ' + (y - 2) + ' L' + (+x + 6) + ' ' + (y - 10) + '" stroke="#1e6bb8" stroke-width="1.5" opacity="0.6"/>';
+        case "pipette": return '<path d="M' + x + ' ' + (y - 16) + ' L' + (+x + 7) + ' ' + (+y + 8) + ' a7 9 0 0 1 -14 0 Z" fill="#1e6bb8" fill-opacity="0.22" stroke="#1e6bb8" stroke-width="2" stroke-linejoin="round"/>';
         default: return "";
       }
     }
@@ -270,14 +293,13 @@
         var revealedAny = false;
         state.spots.forEach(function (s, i) {
           if (s.kind !== "stain" || s.visible) return;
-          var fl = S.fluorescence[s.fluid];
-          if (fl && fl[tool.id]) { state.revealed[i] = true; revealedAny = true; }
+          if (S.fluorescence[s.fluid]) { state.revealed[i] = true; revealedAny = true; }
         });
         renderScene();
         setHint(revealedAny
           ? L("Lumière : des traces latentes fluorescent et apparaissent.", "Light: latent traces fluoresce and appear.")
-          : L("Lumière : rien ne fluoresce ici (le sperme ressort sous ALS et UV, la salive sous ALS seulement ; le sang ne fluoresce pas).",
-              "Light: nothing fluoresces here (semen shows under ALS and UV, saliva under ALS only; blood does not fluoresce)."));
+          : L("Lumière : rien ne fluoresce ici (le sperme et la salive fluorescent ; le sang ne fluoresce pas).",
+              "Light: nothing fluoresces here (semen and saliva fluoresce; blood does not)."));
         return;
       }
       if (state.armed && state.armed.kind === kind && state.armed.tool.id === tool.id) state.armed = null;
@@ -346,18 +368,28 @@
       if (tf == null) tf = 0;
       var rand = 0.8 + Math.random() * 0.4;
       var hasDNA = sp && sp.auto > 0;
-      var auto = (hasDNA && tf > 0) ? sp.auto * tf * rand : 0;
-      var male = (hasDNA && tf > 0) ? sp.male * tf * rand : 0;
+      // A dry swab on a dried deposit lifts few cells → heavy penalty (#43).
+      var dryOnStain = (tool.id === "swab_dry" && hasDNA);
+      var yieldMul = tf * (dryOnStain ? S.dryStainPenalty : 1);
+      var auto = (hasDNA && tf > 0) ? sp.auto * yieldMul * rand : 0;
+      var male = (hasDNA && tf > 0) ? sp.male * yieldMul * rand : 0;
       var degrad = hasDNA ? clamp01(sp.degrad + (Math.random() - 0.5) * 0.08) : 0;
-      var ok = auto >= S.threshold;
+      // The wrong tool fails even if a little DNA comes through (#43): the
+      // instrument must be suitable enough, and a dry swab on a dried deposit
+      // is not acceptable.
+      var toolOk = tf >= S.acceptTool && !dryOnStain;
+      var ok = auto >= S.threshold && toolOk;
       var isSperm = hasDNA && sp.fluid === "semen";
 
       var why = [];
-      if (tf === 0) why.push(L("Cet instrument ne convient pas à ce support (p. ex. on ne découpe pas une lame métallique) → aucun prélèvement exploitable.",
-                              "This instrument does not suit this substrate (e.g. you don't cut a metal blade) → no usable sampling."));
+      if (tf === 0) why.push(L("Cet instrument ne convient pas à ce support (p. ex. on ne découpe pas une lame métallique, on ne prélève pas un os à l'écouvillon) → aucun prélèvement exploitable.",
+                              "This instrument does not suit this substrate (e.g. you don't cut a metal blade, you don't swab a bone) → no usable sampling."));
+      else if (dryOnStain) why.push(L("Écouvillon SEC sur une trace sèche : très peu de cellules sont décollées → prélèvement non exploitable. Sur une tache ou une trace sèche, on humidifie l'écouvillon (écouvillon humidifié) pour réhydrater et récupérer les cellules.",
+                                      "DRY swab on a dried deposit: very few cells are lifted → unusable sampling. On a dried stain or trace, moisten the swab (moistened swab) to rehydrate and recover the cells."));
+      else if (tf < S.acceptTool) why.push(L("Mauvais instrument pour ce support : rendement trop faible → prélèvement non fiable. Choisissez un instrument adapté.",
+                                           "Wrong instrument for this substrate: yield too low → unreliable sampling. Choose a suitable instrument."));
       else if (tf >= 0.8) why.push(L("Bon instrument pour ce support.", "Good instrument for this substrate."));
-      else if (tf >= 0.4) why.push(L("Instrument acceptable mais pas optimal (rendement réduit).", "Acceptable but sub-optimal instrument (reduced yield)."));
-      else why.push(L("Instrument peu adapté à ce support → rendement très faible.", "Instrument poorly suited to this substrate → very low yield."));
+      else why.push(L("Instrument acceptable mais pas optimal (rendement réduit).", "Acceptable but sub-optimal instrument (reduced yield)."));
 
       if (!sp) why.push(L("Le prélèvement est tombé sur une zone propre : aucun matériel biologique.", "The footprint landed on a clean area: no biological material."));
       else if (sp.fluid === "paint") why.push(L("La tache rouge n'était pas du sang (support non biologique) : rien à extraire. Un test l'aurait montré — il valait mieux ne pas prélever.",
@@ -368,7 +400,9 @@
                                               "Touch DNA from a worn area (collar, armpit, handle, waistband): invisible and with no presumptive test, yet usable — the right reflex on a stain-free garment."));
 
       if (ok) {
-        if (isSperm) why.push(L("Spermatozoïdes présents → une extraction différentielle est recommandée pour séparer la fraction spermatique de la fraction de la victime.",
+        if (sp.single) why.push(L("Échantillon de source unique (référence ou tissu identifié) → extraction classique, ni différentielle ni Y-STR.",
+                                 "Single-source sample (reference or identified tissue) → standard extraction, neither differential nor Y-STR."));
+        else if (isSperm) why.push(L("Spermatozoïdes présents → une extraction différentielle est recommandée pour séparer la fraction spermatique de la fraction de la victime.",
                                "Spermatozoa present → a differential extraction is recommended to separate the sperm fraction from the victim's fraction."));
         else if (male >= S.threshold) why.push(L("Contributeur masculin détecté mais pas de sperme → envisager une analyse Y-STR ; une extraction différentielle n'a pas lieu d'être.",
                                                "Male contributor detected but no sperm → consider a Y-STR analysis; a differential extraction is not warranted."));

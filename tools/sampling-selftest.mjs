@@ -21,13 +21,23 @@ for (const [sub, tools] of Object.entries(S.substrateTools)) {
     assert(f > 0 && f <= 1, `${sub}.${ins}: suitability in (0,1]`);
   }
 }
-for (const f of Object.values(S.fluorescence)) {
-  assert.equal(typeof f.als, 'boolean'); assert.equal(typeof f.uv, 'boolean');
-}
+for (const v of Object.values(S.fluorescence)) assert.equal(typeof v, 'boolean', 'fluorescence is one boolean per fluid (single forensic light)');
 // Blood must never fluoresce (the teaching point of the light step).
-assert(!S.fluorescence.blood.als && !S.fluorescence.blood.uv);
-assert(S.fluorescence.semen.uv && S.fluorescence.semen.als);
-assert(S.fluorescence.saliva.als && !S.fluorescence.saliva.uv, 'ALS is more sensitive than UV');
+assert(!S.fluorescence.blood);
+assert(S.fluorescence.semen && S.fluorescence.saliva, 'semen and saliva fluoresce under the forensic light');
+
+// #43: one combined forensic-light button; tape-lift removed; new tools added.
+assert.equal(S.lights.length, 1, 'a single forensic-light button');
+assert(!S.instruments.some((i) => i.id === 'tape'), 'tape-lift removed');
+for (const id of ['cryo', 'pipette', 'dremel']) assert(S.instruments.some((i) => i.id === id), `instrument ${id} present`);
+for (const id of ['bone', 'muscle', 'bloodtube', 'salivafta', 'tooth']) assert(S.items.some((it) => it.id === id), `item ${id} present`);
+assert(S.acceptTool > 0 && S.acceptTool <= 1, 'acceptTool in (0,1]');
+assert(S.dryStainPenalty > 0 && S.dryStainPenalty < 1, 'dryStainPenalty in (0,1)');
+// Every substrate must offer at least one acceptable (>= acceptTool) tool, so a
+// correct answer always exists.
+for (const [sub, tools] of Object.entries(S.substrateTools)) {
+  assert(Object.values(tools).some((f) => f >= S.acceptTool), `${sub}: at least one acceptable tool exists`);
+}
 
 const inCanvas = (z) => z.cx - z.r >= 0 && z.cx + z.r <= 400 && z.cy - z.r >= 0 && z.cy + z.r <= 260;
 const overlap = (a, b) => Math.hypot(a.cx - b.cx, a.cy - b.cy) < a.r + b.r;
