@@ -57,10 +57,28 @@ function binCall(kit, dye, size) {
   return (best != null && bd <= 0.5) ? fmtAllele(best) : "OL";
 }
 
+/* Focus on one locus's allele span, with a flank of at least two repeat units
+   for n-1/n+1 stutter and minus-A. This is a viewport ONLY: no peak or
+   genotype is modified, and all dye channels retain their shared size axis. */
+export function locusViewport(kit, locusName) {
+  const locus = kit.loci.find((l) => l.name === locusName);
+  if (!locus) throw new RangeError("Unknown EPG locus for " + kit.id + ": " + locusName);
+  const sizes = allelesOf(locus).map((a) => sizeOf(locus, a));
+  const flank = Math.max(8, 2 * (locus.repeat || 4));
+  return {
+    locus: locus.name, dye: locus.dye,
+    min: Math.max(80, Math.min(...sizes) - flank),
+    max: Math.max(...sizes) + flank
+  };
+}
+
 export function renderEPG(kit, sim, opts = {}) {
   const W = opts.width || 1300;
   const padL = 62, padR = 18, headerH = 34, panelH = 120, gap = 8, axisH = 26, liziH = 20;
-  const X0 = 90, X1 = maxSize(kit) + 15;
+  const zoom = opts.zoomLocus ? locusViewport(kit, opts.zoomLocus) : null;
+  const X0 = zoom ? zoom.min : 90, X1 = zoom ? zoom.max : maxSize(kit) + 15;
+  // Use the same simulated peaks in both views; only the SVG viewport changes.
+  const visiblePeaks = zoom ? sim.peaks.filter((p) => p.size >= X0 && p.size <= X1) : sim.peaks;
   const dyes = DYE_ORDER;
   const totalH = headerH + dyes.length * (panelH + gap) + liziH + axisH;
 
@@ -75,12 +93,13 @@ export function renderEPG(kit, sim, opts = {}) {
     disp = opts.dispMax;
   } else {
     disp = sim.thresholds.st * 1.3;
-    for (const p of sim.peaks) if (p.kind === "allele" && !p.saturated) disp = Math.max(disp, p.height);
+    for (const p of visiblePeaks) if (p.kind === "allele" && !p.saturated) disp = Math.max(disp, p.height);
     disp = Math.max(disp * 1.12, 500);
   }
 
   const parts = [];
-  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${totalH}" width="${W}" height="${totalH}" font-family="Segoe UI, Arial, sans-serif" style="background:#fff">`);
+  const zoomAttr = zoom ? ` data-zoom-locus="${esc(zoom.locus)}" data-zoom-min="${X0}" data-zoom-max="${X1}"` : "";
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${totalH}" width="${W}" height="${totalH}"${zoomAttr} font-family="Segoe UI, Arial, sans-serif" style="background:#fff">`);
   parts.push(`<rect x="0" y="0" width="${W}" height="${totalH}" fill="#ffffff"/>`);
 
   // header
@@ -88,6 +107,7 @@ export function renderEPG(kit, sim, opts = {}) {
   const sample = esc(opts.sampleLabel || "Sample");
   parts.push(`<text x="${padL}" y="22" font-size="14" font-weight="700" fill="#24292e">${sample}</text>`);
   parts.push(`<text x="${W - padR}" y="22" font-size="12" fill="#6a737d" text-anchor="end">${title}</text>`);
+  if (zoom) parts.push(`<text x="${Math.round(W / 2)}" y="22" font-size="12" font-weight="600" fill="#57606a" text-anchor="middle">${esc(zoom.locus)} · ${X0}–${X1} bp</text>`);
 
   // Baseline-noise seed: stable for a given trace, different between cases.
   const noiseSeed = (opts.noiseSeed != null ? opts.noiseSeed : hashPeaks(sim.peaks)) >>> 0;
@@ -100,7 +120,7 @@ export function renderEPG(kit, sim, opts = {}) {
     const yOf = (h) => bottom - (Math.min(h, disp) / disp) * plotH;
 
     // panel frame + alt background
-    parts.push(`<rect x="${padL}" y="${top}" width="${W - padL - padR}" height="${panelH}" fill="${i % 2 ? "#fbfcfd" : "#ffffff"}" stroke="#e1e4e8"/>`);
+    parts.push(`<rect x="${padL}" y="${top}" width="${W - padL - padR}" height="${panelH}" fill="${zoom && dyeKey === zoom.dye ? "#f4f8fb" : (i % 2 ? "#fbfcfd" : "#ffffff")}" stroke="#e1e4e8"/>`);
     // dye label
     parts.push(`<text x="6" y="${top + 14}" font-size="11" font-weight="700" fill="${dye.color}">${dye.label}</text>`);
     // baseline
@@ -119,7 +139,9 @@ export function renderEPG(kit, sim, opts = {}) {
     if (opts.showBins) {
       kit.loci.filter((l) => l.dye === dyeKey).forEach((l) => {
         for (const a of allelesOf(l)) {
-          const bx = xOf(sizeOf(l, a));
+          const sz = sizeOf(l, a);
+          if (sz < X0 || sz > X1) continue;
+          const bx = xOf(sz);
           parts.push(`<line class="bin" x1="${bx.toFixed(1)}" y1="${bottom}" x2="${bx.toFixed(1)}" y2="${(bottom - 6).toFixed(1)}" stroke="#aeb6bf" stroke-width="0.6" opacity="0.75"/>`);
         }
       });
@@ -144,7 +166,7 @@ export function renderEPG(kit, sim, opts = {}) {
     // peaks in this dye. Each path carries class "pk" + data-* and a <title> so
     // a viewer can hover/tap it to read size (bp) and RFU; the artefact `kind` is
     // added only when opts.revealKind (answer mode), so exercises don't leak it.
-    const dpk = sim.peaks.filter((p) => p.dye === dyeKey);
+    const dpk = visiblePeaks.filter((p) => p.dye === dyeKey);
     for (const p of dpk) {
       const x = xOf(p.size);
       const yTop = yOf(p.height);
@@ -164,8 +186,10 @@ export function renderEPG(kit, sim, opts = {}) {
     // its allele size-range with a thin bracket and a white halo for legibility.
     kit.loci.filter((l) => l.dye === dyeKey).forEach((l) => {
       const al = allelesOf(l);
-      const xs = xOf(sizeOf(l, al[0]));
-      const xe = xOf(sizeOf(l, al[al.length - 1]));
+      const left = sizeOf(l, al[0]), right = sizeOf(l, al[al.length - 1]);
+      if (right < X0 || left > X1) return;
+      const xs = xOf(Math.max(X0, left));
+      const xe = xOf(Math.min(X1, right));
       const xm = (xs + xe) / 2;
       const w = Math.max(16, l.name.length * 5.4);
       parts.push(
@@ -219,14 +243,15 @@ export function renderEPG(kit, sim, opts = {}) {
   const lizTop = headerH + dyes.length * (panelH + gap);
   parts.push(`<rect x="${padL}" y="${lizTop}" width="${W - padL - padR}" height="${liziH}" fill="#fff7ef" stroke="#f0d9c0"/>`);
   parts.push(`<text x="6" y="${lizTop + 13}" font-size="10" font-weight="700" fill="${DYES.LIZ.color}">LIZ</text>`);
-  for (let s = 100; s <= X1; s += 25) {
+  for (let s = zoom ? Math.ceil(X0 / 25) * 25 : 100; s <= X1; s += 25) {
     const x = xOf(s);
     parts.push(`<path d="M ${(x - 1.5).toFixed(1)} ${lizTop + liziH} L ${x.toFixed(1)} ${lizTop + 4} L ${(x + 1.5).toFixed(1)} ${lizTop + liziH} Z" fill="${DYES.LIZ.color}" opacity="0.8"/>`);
   }
 
   // size axis
   const axisY = lizTop + liziH;
-  for (let s = 100; s <= X1; s += 50) {
+  const sizeStep = zoom ? (X1 - X0 <= 44 ? 5 : 10) : 50;
+  for (let s = zoom ? Math.ceil(X0 / sizeStep) * sizeStep : 100; s <= X1; s += sizeStep) {
     const x = xOf(s);
     parts.push(`<line x1="${x.toFixed(1)}" y1="${axisY}" x2="${x.toFixed(1)}" y2="${axisY + 4}" stroke="#98a0a8"/>`);
     parts.push(`<text x="${x.toFixed(1)}" y="${axisY + 16}" font-size="9" fill="#6a737d" text-anchor="middle">${s}</text>`);
