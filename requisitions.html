@@ -333,8 +333,9 @@
 
       // The comparison material, in prose.
       if (data.references.length) {
+        // One clause per reference, separated by semicolons so each reads on its own.
         var refParts = data.references.map(function (ref) { return label("le scellé ", "exhibit ") + ref.exhibitId + ", " + str(ref.claimedSource); });
-        para(s, label("À titre de comparaison, ", "For comparison, ") + join(refParts) + ". " + str(data.referenceStatus), 9);
+        para(s, label("À titre de comparaison : ", "For comparison: ") + refParts.join(" ; ") + ". " + str(data.referenceStatus), 9);
       } else {
         para(s, str(data.referenceStatus), 9);
       }

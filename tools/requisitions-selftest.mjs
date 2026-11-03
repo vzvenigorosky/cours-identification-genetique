@@ -433,6 +433,50 @@ console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configu
   console.log('Requisitions: shared party model (sexes and gendered/neutral wording) checked.');
 }
 
+// ---- audit fixes: elision, named common ancestor, impossible dates ----
+{
+  let distant = 0;
+  for (let seed = 0; seed < 600; seed++) {
+    for (const mode of ['closeKin', 'distantKin', 'mixed']) {
+      const d = N.generate({ scenario: 'johnDoe', referenceMode: mode, seed });
+      for (const ref of d.references.filter(r => r.kind === 'relative')) {
+        const first = d.candidate.split(' ')[0];
+        const vowel = /^[AEIOUÉÈÊÎÔÛ]/i.test(first);
+        assert(vowel ? ref.claimedSource.fr.includes(" d'" + d.candidate) : ref.claimedSource.fr.includes(' de ' + d.candidate), 'elision: ' + ref.claimedSource.fr);
+        if (ref.relationship.commonAncestor) {
+          distant++;
+          assert(ref.claimedSource.fr.includes(ref.relationship.commonAncestor.name) && /ancêtre commun allégué/.test(ref.claimedSource.fr), 'distant kin names the common ancestor (lineage is decisive)');
+          assert(ref.claimedSource.en.includes(ref.relationship.commonAncestor.name) && /common ancestor/.test(ref.claimedSource.en));
+        }
+      }
+    }
+  }
+  assert(distant > 500, 'common ancestors exercised');
+  // the vague variant that drops the relationship also drops the ancestor
+  for (let seed = 0; seed < 300; seed++) {
+    const v = N.generate({ scenario: 'johnDoe', referenceMode: 'distantKin', seed, vague: true });
+    if (v.degraded[0].archetype === 'relationship-path-unstated') {
+      const ref = v.references.find(x => v.degraded[0].field === 'references.' + x.id + '.claimedSource');
+      assert(!/ancêtre commun/.test(ref.claimedSource.fr) && !/common ancestor/.test(ref.claimedSource.en), 'lineage withheld silently');
+    }
+  }
+  // FNAEG dates: never in the future, offence before conviction
+  const today = new Date(); today.setHours(23, 59, 59);
+  const dmy = x => { const [dd, mm, yy] = x.split('/').map(Number); return new Date(yy, mm - 1, dd); };
+  for (let i = 0; i < 1500; i++) {
+    for (const type of ['suspect', 'condamne', 'trace']) {
+      const d = R.generate(type);
+      if (d.dateFaits) assert(dmy(d.dateFaits) <= today, type + ': offence date in the future ' + d.dateFaits);
+      if (d.dateCondamnation) {
+        assert(dmy(d.dateCondamnation) <= today, 'conviction date in the future');
+        assert(dmy(d.dateFaits) < dmy(d.dateCondamnation), 'the offence must precede the conviction: ' + d.dateFaits + ' / ' + d.dateCondamnation);
+      }
+      if (d.autorite && d.autorite.date) assert(dmy(d.autorite.date) <= today, 'instruction date in the future');
+    }
+  }
+  console.log('Requisitions: audit fixes (elision, named common ancestor, coherent FNAEG dates) verified.');
+}
+
 // ---- UI / mock PDF integration: random quality must work for both document
 // families; forced quality must remain reliable; the narrative must render as a
 // polite letter. A lightweight jsPDF double validates the actual page
