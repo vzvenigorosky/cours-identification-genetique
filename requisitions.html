@@ -8,26 +8,25 @@
   <style>
     .controls-row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin:10px 0; }
     select.input, .controls-row label { font-size:.95rem; }
-    #preview { width:100%; height:80vh; min-height:520px; border:1px solid var(--border); border-radius:10px; background:#fff; }
+    /* Use the whole screen on a computer so the PDF is readable (the page was capped at 900 px). */
+    main.wide { max-width: min(1600px, 98vw); }
+    #preview { display:block; width:100%; height:calc(100vh - 340px); min-height:560px; border:1px solid var(--border); border-radius:10px; background:#fff; }
+    @media (max-width: 720px) { #preview { height:80vh; min-height:520px; } }
     .note-fictif { border-left:4px solid var(--accent); background:var(--stripe); padding:8px 14px; font-size:.9rem; margin:10px 0; }
   </style>
 </head>
 <body data-page="exercices">
-  <main class="wrap narrow">
+  <main class="wrap wide">
     <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
     <h1 class="page-title mt" data-fr="Générateur de réquisitions génétiques" data-en="Forensic genetic requisition generator"></h1>
-    <p class="page-intro"
-       data-fr="Chaque tirage est entièrement aléatoire : formulaire FNAEG structuré ou réquisition libre, affaire, et précision de la demande. Lisez le PDF comme le ferait le laboratoire. S’il manque une information décisive, le bouton « Montrer les informations manquantes » apparaît ; s’il n’apparaît pas, la demande est complète."
-       data-en="Every draw is fully random: structured FNAEG form or free-form requisition, case, and how precise the request is. Read the PDF as the laboratory would. If a decisive piece of information is missing, the “Show missing information” button appears; if it does not, the request is complete."></p>
-
-    <p class="note-fictif"
-       data-fr="⚠ Documents entièrement fictifs à usage pédagogique. Les noms, services, juridictions et numéros de scellés sont générés aléatoirement et ne désignent aucune personne ni aucun service réels. Les PDF portent la mention « document fictif » et n'ont aucune valeur légale."
-       data-en="⚠ Entirely fictitious documents for teaching use. Names, services, jurisdictions and seal numbers are randomly generated and designate no real person or service. The PDFs are watermarked “document fictif” and have no legal value."></p>
-
+    <p class="page-intro" style="margin:4px 0 10px"
+       data-fr="Tirage entièrement aléatoire. Lisez la demande comme le ferait le laboratoire : si une information décisive manque, un bouton « Montrer les informations manquantes » apparaît."
+       data-en="Fully random draw. Read the request as the laboratory would: if a decisive piece of information is missing, a “Show missing information” button appears."></p>
     <div class="panel">
       <div class="controls-row">
         <button class="btn btn-primary" id="gen" data-fr="Générer une réquisition" data-en="Generate a requisition"></button>
         <button class="btn btn-ghost" id="dl" data-fr="Télécharger le PDF" data-en="Download the PDF" disabled></button>
+        <button class="btn btn-ghost" id="openTab" data-fr="Ouvrir en grand (nouvel onglet)" data-en="Open full size (new tab)" disabled></button>
         <button class="btn btn-ghost" id="missingBtn" style="display:none" data-fr="Montrer les informations manquantes" data-en="Show missing information"></button>
       </div>
       <iframe id="preview" title="aperçu réquisition"></iframe>
@@ -37,6 +36,10 @@
       <h2 style="margin-top:0" data-fr="Informations manquantes dans cette réquisition" data-en="Information missing from this requisition"></h2>
       <div id="missingBody"></div>
     </div>
+
+    <p class="note-fictif"
+       data-fr="⚠ Documents entièrement fictifs à usage pédagogique. Les noms, services, juridictions et numéros de scellés sont générés aléatoirement et ne désignent aucune personne ni aucun service réels. Les PDF portent la mention « document fictif » et n'ont aucune valeur légale."
+       data-en="⚠ Entirely fictitious documents for teaching use. Names, services, jurisdictions and seal numbers are randomly generated and designate no real person or service. The PDFs are watermarked “document fictif” and have no legal value."></p>
   </main>
 
   <script src="assets/vendor/jspdf.umd.min.js"></script>
@@ -389,6 +392,7 @@
       lastBlobUrl = doc.output("bloburl");
       document.getElementById("preview").src = lastBlobUrl;
       document.getElementById("dl").disabled = false;
+      document.getElementById("openTab").disabled = false;
       window.__lastDoc = doc;
       lastReq = { type: data.type, quality: data.quality, degraded: data.degraded,
                   scenario: data.scenario || null, referenceMode: data.referenceMode || null, seed: data.seed };
@@ -429,6 +433,7 @@
 
     document.getElementById("gen").addEventListener("click", build);
     document.getElementById("dl").addEventListener("click", function () { if (window.__lastDoc) window.__lastDoc.save(lastName); });
+    document.getElementById("openTab").addEventListener("click", function () { if (lastBlobUrl) window.open(lastBlobUrl, "_blank", "noopener"); });
     document.getElementById("missingBtn").addEventListener("click", function () {
       var hidden = document.getElementById("missing").classList.toggle("hidden");
       this.textContent = hidden ? L2("Montrer les informations manquantes", "Show missing information")
