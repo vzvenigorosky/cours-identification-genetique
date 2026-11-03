@@ -198,6 +198,8 @@ window.NARRATIVE_REQUISITIONS = (function () {
     }
   }
   const born=(sex)=>sex==="F"?"née le ":"né le ";
+  // French elision: "de Emma" -> "d'Emma" (vowel or mute h), but "de Hugo" stays.
+  const de=(name)=>/^[AEIOUÉÈÊÎÔÛ]/i.test(name)?"d'"+name:"de "+name;
   function makeJohnDoe(r,mode) {
     const template=r.pick(REMAINS),data=base(r,"johnDoe",template,r.pick(PLACES));
     const family=buildPedigree(r),candidate=family.candidate;
@@ -231,8 +233,8 @@ window.NARRATIVE_REQUISITIONS = (function () {
           t("prélèvement de comparaison communiqué par les enquêteurs","comparison sample provided by investigators"));
         const ancestor=family.ancestors[rel.id];
         addRef(data,"relative",e,
-          t(title+" "+p.name+" ("+born(p.sex)+p.birthDate+") : "+desc.fr+" de "+candidate.name,
-            title+" "+p.name+" (born "+p.birthDate+"): "+desc.en+" of "+candidate.name),
+          t(title+" "+p.name+" ("+born(p.sex)+p.birthDate+") : "+desc.fr+" "+de(candidate.name)+(ancestor?" ; ancêtre commun allégué : "+ancestor.name+", né"+(ancestor.sex==="F"?"e":"")+" vers "+ancestor.birthYear:""),
+            title+" "+p.name+" (born "+p.birthDate+"): "+desc.en+" of "+candidate.name+(ancestor?"; claimed common ancestor: "+ancestor.name+", born around "+ancestor.birthYear:"")),
           {id:rel.id,path:rel.path.slice(),summary:desc,candidate:candidate.name,
            relativePerson:p,commonAncestor:ancestor?{name:ancestor.name,birthYear:ancestor.birthYear}:null});
       }

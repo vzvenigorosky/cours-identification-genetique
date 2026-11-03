@@ -46,11 +46,17 @@ window.REQUISITIONS = (function () {
   function service(v) { return pick(SERVICES).replace("%V", v); }
   function procedure() { return rint(50, 3999) + "/2026"; }
   function dateStr(d) { return pad(d.getDate(), 2) + "/" + pad(d.getMonth() + 1, 2) + "/" + d.getFullYear(); }
+  // A date between minY and maxY years ago, never later than today.
   function randPastDate(minY, maxY) {
     var now = new Date();
     var y = rint(now.getFullYear() - maxY, now.getFullYear() - minY);
-    return dateStr(new Date(y, rint(0, 11), rint(1, 28)));
+    var d = new Date(y, rint(0, 11), rint(1, 28));
+    if (d > now) d = new Date(now.getTime() - rint(1, 60) * 86400000);
+    return dateStr(d);
   }
+  function parseDate(str) { var p = str.split("/"); return new Date(+p[2], +p[1] - 1, +p[0]); }
+  // A date 1 to 3 years before `str` (offences precede their conviction).
+  function dateBefore(str) { return dateStr(new Date(parseDate(str).getTime() - rint(365, 1095) * 86400000)); }
   function infractions() { return shuffle(INFRACTIONS).slice(0, rint(1, 3)).join(", "); }
   function expert() { return pick(EXPERTS); }
   function barcode(prefix, len) { // 12-digit, given numeric prefix
@@ -77,14 +83,16 @@ window.REQUISITIONS = (function () {
   function genIndividu(kind) { // kind: "suspect" | "condamne"
     var vd = pick(VILLES);
     var isCondamne = kind === "condamne";
+    var condamnation = isCondamne ? randPastDate(0, 3) : "";
     return {
       type: "individu", kind: kind,
       juridiction: "TJ " + vd[0] + " (" + vd[1] + ")",
       cadre: isCondamne ? "condamne" : pick(["suspect2", "suspect3"]),
-      dateCondamnation: isCondamne ? randPastDate(0, 3) : "",
+      dateCondamnation: isCondamne ? condamnation : "",
       parquet: isCondamne ? "Parquet de " + vd[0] : "",
       infractions: infractions(),
-      dateFaits: randPastDate(0, 2),
+      // The offence precedes the conviction; both lie in the past.
+      dateFaits: isCondamne ? dateBefore(condamnation) : randPastDate(0, 2),
       requerant: requerant(vd[0]),
       etatCivil: etatCivil(),
       prelevement: barcode(isCondamne ? "41" : pick(["05", "06", "07"]), 12),
