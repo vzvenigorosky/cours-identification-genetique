@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import { templates, makeCase, idealAnswer, grade, visibleScelles, expectedLine, analysisFor, relations,
   linePrice, quoteTotal, packages, addons, tariffs, clarityRules, weights } from '../assets/data/devis.js';
 
+import { loadWindowData } from './load-window-data.mjs';
+// The shared requisition module is a classic script (also used by the generator);
+// the simulator reads it from globalThis when a case is built (#76).
+globalThis.REQUISITION_SHARED = loadWindowData('assets/data/requisition-shared.js', 'REQUISITION_SHARED');
+
 const bilingual = (o, where) => {
   assert(o && typeof o.fr === 'string' && typeof o.en === 'string', where + ': {fr,en} present');
   assert(o.en.trim() || !o.fr.trim(), where + ': EN missing');
@@ -121,9 +126,10 @@ for (let seed = 0; seed < 30; seed++) {
   // sexual assault sites: vague truth = 4 relevant samples, 'all' = 14
   const vs = makeCase(seed, { template: 'sa-sites', variant: 'vague' });
   const rel = vs.scelles.filter(s => s.relevant && s.id !== 'refv');
-  assert.deepEqual(rel.map(s => s.id).sort(), ['cou', 'poi', 'vag', 'vul']);
+  const F = vs.parties.victimSex === 'F', g0 = F ? 'vag' : 'ana';
+  assert.deepEqual(rel.map(s => s.id).sort(), F ? ['cou', 'poi', 'vag', 'vul'] : ['ana', 'cou', 'poi']);
   const li = idealAnswer(vs).lines;
-  assert.equal(li.vag.pkg, 'diffMale'); assert.equal(li.cou.pkg, 'ref');
+  assert.equal(li[g0].pkg, vs.ejaculation === 'no' ? 'ref' : 'diffMale', 'differential only when ejaculation is not excluded'); assert.equal(li.cou.pkg, 'ref');
   // misc flat: only linked items are accepted
   const mf = makeCase(seed, { template: 'misc-flat', variant: 'clear' });
   const ids = Object.entries(idealAnswer(mf).lines).filter(([, l]) => l.analyse).map(([id]) => id).sort();
@@ -152,8 +158,9 @@ for (let seed = 0; seed < 20; seed++) {
   const f = makeCase(seed, { template: 'absurd-blood' });
   assert.equal(f.kind, 'absurdFix');
   assert.deepEqual(visibleScelles(f, false).map(s => s.id), ['sang']);
-  assert.deepEqual(visibleScelles(f, true).map(s => s.id), ['slip', 'vag', 'sang'], 'client corrects the request; the blood draw becomes the victim reference');
-  assert.equal(idealAnswer(f).lines.sang.pkg, 'ref'); assert.equal(idealAnswer(f).lines.vag.pkg, 'diffMale');
+  const pid = f.parties.victimSex === 'F' ? 'vag' : 'ana';
+  assert.deepEqual(visibleScelles(f, true).map(s => s.id), ['slip', pid, 'sang'], 'client corrects the request; the blood draw becomes the victim reference');
+  assert.equal(idealAnswer(f).lines.sang.pkg, 'ref'); assert.equal(idealAnswer(f).lines[pid].pkg, 'diffMale');
   const ideal = idealAnswer(f);
   assert.equal(ideal.asked, true); assert.equal(grade(f, ideal).total, 100);
   assert.equal(grade(f, { ...ideal, declined: true, lines: {} }).total, 30, 'declining a corrected (valid) request is wrong');
@@ -163,25 +170,27 @@ for (let seed = 0; seed < 20; seed++) {
 
 // --- victim reference: always attached in sexual-assault cases; whether it is wanted must be stated ---
 for (let seed = 0; seed < 30; seed++) {
-  for (const [tpl, swab] of [['sa-ejaculation', 'slip'], ['sa-sites', 'vag']]) {
+  for (const tpl of ['sa-ejaculation', 'sa-sites']) {
     for (const variant of ['vague', 'clear']) {
       const withRef = makeCase(seed, { template: tpl, variant, victimRef: true });
       const noRef = makeCase(seed, { template: tpl, variant, victimRef: false });
+      const swab = tpl === 'sa-ejaculation' ? 'slip' : (withRef.parties.victimSex === 'F' ? 'vag' : 'ana');
       for (const c of [withRef, noRef]) assert(c.scelles.some(s => s.id === 'refv'), 'the victim reference swab is always attached');
       assert.equal(withRef.scelles.find(s => s.id === 'refv').relevant, true);
       assert.equal(noRef.scelles.find(s => s.id === 'refv').relevant, false);
       if (variant === 'clear') {
-        assert(withRef.requisition.fr.includes('Établir aussi le profil de la victime') && withRef.requisition.en.includes('Also establish'), 'the request is stated');
+        assert(/Établir aussi le profil (de la plaignante|du plaignant|de la personne plaignante)/.test(withRef.requisition.fr) && withRef.requisition.en.includes('Also establish'), 'the request is stated');
         assert(noRef.requisition.fr.includes('n’est pas demandé') && noRef.requisition.en.includes('not requested'), 'the absence of request is stated');
       } else {
-        assert(!/profil de la victime/.test(withRef.requisition.fr), 'a vague réquisition is silent about the victim profile');
-        assert(/profil de la victime/.test(withRef.clarification.fr) && /victim/.test(withRef.clarification.en), 'the clarification states it');
+        assert(!/Établir aussi le profil|n’est pas demandé/.test(withRef.requisition.fr), 'a vague réquisition is silent about the victim profile');
+        assert(/Établir aussi le profil/.test(withRef.clarification.fr) && /Also establish/.test(withRef.clarification.en), 'the clarification states it');
       }
       assert.equal(withRef.needsInfo, noRef.needsInfo, 'asking a victim reference does not change clarity');
       const ideal = idealAnswer(withRef);
       assert.equal(ideal.lines.refv.pkg, 'ref', 'victim reference: 70 EUR package');
       assert.equal(idealAnswer(noRef).lines.refv.analyse, false, 'not requested: not analysed');
       if (withRef.scelles.find(s => s.id === swab).sperm !== 'no') assert.equal(ideal.lines[swab].pkg, 'diffMale');
+      else assert.equal(ideal.lines[swab].pkg, tpl === 'sa-ejaculation' ? 'item' : 'ref', 'no sperm: plain package');
       assert.equal(grade(withRef, ideal).total, 100);
       assert(grade(withRef, { ...ideal, lines: { ...ideal.lines, refv: { analyse: false } } }).total < 100, 'forgetting the requested reference is penalised');
       assert(grade(noRef, { ...idealAnswer(noRef), lines: { ...idealAnswer(noRef).lines, refv: { analyse: true, pkg: 'ref', profiles: 1 } } }).total < 100, 'analysing an unrequested reference is penalised');
@@ -194,25 +203,52 @@ for (let seed = 0; seed < 30; seed++) {
   }
 }
 
-// --- sexual-assault sites: decisive facts (where sperm may be, victim profile) must be stated, and sperm stays in the genital area ---
-for (let seed = 0; seed < 40; seed++) {
+// --- sexual-assault sites: decisive facts (alleged facts, ejaculation status, victim profile) must be stated, and sperm stays in the genital area ---
+const EJ = /éjacul/i, EJEN = /ejaculat/i;
+for (let seed = 0; seed < 60; seed++) {
   for (const victimRef of [true, false]) {
-    const clear = makeCase(seed, { template: 'sa-sites', variant: 'clear', victimRef });
-    assert(clear.requisition.fr.includes('zone génitale') && clear.requisition.en.includes('genital area'), 'a clear réquisition says where ejaculation may have occurred');
-    assert.equal(clear.needsInfo, false);
-    const vague = makeCase(seed, { template: 'sa-sites', variant: 'vague', victimRef });
-    assert(!vague.requisition.fr.includes('zone génitale'), 'a vague réquisition does not');
-    assert(vague.clarification.fr.includes('zone génitale') && vague.clarification.fr.includes('ne peut pas concerner le cou, le poignet'), 'the clarification says where ejaculation may have occurred and excludes the wrist');
-    assert.equal(vague.needsInfo, true);
-    for (const c of [clear, vague]) {
-      for (const s of c.scelles) if (['cou', 'poi', 'bou', 'che', 'ana'].includes(s.id)) assert.equal(s.sperm, 'no', s.id + ' cannot carry sperm');
-      for (const s of c.scelles) if (['vag', 'vul', 'pub'].includes(s.id)) assert.equal(s.sperm, 'unknown');
-      const L = idealAnswer(c).lines;
-      assert.equal(L.vag.pkg, 'diffMale'); assert.equal(L.vul.pkg, 'diffMale');
-      assert.equal(L.poi.pkg, 'ref', 'wrist: plain extraction, never a differential');
-      assert.equal(L.cou.pkg, 'ref');
+    for (const ejaculation of ['yes', 'unknown', 'no']) {
+      const clear = makeCase(seed, { template: 'sa-sites', variant: 'clear', victimRef, ejaculation });
+      assert(EJ.test(clear.requisition.fr) && EJEN.test(clear.requisition.en), 'a clear réquisition states whether ejaculation is reported');
+      assert(/décrit une pénétration (vaginale|anale)|décrit une pénétration/.test(clear.requisition.fr) && /(vaginal|anal) penetration/.test(clear.requisition.en), 'a clear réquisition states the alleged facts');
+      assert(/L’objectif est de retrouver le profil/.test(clear.requisition.fr), 'the request itself is stated');
+      assert.equal(clear.needsInfo, false);
+      const vague = makeCase(seed, { template: 'sa-sites', variant: 'vague', victimRef, ejaculation });
+      assert(!EJ.test(vague.requisition.fr) && !EJEN.test(vague.requisition.en), 'a vague réquisition is silent about ejaculation');
+      assert(!/pénétration/.test(vague.requisition.fr), 'a vague réquisition does not state the alleged facts');
+      assert(EJ.test(vague.clarification.fr) && EJEN.test(vague.clarification.en) && /pénétration/.test(vague.clarification.fr), 'the clarification states them');
+      if (ejaculation !== 'no') assert(vague.clarification.fr.includes('ne peut pas concerner le cou, le poignet') || vague.clarification.fr.includes('ne pourrait pas concerner le cou, le poignet'), 'where sperm can be');
+      assert.equal(vague.needsInfo, true);
+      for (const c of [clear, vague]) {
+        const F = c.parties.victimSex === 'F', gen = F ? ['vag', 'vul', 'pub'] : ['ana', 'pub'];
+        for (const s of c.scelles) if (!gen.includes(s.id) && s.id !== 'refv') assert.equal(s.sperm, 'no', s.id + ' cannot carry sperm');
+        for (const id of gen) assert.equal(c.scelles.find(s => s.id === id).sperm, ejaculation === 'no' ? 'no' : (ejaculation === 'yes' && id === gen[0] ? 'yes' : 'unknown'));
+        const L = idealAnswer(c).lines;
+        const g0 = gen[0];
+        assert.equal(L[g0].pkg, ejaculation === 'no' ? 'ref' : 'diffMale');
+        assert.equal(L.poi.pkg, 'ref', 'wrist: plain extraction, never a differential');
+        assert.equal(L.cou.pkg, 'ref');
+        // the two cheek swabs are never confused: the oral swab is evidence, the other a reference
+        assert(/distinct de l’écouvillon de référence/.test(c.scelles.find(s => s.id === 'bou').nature.fr));
+        assert(/sans lien avec les faits/.test(c.scelles.find(s => s.id === 'refv').nature.fr));
+      }
     }
   }
+}
+// #76: parties — mostly a woman complainant, both wording styles, no fixed names
+{
+  const n = 600, c = { F: 0, M: 0, gendered: 0, neutral: 0 }, names = new Set();
+  for (let seed = 0; seed < n; seed++) {
+    const a = makeCase(seed, { template: 'sa-sites' });
+    c[a.parties.victimSex]++; c[a.parties.style]++;
+    assert.equal(a.scelles.length, 15);
+    const txt = a.requisition.fr + a.requisition.en + a.clarification.fr;
+    if (a.parties.style === 'neutral') assert(!/\b(Elle|Il) |\b(She|He) /.test(a.requisition.fr + ' ' + a.requisition.en), 'neutral wording');
+    for (const k of ['id-parent', 'id-uncle', 'id-maternal-aunt']) names.add(makeCase(seed, { template: k, variant: 'clear' }).requisition.fr.match(/(Mme|M\.) \S+ \S+/)[0]);
+  }
+  assert(c.F / n > 0.78 && c.F / n < 0.92, 'victim is a woman in about 85%: ' + c.F / n);
+  assert(c.M > 0 && c.gendered > 200 && c.neutral > 200, 'male victims and both styles appear');
+  assert(names.size > 40, 'relatives are named randomly, not fixed: ' + names.size);
 }
 // a received trace swab is not billed or described as a "reference sample"
 assert(!/référence/i.test(packages.ref.label.fr) && !/reference/i.test(packages.ref.label.en), 'package 1 label is not "reference"');

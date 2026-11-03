@@ -2,6 +2,17 @@
 
 Related to issue #32 (design decisions are recorded in its comments). Entry point: `ex_devis.html`, linked as a prototype from `exercices.html`. Data and grading: `assets/data/devis.js` (ES module, pure, shared by browser and Node). UI: `assets/devis-ui.js`.
 
+## Shared parameters with the requisition generator (#76)
+
+The simulator and the requisition generator (`requisitions.html`) draw their cases from the same building blocks in `assets/data/requisition-shared.js` (a classic script exposing `REQUISITION_SHARED`; the simulator, an ES module, reads it from `globalThis` when a case is built, so pages and self-tests must load it first):
+
+- **Parties.** Per case: the complainant is a woman in about 85 % of cases, the alleged assailant a man in about 90 %, and the wording is *gendered* (la plaignante / le plaignant, elle / il, she / he) or *neutral* (la personne plaignante, they) in half of the cases each. These frequencies are teaching assumptions, tunable in the shared file. The sex of the complainant changes the alleged act (vaginal or anal penetration) and the sampling sites (vaginal and vulvar swabs, or anal swab).
+- **Names.** Relatives in kinship and absurd cases are drawn from shared name pools; nothing is fixed any more.
+- **Decisive sexual-assault facts.** A clear request now states the alleged facts, what is asked, whether ejaculation is reported (yes / no / cannot say) and where sperm can then be, and whether the victim's profile is wanted. The ejaculation status is a random case parameter: "yes" and "cannot say" keep a differential legitimate on the genital-area samples, "no" makes them plain 70 € samples.
+- **The two cheek swabs.** The oral swab taken at the examination is described as belonging to the events, distinct from the reference swab, which is described as unrelated to the events.
+
+Grading (weights, prices, clarity rules, ideal-answer logic) is unchanged. The clarity key `spermWhere` now means "ejaculation status and sites are stated". The simulator still hides whether a case is vague: deciding whether to ask is the graded skill (the generator, by contrast, shows a button when something is missing).
+
 ## Review status
 
 Prototype for maintainer review. Prices are **fictional teaching values** chosen by the maintainer. The scoring weights, all réquisition and clarification texts, and the case catalogue were drafted by Claude and are proposals. Nothing here is a validated laboratory or legal wording.
@@ -46,7 +57,7 @@ Normal cases are scored out of 100 from weighted criteria: information 20, scell
 | id-parent | identification | vague / clear | parent: autosomal only |
 | id-uncle | identification | vague / clear | paternal uncle: Y-STR on both samples |
 | id-maternal-aunt | identification | vague / clear | maternal aunt: mtDNA on both samples |
-| sa-sites | sexual assault, 14 body sites | vague / clear (list or "analyse all"), victim profile wanted or not | 4 relevant sites when limited (vaginal, vulvar, neck, wrist); differential only on the genital-area samples, never on the neck or wrist; victim reference when asked |
+| sa-sites | sexual assault, 14 body sites | vague / clear (list or "analyse all"), victim profile wanted or not, ejaculation reported yes / no / cannot say | limited to the alleged facts: vaginal, vulvar, neck, wrist swabs (woman) or anal, neck, wrist (man); differential only on the genital-area samples and only if ejaculation is not excluded, never on the neck or wrist; victim reference when asked |
 | sa-ejaculation | sexual assault, underwear | vague / clear, victim profile wanted or not | differential if sperm is present or possible, plain item package if excluded; plus the victim reference when asked |
 | misc-flat | items from a flat | vague / clear | only the items linked to the unknown |
 | absurd-blood | absurd, correctable | vague | victim's blood; client corrects to underwear + vaginal swab, and the blood becomes the victim reference (70 €) |

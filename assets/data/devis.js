@@ -21,6 +21,15 @@ import { makeRng } from '../epg/rng.js';
 
 export const text = (fr, en) => ({ fr, en });
 
+/* Shared building blocks (names, parties, wording) come from
+   assets/data/requisition-shared.js, a classic script common to the requisition
+   generator and this simulator (#76). Read lazily when a case is built. */
+function shared() {
+  const S = globalThis.REQUISITION_SHARED;
+  if (!S) throw new Error('requisition-shared.js must be loaded first (globalThis.REQUISITION_SHARED)');
+  return S;
+}
+
 /* ---------- Price grid (fictional teaching values) ---------- */
 export const packages = {
   ref:      { price: 70,  label: text('Prélèvement déjà réalisé reçu (écouvillon, FTA, sang…) → profil autosomique', 'Sample already taken, received (swab, FTA, blood…) → autosomal profile') },
@@ -114,35 +123,43 @@ export function expectedLine(s, relation) {
 // Organ sample taken from remains. Always a named organ (never "tissu", which reads as cloth); muscle most of the time.
 const organ = rng => rng.weightedPick([text('muscle', 'muscle'), text('foie', 'liver'), text('rein', 'kidney')], [6, 1, 1]);
 
+// Names are drawn per case (shared pools), never fixed.
+const nameOf = p => text(p.full, (p.sex === 'F' ? 'Ms ' : 'Mr ') + p.first + ' ' + p.surname);
 const KINSHIP = {
-  parent: {
-    ref: ['Mme Durand', text('Mme Durand', 'Ms Durand')],
-    stated: text(' Mme Durand est la mère présumée de la personne disparue.', ' Ms Durand is the presumed mother of the missing person.'),
-    clarification: text('Mme Durand pense être la mère biologique de la personne disparue.', 'Ms Durand believes she is the biological mother of the missing person.')
+  parent: rng => {
+    const S = shared(), sex = rng.bool(0.5) ? 'F' : 'M', p = S.relative(rng, sex), n = nameOf(p), F = sex === 'F';
+    return { who: n,
+      stated: text(' ' + p.full + (F ? ' est la mère présumée' : ' est le père présumé') + ' de la personne disparue.', ' ' + n.en + ' is the presumed ' + (F ? 'mother' : 'father') + ' of the missing person.'),
+      clarification: text(p.full + ' pense être ' + (F ? 'la mère biologique' : 'le père biologique') + ' de la personne disparue.', n.en + ' believes ' + (F ? 'she is' : 'he is') + ' the biological ' + (F ? 'mother' : 'father') + ' of the missing person.') };
   },
-  paternalUncle: {
-    ref: ['M. Lefèvre', text('M. Lefèvre', 'Mr Lefèvre')],
-    stated: text(' M. Lefèvre est le frère du père de la personne disparue, qui était un homme.', ' Mr Lefèvre is the brother of the missing person’s father; the missing person was a man.'),
-    clarification: text('M. Lefèvre est l’oncle paternel (frère du père) de la personne disparue, qui était un homme. Le père est décédé.', 'Mr Lefèvre is the paternal uncle (father’s brother) of the missing person, who was a man. The father is deceased.')
+  paternalUncle: rng => {
+    const p = shared().relative(rng, 'M'), n = nameOf(p);
+    return { who: n,
+      stated: text(' ' + p.full + ' est le frère du père de la personne disparue, qui était un homme.', ' ' + n.en + ' is the brother of the missing person’s father; the missing person was a man.'),
+      clarification: text(p.full + ' est l’oncle paternel (frère du père) de la personne disparue, qui était un homme. Le père est décédé.', n.en + ' is the paternal uncle (father’s brother) of the missing person, who was a man. The father is deceased.') };
   },
-  maternalAunt: {
-    ref: ['Mme Petit', text('Mme Petit', 'Ms Petit')],
-    stated: text(' Mme Petit est la sœur de la mère de la personne disparue.', ' Ms Petit is the sister of the missing person’s mother.'),
-    clarification: text('Mme Petit est la tante maternelle (sœur de la mère) de la personne disparue. La mère est décédée.', 'Ms Petit is the maternal aunt (mother’s sister) of the missing person. The mother is deceased.')
+  maternalAunt: rng => {
+    const p = shared().relative(rng, 'F'), n = nameOf(p);
+    return { who: n,
+      stated: text(' ' + p.full + ' est la sœur de la mère de la personne disparue.', ' ' + n.en + ' is the sister of the missing person’s mother.'),
+      clarification: text(p.full + ' est la tante maternelle (sœur de la mère) de la personne disparue. La mère est décédée.', n.en + ' is the maternal aunt (mother’s sister) of the missing person. The mother is deceased.') };
   }
 };
 
 function buildIdentification(rng, rel, variant, deadline) {
-  const k = KINSHIP[rel];
+  const k = KINSHIP[rel](rng);
   const og = organ(rng);
   const unknown = sc('u', 'Fragment de ' + og.fr, og.en.charAt(0).toUpperCase() + og.en.slice(1) + ' fragment', 'Prélevé sur des restes non identifiés.', 'Taken from unidentified remains.', { material: 'tissue', trace: false, sperm: null, relevant: true });
-  const ref = sc('r', 'Écouvillon buccal de ' + k.ref[0], 'Cheek swab of ' + k.ref[1].en, 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: true });
-  const base = text('Identifier la personne dont les restes sont décrits ci-dessous par comparaison avec le prélèvement de référence de ' + k.ref[0] + '.', 'Identify the person whose remains are described below by comparing with the reference sample of ' + k.ref[1].en + '.');
+  const ref = sc('r', 'Écouvillon buccal de ' + k.who.fr, 'Cheek swab of ' + k.who.en, 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: true });
+  const base = text('Identifier la personne dont les restes sont décrits ci-dessous par comparaison avec le prélèvement de référence de ' + k.who.fr + '.', 'Identify the person whose remains are described below by comparing with the reference sample of ' + k.who.en + '.');
   const requisition = join(base, variant === 'clear' ? k.stated : text('', ''), deadlineText(deadline));
   return { requisition, clarification: k.clarification, scelles: [unknown, ref], relation: rel, stated: { relation: variant === 'clear' }, rule: 'identification' };
 }
 
-const SITES = [
+// Fourteen sampling sites. Which ones exist depends on the complainant's sex: the
+// genital-area samples follow the alleged penetration (vaginal or anal).
+// [id, fr, en, may carry sperm, relevant when the request is limited to the alleged facts]
+const SITES_F = [
   ['vag', 'Écouvillon vaginal', 'Vaginal swab', true, true],
   ['vul', 'Écouvillon vulvaire', 'Vulvar swab', true, true],
   ['ana', 'Écouvillon anal', 'Anal swab', false, false],
@@ -158,63 +175,109 @@ const SITES = [
   ['pub', 'Peignage pubien', 'Pubic combing', true, false],
   ['che', 'Prélèvement de cheveux', 'Hair sample', false, false]
 ];
+const SITES_M = [
+  ['ana', 'Écouvillon anal', 'Anal swab', true, true],
+  ['pen', 'Écouvillon pénien', 'Penile swab', false, false],
+  ['sco', 'Écouvillon scrotal', 'Scrotal swab', false, false],
+  ['bou', 'Écouvillon buccal', 'Oral swab', false, false],
+  ['cou', 'Écouvillon du cou', 'Neck swab', false, true],
+  ['tho', 'Écouvillon du thorax', 'Chest swab', false, false],
+  ['abd', 'Écouvillon de l’abdomen', 'Abdomen swab', false, false],
+  ['cug', 'Écouvillon de la cuisse gauche', 'Left thigh swab', false, false],
+  ['cud', 'Écouvillon de la cuisse droite', 'Right thigh swab', false, false],
+  ['olg', 'Prélèvement sous-ongulaire gauche', 'Left fingernail scrapings', false, false],
+  ['odr', 'Prélèvement sous-ongulaire droit', 'Right fingernail scrapings', false, false],
+  ['poi', 'Écouvillon du poignet droit', 'Right wrist swab', false, true],
+  ['pub', 'Peignage pubien', 'Pubic combing', true, false],
+  ['che', 'Prélèvement de cheveux', 'Hair sample', false, false]
+];
+const sitesFor = p => p.victimSex === 'F' ? SITES_F : SITES_M;
+const genitalIds = p => p.victimSex === 'F' ? ['vag', 'vul', 'pub'] : ['ana', 'pub'];
+const genitalLabel = p => p.victimSex === 'F' ? text('prélèvements vaginal, vulvaire et pubien', 'vaginal, vulvar and pubic samples') : text('prélèvements anal et pubien', 'anal and pubic samples');
 
 // In practice a sexual-assault case often asks for the victim's own profile too: a reference
 // sample (70 EUR) plus a differential (male profile) on the stain or swab. The 300 EUR
 // both-profiles differential stays in the grid as a distractor and is never the ideal answer.
 // The victim's reference swab is ALWAYS attached; whether it is wanted is a decisive fact the
 // réquisition must state (or the requester clarify).
-const VICTIM_REF_TEXT = text(' Établir aussi le profil de la victime à partir de son prélèvement de référence (écouvillon buccal joint).', ' Also establish the victim’s profile from her reference sample (cheek swab attached).');
-const VICTIM_NOT_TEXT = text(' Le profil de la victime n’est pas demandé.', ' The victim’s profile is not requested.');
-const victimStatement = wanted => wanted ? VICTIM_REF_TEXT : VICTIM_NOT_TEXT;
-const victimRef = relevant => sc('refv', 'Écouvillon buccal de la victime (référence)', 'Victim’s cheek swab (reference)', 'Prélèvement de référence de la victime.', 'Victim’s reference sample.', { material: 'ref', trace: false, sperm: null, relevant });
+function victimStatement(p, wanted) {
+  const v = shared().victim(p);
+  return wanted
+    ? text(' Établir aussi le profil ' + v.of.fr + ' à partir de son prélèvement de référence (écouvillon buccal joint).', ' Also establish the profile ' + v.of.en + ' from ' + v.poss + ' reference sample (cheek swab attached).')
+    : text(' Le profil ' + v.of.fr + ' n’est pas demandé.', ' The profile ' + v.of.en + ' is not requested.');
+}
+function victimRef(p, relevant) {
+  const v = shared().victim(p);
+  return sc('refv', 'Écouvillon buccal ' + v.of.fr + ' (référence)', 'Cheek swab ' + v.of.en + ' (reference)',
+    'Prélèvement de référence ' + v.of.fr + ', sans lien avec les faits eux-mêmes.', 'Reference sample ' + v.of.en + ', unrelated to the events themselves.',
+    { material: 'ref', trace: false, sperm: null, relevant });
+}
 
-// Where sperm may be, given the alleged facts (vaginal penetration without condom): the genital area only.
-const SPERM_SITES_TEXT = text(' Une éjaculation est possible dans la zone génitale (prélèvements vaginal, vulvaire et pubien) ; elle ne peut pas concerner le cou, le poignet ni les autres sites.', ' Ejaculation is possible in the genital area (vaginal, vulvar and pubic samples); it cannot concern the neck, the wrist or the other sites.');
+// What the complainant says about ejaculation, and where sperm can then be (the genital area only).
+function ejaculationClause(p, status) {
+  const S = shared(), g = genitalLabel(p), sent = S.ejaculation(p, status, 'genital');
+  if (status === 'no') return text(' ' + sent.fr, ' ' + sent.en);
+  const where = status === 'yes'
+    ? text(' L’éjaculation ne peut pas concerner le cou, le poignet ni les autres sites ; seule la zone génitale (' + g.fr + ') est concernée.', ' The ejaculation cannot concern the neck, the wrist or the other sites; only the genital area (' + g.en + ') is concerned.')
+    : text(' Une éjaculation ne pourrait pas concerner le cou, le poignet ni les autres sites ; seule la zone génitale (' + g.fr + ') est possible.', ' An ejaculation could not concern the neck, the wrist or the other sites; only the genital area (' + g.en + ') is possible.');
+  return join(text(' ' + sent.fr, ' ' + sent.en), where);
+}
 
 function buildSaSites(rng, variant, deadline, o = {}) {
+  const S = shared(), p = o.parties || S.drawParties(rng), v = S.victim(p), a = S.author(p), pen = S.penetration(p);
   // clear variants: 'list' (names the samples) or 'all' (analyse everything)
   const sub = variant === 'clear' ? rng.pick(['list', 'all']) : 'vague';
   const all = sub === 'all';
   const wantRef = o.victimRef ?? rng.bool(0.5);
-  const scelles = SITES.map(([id, fr, en, sperm, limited]) => sc(id, fr, en, 'Prélèvement de la victime lors de l’examen médical.', 'Taken from the victim during the medical examination.', {
-    material: 'swab', trace: true, sperm: sperm ? 'unknown' : 'no', relevant: all || limited
+  const status = o.ejaculation || rng.weightedPick(['yes', 'unknown', 'no'], [4, 4, 2]);
+  const sites = sitesFor(p), first = genitalIds(p)[0];
+  const scelles = sites.map(([id, fr, en, sperm, limited]) => sc(id, fr, en, 'Prélèvement sur ' + v.noun.fr + ' lors de l’examen médical.', 'Taken from ' + v.noun.en + ' during the medical examination.', {
+    material: 'swab', trace: true, sperm: !sperm ? 'no' : status === 'no' ? 'no' : status === 'yes' && id === first ? 'yes' : 'unknown', relevant: all || limited
   }));
-  scelles.push(victimRef(wantRef));
-  const listFr = SITES.filter(s => s[4]).map(s => s[1].toLowerCase()).join(', ');
-  const listEn = SITES.filter(s => s[4]).map(s => s[2].toLowerCase()).join(', ');
-  const base = text('Agression sexuelle. La victime a été prélevée à quatorze endroits lors de l’examen médical ; les prélèvements sont joints, ainsi que son écouvillon buccal de référence.', 'Sexual assault. The victim was sampled at fourteen sites during the medical examination; the samples are attached, together with her reference cheek swab.');
+  // The oral swab belongs to the facts of the case; it is not the reference swab.
+  const oral = scelles.find(x => x.id === 'bou');
+  oral.nature = text('Écouvillon de la cavité buccale prélevé lors de l’examen médical au titre des faits (distinct de l’écouvillon de référence).', 'Oral cavity swab taken during the medical examination as part of the events (distinct from the reference swab).');
+  scelles.push(victimRef(p, wantRef));
+  const listFr = sites.filter(s => s[4]).map(s => s[1].toLowerCase()).join(', ');
+  const listEn = sites.filter(s => s[4]).map(s => s[2].toLowerCase()).join(', ');
+  const factsFr = v.Subj.fr + ' décrit ' + pen.act.fr + ', des baisers dans le cou et une contention du poignet droit.';
+  const factsEn = v.Subj.en + ' describe' + v.s + ' ' + pen.act.en + ', kissing of the neck and restraint of the right wrist.';
+  const base = text('Agression sexuelle. ' + S.cap(v.noun.fr) + ' a été ' + v.sampled + ' à quatorze endroits lors de l’examen médical ; les prélèvements sont joints, ainsi que l’écouvillon buccal de référence ' + v.of.fr + '. L’objectif est de retrouver le profil ' + a.of.fr + '.',
+    'Sexual assault. ' + S.cap(v.noun.en) + ' was sampled at fourteen sites during the medical examination; the samples are attached, together with ' + v.poss + ' reference cheek swab. The aim is to find the alleged assailant’s profile.');
   let extra = text('', '');
   if (sub === 'all') extra = text(' Analyser l’ensemble des prélèvements et restituer tous les profils qui peuvent être obtenus.', ' Analyse all the samples and return every profile that can be obtained.');
   if (sub === 'list') extra = text(' Merci d’analyser les prélèvements suivants : ' + listFr + '.', ' Please analyse the following samples: ' + listEn + '.');
-  // A clear réquisition also states where ejaculation may have occurred and whether the victim's profile is wanted.
-  if (variant === 'clear') extra = join(extra, SPERM_SITES_TEXT, victimStatement(wantRef));
+  // A clear réquisition also states the alleged facts, whether ejaculation is reported (and where
+  // sperm can then be), and whether the victim's profile is wanted.
+  if (variant === 'clear') extra = join(extra, text(' ' + factsFr, ' ' + factsEn), ejaculationClause(p, status), victimStatement(p, wantRef));
   const clarification = join(
-    text('Les faits décrits sont une pénétration vaginale, des baisers dans le cou et une contention du poignet droit. Seuls les prélèvements vaginal, vulvaire, du cou et du poignet sont à analyser.', 'The alleged facts are vaginal penetration, kissing of the neck and restraint of the right wrist. Only the vaginal, vulvar, neck and wrist samples are to be analysed.'),
-    SPERM_SITES_TEXT, victimStatement(wantRef));
-  return { requisition: join(base, extra, deadlineText(deadline)), clarification, scelles, relation: null,
+    text(factsFr + ' Seuls les prélèvements suivants sont à analyser : ' + listFr + '.', factsEn + ' Only the following samples are to be analysed: ' + listEn + '.'),
+    ejaculationClause(p, status), victimStatement(p, wantRef));
+  return { requisition: join(base, extra, deadlineText(deadline)), clarification, scelles, relation: null, parties: p, ejaculation: status,
     stated: { allSamples: sub === 'all', listedSamples: sub === 'list', spermWhere: variant === 'clear', victimStated: variant === 'clear' }, rule: 'saSites' };
 }
 
 function buildSaEjaculation(rng, variant, deadline, o = {}) {
+  const S = shared(), p = o.parties || S.drawParties(rng), v = S.victim(p), a = S.author(p), pen = S.penetration(p);
   const wantRef = o.victimRef ?? rng.bool(0.5);
-  const slip = sc('slip', 'Slip de la victime', 'Victim’s underwear', 'Vêtement saisi après l’agression.', 'Garment seized after the assault.', { material: 'item', trace: true, sperm: 'unknown', relevant: true });
+  const slip = sc('slip', 'Slip ' + v.of.fr, 'Underwear ' + v.of.en, 'Vêtement saisi après l’agression.', 'Garment seized after the assault.', { material: 'item', trace: true, sperm: 'unknown', relevant: true });
   const truthNo = variant === 'vague' && rng.bool(0.4); // ejaculation excluded in the clarification (vague cases only)
   let stated = {}, extra = text('', '');
   if (variant === 'clear') {
-    if (rng.bool(0.5)) { stated = { unknownAuthor: true }; extra = text(' La victime ne connaît pas son agresseur.', ' The victim does not know her attacker.'); }
+    if (rng.bool(0.5)) { stated = { unknownAuthor: true }; extra = text(' ' + S.cap(v.noun.fr) + ' ne connaît pas ' + a.noun.fr + '.', ' ' + S.cap(v.noun.en) + ' does not know the alleged assailant.'); }
     else { stated = { sperm: true }; extra = text(' Des spermatozoïdes ont été retrouvés à l’examen microscopique du slip.', ' Spermatozoa were found on microscopic examination of the underwear.'); }
     stated.victimStated = true;
-    extra = join(extra, victimStatement(wantRef));
+    extra = join(extra, victimStatement(p, wantRef));
     slip.sperm = stated.sperm ? 'yes' : 'unknown';
   } else {
     slip.sperm = truthNo ? 'no' : 'unknown';
   }
-  const base = text('Agression sexuelle. Merci de rechercher le profil ADN de l’auteur sur le slip de la victime ; son écouvillon buccal de référence est joint.', 'Sexual assault. Please look for the attacker’s DNA profile on the victim’s underwear; her reference cheek swab is attached.');
+  const base = text('Agression sexuelle. ' + v.Subj.fr + ' décrit ' + pen.act.fr + '. Merci de rechercher le profil ADN ' + a.of.fr + ' sur le slip ' + v.of.fr + ' ; l’écouvillon buccal de référence ' + v.of.fr + ' est joint.',
+    'Sexual assault. ' + v.Subj.en + ' describe' + v.s + ' ' + pen.act.en + '. Please look for the alleged assailant’s DNA profile on the underwear ' + v.of.en + '; the reference cheek swab ' + v.of.en + ' is attached.');
   const clarification = join(truthNo
-    ? text('Selon la victime, l’agresseur a utilisé un préservatif : il n’y a pas eu d’éjaculation sur le slip.', 'According to the victim, the attacker used a condom: there was no ejaculation on the underwear.')
-    : text('La victime ne sait pas s’il y a eu éjaculation.', 'The victim does not know whether ejaculation occurred.'), victimStatement(wantRef));
-  return { requisition: join(base, extra, deadlineText(deadline)), clarification, scelles: [slip, victimRef(wantRef)], relation: null, stated, rule: 'saEjaculation' };
+    ? text('Selon ' + v.noun.fr + ', ' + a.noun.fr + ' a utilisé un préservatif : il n’y a pas eu d’éjaculation sur le slip.', 'According to ' + v.noun.en + ', the alleged assailant used a condom: there was no ejaculation on the underwear.')
+    : S.ejaculation(p, 'unknown'), victimStatement(p, wantRef));
+  return { requisition: join(base, extra, deadlineText(deadline)), clarification, scelles: [slip, victimRef(p, wantRef)], relation: null, parties: p, stated, rule: 'saEjaculation' };
 }
 
 const FLAT_ITEMS = [
@@ -239,44 +302,49 @@ function buildMiscItems(rng, variant, deadline) {
 }
 
 /* Absurd cases: the first requisition makes no sense. After the info click the client either corrects it (absurdFix) or confirms there is nothing to do (absurdVoid). */
-function buildAbsurdBlood() {
-  const blood = sc('sang', 'Prise de sang de la victime', 'Victim’s blood draw', 'Sang prélevé à l’hôpital.', 'Blood drawn at the hospital.', { material: 'ref', trace: false, sperm: null, relevant: false });
-  const slip = sc('slip', 'Slip de la victime', 'Victim’s underwear', 'Vêtement saisi après l’agression.', 'Garment seized after the assault.', { material: 'item', trace: true, sperm: 'unknown', relevant: true });
-  const vag = sc('vag', 'Écouvillon vaginal', 'Vaginal swab', 'Prélèvement de la victime lors de l’examen médical.', 'Taken from the victim during the medical examination.', { material: 'ref', trace: true, sperm: 'unknown', relevant: true });
+function buildAbsurdBlood(rng) {
+  const S = shared(), p = S.drawParties(rng), v = S.victim(p), a = S.author(p), pen = S.penetration(p);
+  const pid = p.victimSex === 'F' ? 'vag' : 'ana';
+  const blood = sc('sang', 'Prise de sang ' + v.of.fr, 'Blood draw ' + v.of.en, 'Sang prélevé à l’hôpital.', 'Blood drawn at the hospital.', { material: 'ref', trace: false, sperm: null, relevant: false });
+  const slip = sc('slip', 'Slip ' + v.of.fr, 'Underwear ' + v.of.en, 'Vêtement saisi après l’agression.', 'Garment seized after the assault.', { material: 'item', trace: true, sperm: 'unknown', relevant: true });
+  const swab = sc(pid, S.cap(pen.swab.fr), S.cap(pen.swab.en), 'Prélèvement sur ' + v.noun.fr + ' lors de l’examen médical.', 'Taken from ' + v.noun.en + ' during the medical examination.', { material: 'ref', trace: true, sperm: 'unknown', relevant: true });
   return {
-    kind: 'absurdFix', rule: 'absurd',
-    requisition: text('Agression sexuelle. Merci d’analyser la prise de sang de la victime afin d’identifier l’auteur.', 'Sexual assault. Please analyse the victim’s blood draw in order to identify the attacker.'),
-    clarification: text('Pardon, la prise de sang ne sert qu’à établir le profil de référence de la victime. Il fallait analyser le slip et l’écouvillon vaginal. Nous ne savons pas s’il y a eu éjaculation.', 'Sorry, the blood draw is only meant as the victim’s reference profile. We meant the underwear and the vaginal swab to be analysed. We do not know whether ejaculation occurred.'),
-    scelles: [blood], corrected: [slip, vag, { ...blood, relevant: true }], relation: null, stated: {}
+    kind: 'absurdFix', rule: 'absurd', parties: p,
+    requisition: text('Agression sexuelle. Merci d’analyser la prise de sang ' + v.of.fr + ' afin d’identifier ' + a.noun.fr + '.', 'Sexual assault. Please analyse the blood draw ' + v.of.en + ' in order to identify the alleged assailant.'),
+    clarification: text('Pardon, la prise de sang ne sert qu’à établir le profil de référence ' + v.of.fr + '. Il fallait analyser le slip et l’' + pen.swab.fr + '. Nous ne savons pas s’il y a eu éjaculation.', 'Sorry, the blood draw is only meant as the reference profile ' + v.of.en + '. We meant the underwear and the ' + pen.swab.en + ' to be analysed. We do not know whether ejaculation occurred.'),
+    scelles: [blood], corrected: [slip, swab, { ...blood, relevant: true }], relation: null, stated: {}
   };
 }
-function buildAbsurdCouch() {
+function buildAbsurdCouch(rng) {
+  const S = shared(), p = S.drawParties(rng), v = S.victim(p), a = S.author(p);
   const couch = sc('can', 'Écouvillons du canapé du salon', 'Living-room couch swabs', 'Prélèvements réalisés sur un canapé.', 'Swabs taken from a couch.', { material: 'ref', trace: true, sperm: 'unknown', relevant: false });
   return {
-    kind: 'absurdVoid', rule: 'absurd',
-    requisition: text('Agression sexuelle. Merci d’analyser les écouvillons prélevés sur le canapé du salon afin de retrouver l’ADN de l’auteur.', 'Sexual assault. Please analyse the swabs taken from the living-room couch to find the attacker’s DNA.'),
-    clarification: text('Selon la victime, l’agresseur s’est assis sur ce canapé. Nous n’avons aucun prélèvement de référence de l’agresseur.', 'According to the victim, the aggressor sat on that couch. We have no reference sample for the aggressor.'),
+    kind: 'absurdVoid', rule: 'absurd', parties: p,
+    requisition: text('Agression sexuelle. Merci d’analyser les écouvillons prélevés sur le canapé du salon afin de retrouver l’ADN ' + a.of.fr + '.', 'Sexual assault. Please analyse the swabs taken from the living-room couch to find the alleged assailant’s DNA.'),
+    clarification: text('Selon ' + v.noun.fr + ', ' + a.noun.fr + ' s’est assis sur ce canapé. Nous n’avons aucun prélèvement de référence ' + a.of.fr + '.', 'According to ' + v.noun.en + ', the alleged assailant sat on that couch. We have no reference sample for the alleged assailant.'),
     scelles: [couch], relation: null, stated: {}
   };
 }
-function buildAbsurdAdopted() {
-  const m = sc('m', 'Écouvillon buccal de M. Martin', 'Cheek swab of Mr Martin', 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: false });
+function buildAbsurdAdopted(rng) {
+  const S = shared(), p = S.relative(rng, 'M'), n = nameOf(p);
+  const m = sc('m', 'Écouvillon buccal de ' + n.fr, 'Cheek swab of ' + n.en, 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: false });
   const e1 = sc('e1', 'Écouvillon buccal de l’enfant 1', 'Cheek swab of child 1', 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: false });
   const e2 = sc('e2', 'Écouvillon buccal de l’enfant 2', 'Cheek swab of child 2', 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: false });
   return {
     kind: 'absurdVoid', rule: 'absurd',
-    requisition: text('Établir le lien de filiation biologique entre M. Martin et ses deux enfants.', 'Establish the biological parentage between Mr Martin and his two children.'),
+    requisition: text('Établir le lien de filiation biologique entre ' + n.fr + ' et ses deux enfants.', 'Establish the biological parentage between ' + n.en + ' and his two children.'),
     clarification: text('Les deux enfants ont été adoptés : il n’existe aucun lien biologique à établir. Désolé, la demande n’a pas de sens.', 'Both children were adopted: there is no biological link to establish. Sorry, the request makes no sense.'),
     scelles: [m, e1, e2], relation: 'adopted', stated: {}
   };
 }
-function buildAbsurdHalfSister() {
+function buildAbsurdHalfSister(rng) {
+  const S = shared(), p = S.relative(rng, 'M'), n = nameOf(p);
   const u = sc('u', 'Fragment de muscle', 'Muscle fragment', 'Prélevé sur les restes d’une femme non identifiée.', 'Taken from the remains of an unidentified woman.', { material: 'tissue', trace: false, sperm: null, relevant: false });
-  const r = sc('r', 'Écouvillon buccal de M. Roux', 'Cheek swab of Mr Roux', 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: false });
+  const r = sc('r', 'Écouvillon buccal de ' + n.fr, 'Cheek swab of ' + n.en, 'Prélèvement de référence.', 'Reference sample.', { material: 'ref', trace: false, sperm: null, relevant: false });
   return {
     kind: 'absurdVoid', rule: 'absurd',
-    requisition: text('Identifier la femme dont les restes sont décrits ci-dessous par comparaison avec le prélèvement de référence de M. Roux.', 'Identify the woman whose remains are described below by comparing with the reference sample of Mr Roux.'),
-    clarification: text('M. Roux et la défunte ont le même père mais pas la même mère. Désolé, nous n’avons pas d’autre parent à proposer.', 'Mr Roux and the deceased share the same father but not the same mother. Sorry, we have no other relative to propose.'),
+    requisition: text('Identifier la femme dont les restes sont décrits ci-dessous par comparaison avec le prélèvement de référence de ' + n.fr + '.', 'Identify the woman whose remains are described below by comparing with the reference sample of ' + n.en + '.'),
+    clarification: text(n.fr + ' et la défunte ont le même père mais pas la même mère. Désolé, nous n’avons pas d’autre parent à proposer.', n.en + ' and the deceased share the same father but not the same mother. Sorry, we have no other relative to propose.'),
     scelles: [u, r], relation: 'paternalHalfSister', stated: {}
   };
 }
@@ -288,10 +356,10 @@ export const templates = [
   { id: 'sa-sites', archetype: 'sa-sites', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence', 'gav'], build: (rng, v, d, o) => buildSaSites(rng, v, d, o) },
   { id: 'sa-ejaculation', archetype: 'sa-ejaculation', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence', 'gav'], build: (rng, v, d, o) => buildSaEjaculation(rng, v, d, o) },
   { id: 'misc-flat', archetype: 'misc-items', kind: 'normal', variants: ['vague', 'clear'], deadlines: ['normal', 'urgence'], build: (rng, v, d) => buildMiscItems(rng, v, d) },
-  { id: 'absurd-blood', archetype: 'absurd', kind: 'absurdFix', variants: ['vague'], deadlines: ['normal'], build: () => buildAbsurdBlood() },
-  { id: 'absurd-couch', archetype: 'absurd', kind: 'absurdVoid', variants: ['vague'], deadlines: ['normal'], build: () => buildAbsurdCouch() },
-  { id: 'absurd-adopted', archetype: 'absurd', kind: 'absurdVoid', variants: ['vague'], deadlines: ['normal'], build: () => buildAbsurdAdopted() },
-  { id: 'absurd-half-sister', archetype: 'absurd', kind: 'absurdVoid', variants: ['vague'], deadlines: ['normal'], build: () => buildAbsurdHalfSister() }
+  { id: 'absurd-blood', archetype: 'absurd', kind: 'absurdFix', variants: ['vague'], deadlines: ['normal'], build: (rng) => buildAbsurdBlood(rng) },
+  { id: 'absurd-couch', archetype: 'absurd', kind: 'absurdVoid', variants: ['vague'], deadlines: ['normal'], build: (rng) => buildAbsurdCouch(rng) },
+  { id: 'absurd-adopted', archetype: 'absurd', kind: 'absurdVoid', variants: ['vague'], deadlines: ['normal'], build: (rng) => buildAbsurdAdopted(rng) },
+  { id: 'absurd-half-sister', archetype: 'absurd', kind: 'absurdVoid', variants: ['vague'], deadlines: ['normal'], build: (rng) => buildAbsurdHalfSister(rng) }
 ];
 
 /* ---------- Case generation (seeded, reproducible) ---------- */
@@ -303,13 +371,18 @@ export function makeCase(seed, opts = {}) {
   const deadline = opts.deadline && t.deadlines.includes(opts.deadline) ? opts.deadline : rng.weightedPick(t.deadlines, t.deadlines.map(d => d === 'normal' ? 3 : 1));
   const b = t.build(rng, variant, deadline, opts);
   const kind = b.kind || 'normal';
+  // Shared sentences use straight apostrophes; this module uses typographic ones.
+  const curl = o => o && typeof o === 'object' && 'fr' in o ? text(o.fr.replaceAll("'", '’'), o.en.replaceAll("'", '’')) : o;
+  const curlSc = x => ({ ...x, title: curl(x.title), nature: curl(x.nature) });
+  b.requisition = curl(b.requisition); b.clarification = curl(b.clarification);
+  b.scelles = b.scelles.map(curlSc); if (b.corrected) b.corrected = b.corrected.map(curlSc);
   const needsInfo = !clarityRules[b.rule](b.stated);
   return {
     seed: rng.seed, template: t.id, archetype: t.archetype, kind, variant: kind === 'normal' ? variant : 'vague',
     deadline, needsInfo, mustAsk: kind !== 'normal' ? true : needsInfo,
     requisition: b.kind ? joinDeadline(b.requisition, deadline) : b.requisition,
     clarification: b.clarification, scelles: b.scelles, corrected: b.corrected || null,
-    relation: b.relation, stated: b.stated
+    relation: b.relation, stated: b.stated, parties: b.parties || null, ejaculation: b.ejaculation || null
   };
 }
 function joinDeadline(req, deadline) { return join(req, deadlineText(deadline)); }

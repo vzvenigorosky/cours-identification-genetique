@@ -4,10 +4,16 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
-export function loadWindowData(relPath, name) {
-  const file = fileURLToPath(new URL('../' + relPath, import.meta.url));
+export function loadWindowData(relPath, name, opts = {}) {
   const window = {};
-  vm.runInNewContext(readFileSync(file, 'utf8'), { window }, { filename: file });
+  const run = rel => {
+    const file = fileURLToPath(new URL('../' + rel, import.meta.url));
+    vm.runInNewContext(readFileSync(file, 'utf8'), { window }, { filename: file });
+  };
+  // `preload`: classic scripts that must run first in the same window (e.g. the
+  // shared requisition module used by the narrative generator).
+  for (const dep of opts.preload || []) run(dep);
+  run(relPath);
   if (!window[name]) throw new Error(`${relPath} did not define window.${name}`);
   return window[name];
 }
