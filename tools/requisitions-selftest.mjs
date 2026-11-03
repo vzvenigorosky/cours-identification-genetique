@@ -77,7 +77,7 @@ console.log(`Requisitions: clean / vague generation and bilingual corrigé notes
 
 
 // ---- #61: bilingual, seeded narrative requisitions, independently of FNAEG forms ----
-const N = loadWindowData('assets/data/requisitions-narrative.js', 'NARRATIVE_REQUISITIONS');
+const N = loadWindowData('assets/data/requisitions-narrative.js', 'NARRATIVE_REQUISITIONS', { preload: ['assets/data/requisition-shared.js'] });
 assert.deepEqual(Array.from(N.SCENARIOS), ['johnDoe', 'sexualAssault']);
 assert.equal(N.MODES.length, 6);
 for (const mode of N.MODES) {
@@ -197,8 +197,8 @@ for (const scenario of N.SCENARIOS) {
         assert.equal(scenario, 'sexualAssault');
         const sw = vague.exhibits.find(x => defect.field === 'exhibits.' + x.id + '.label');
         assert(sw && sw.label.fr === 'écouvillon buccal' && sw.label.en === 'cheek swab', 'swab named generically');
-        assert(!/plaignante|mise en cause|complainant|under investigation/.test(sw.label.fr + sw.provenance.fr + sw.label.en + sw.provenance.en), 'donor and purpose withheld');
-        assert(!/plaignante|mise en cause|complainant|under investigation/.test(vague.referenceStatus.fr + vague.referenceStatus.en) || !vague.references.some(x => x.exhibitId === sw.id), 'reference status does not name the donor of the hidden swab');
+        assert(!/plaignant|mis en cause|mise en cause|complainant|under investigation/.test(sw.label.fr + sw.provenance.fr + sw.label.en + sw.provenance.en), 'donor and purpose withheld');
+        assert(!/plaignant|mis en cause|mise en cause|complainant|under investigation/.test(vague.referenceStatus.fr + vague.referenceStatus.en) || !vague.references.some(x => x.exhibitId === sw.id), 'reference status does not name the donor of the hidden swab');
       } else if (defect.archetype === 'comparison-status-unstated') {
         assert.equal(mode, 'none');
         assert(!vague.referenceStatus.fr.includes('Aucune référence'), 'availability no longer explicit');
@@ -382,11 +382,11 @@ console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configu
       if (/buccal|oral/.test(e.label.fr)) {
         // A cheek swab is never anonymous: either a reference of a named party, or
         // the complainant's evidentiary swab with its purpose.
-        assert(/de référence de la personne (plaignante|mise en cause)|de la personne plaignante, prélevé à la recherche/.test(e.label.fr), 'cheek swab states whose it is and why: ' + e.label.fr);
+        assert(/de référence (de la plaignante|du plaignant|de la personne plaignante|du mis en cause|de la mise en cause|de la personne mise en cause)|(de la plaignante|du plaignant|de la personne plaignante), prélevé à la recherche/.test(e.label.fr), 'cheek swab states whose it is and why: ' + e.label.fr);
       }
     }
     for (const ref of d.references) {
-      assert(/référence de la personne (plaignante|mise en cause)/.test(ref.claimedSource.fr));
+      assert(/référence (de la plaignante|du plaignant|de la personne plaignante|du mis en cause|de la mise en cause|de la personne mise en cause)/.test(ref.claimedSource.fr));
       const e = d.exhibits.find(x => x.id === ref.exhibitId);
       assert(/sans lien avec les faits/.test(e.provenance.fr) && /unrelated to the events/.test(e.provenance.en), 'reference swab is explicitly unrelated to the facts');
     }
@@ -406,6 +406,31 @@ console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configu
     for (const x of d.references.filter(r => r.kind === 'personalItem')) assert(/dernier domicile connu/.test(x.provenance.fr), 'personal item origin stated');
   }
   console.log('Requisitions: free-form sexual-assault and unidentified-person requests state the decisive facts.');
+}
+
+// ---- #76: complainant/assailant sexes and wording style (shared with the quote simulator) ----
+{
+  const n = 1500, c = { F: 0, M: 0, authorM: 0, gendered: 0, neutral: 0 };
+  for (let seed = 0; seed < n; seed++) {
+    const d = N.generate({ scenario: 'sexualAssault', seed });
+    const p = d.parties;
+    c[p.victimSex]++; if (p.authorSex === 'M') c.authorM++; c[p.style]++;
+    const text = d.narrative.fr + ' ' + d.exhibits.map(e => e.label.fr + ' ' + e.provenance.fr).join(' ');
+    const en = d.narrative.en;
+    if (p.style === 'neutral') {
+      assert(!/\b(Elle|Il) /.test(d.narrative.fr), 'neutral wording avoids gendered pronouns (FR)');
+      assert(!/\b(She|He) |\bher\b|\bhis\b/.test(en), 'neutral wording avoids gendered pronouns (EN)');
+      assert(/\bThey\b|\btheir\b/.test(en) || !/describe|state/.test(en), 'neutral EN uses they');
+    } else {
+      assert(p.victimSex === 'F' ? /\bElle\b/.test(d.narrative.fr) && /\bShe\b/.test(en) : /\bIl\b/.test(d.narrative.fr) && /\bHe\b/.test(en), 'gendered wording matches the complainant');
+      assert(/plaignant/.test(text) || /une? plaignant/i.test(d.narrative.fr), 'gendered noun used');
+    }
+  }
+  assert(c.F / n > 0.78 && c.F / n < 0.92, 'complainant is a woman in about 85% of cases: ' + c.F / n);
+  assert(c.M > 0, 'male complainants are generated');
+  assert(c.authorM / n > 0.85 && c.authorM / n < 0.95, 'alleged assailant is a man in about 90% of cases: ' + c.authorM / n);
+  assert(c.gendered > 500 && c.neutral > 500, 'both wording styles appear');
+  console.log('Requisitions: shared party model (sexes and gendered/neutral wording) checked.');
 }
 
 // ---- UI / mock PDF integration: random quality must work for both document

@@ -108,7 +108,7 @@ function renderFeedback() {
     parts.push(`<p>${L('Votre devis', 'Your quote')} : <strong>${eur(r.studentTotal)}</strong> — ${L('devis attendu', 'expected quote')} : <strong>${eur(r.expectedTotal)}</strong> (${esc(pick(tariffs[c.deadline].label))}).</p>`);
   }
   if (r.expected && Object.values(st.lines).some(l => l.analyse && l.pkg === 'diffBoth') && !Object.values(r.expected).some(e => e.pkg === 'diffBoth'))
-    parts.push(`<p class="muted-note">${L('Le forfait différentiel « masculin + féminin » (300 €) n’était pas le bon choix ici : en pratique on facture le prélèvement de référence de la victime (70 €) et une différentielle sur la trace pour le profil masculin.', 'The differential « male + female » package (300 €) was not the right choice here: in practice you bill the victim’s reference sample (70 €) and a differential on the trace for the male profile.')}</p>`);
+    parts.push(`<p class="muted-note">${L('Le forfait différentiel « masculin + féminin » (300 €) n’était pas le bon choix ici : en pratique on facture le prélèvement de référence (70 €) et une différentielle sur la trace pour le profil masculin.', 'The differential « male + female » package (300 €) was not the right choice here: in practice you bill the reference sample (70 €) and a differential on the trace for the male profile.')}</p>`);
   if (c.kind === 'normal' && c.needsInfo) parts.push(`<p class="muted-note">${L('Information manquante dans la réquisition : ', 'Information missing from the requisition: ')}${esc(pick(c.clarification))}</p>`);
   fb.className = `feedback show ${kind}`;
   fb.innerHTML = parts.join('');

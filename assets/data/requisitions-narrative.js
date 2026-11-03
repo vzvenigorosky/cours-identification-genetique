@@ -1,11 +1,13 @@
 /* Fictional bilingual narrative requisitions. Separate from FNAEG forms. */
 window.NARRATIVE_REQUISITIONS = (function () {
   "use strict";
+  const S = window.REQUISITION_SHARED;
+  if (!S) throw Error("requisition-shared.js must be loaded before requisitions-narrative.js");
   const t = (fr,en) => ({fr,en});
   const SCENARIOS = ["johnDoe","sexualAssault"];
   const MODES = ["singleItem","multipleItems","closeKin","distantKin","mixed","none"];
   const PLACES = ["Lyon","Rennes","Toulouse","Dijon","Strasbourg","Nantes"];
-  const SURNAMES = ["MARTIN","MOREL","LEGRAND","DUPUIS","GARNIER","ROUX","PERRIN"];
+  const SURNAMES = S.SURNAMES;
   const GIVEN = ["Camille","Alex","Morgan","Lou","Sacha","Claude","Dominique"];
   const REMAINS = [
     {id:"woodland",label:t("fragment de fémur","femur fragment"),background:t("Des restes humains non identifiés ont été découverts dans une zone boisée près de {place}. Aucun document d'identité n'était présent.","Unidentified human remains were discovered in woodland near {place}. No identity document was found.")},
@@ -16,36 +18,40 @@ window.NARRATIVE_REQUISITIONS = (function () {
   // Each sexual-assault template states, in a clean request: the alleged act,
   // whether the complainant reports an ejaculation (and where), the delay before
   // the medical examination, and for every seal its nature/site and why it is
-  // relevant. `{h}` is replaced by the examination delay in hours.
+  // relevant. The wording depends on the parties (complainant's and alleged
+  // assailant's sex, gendered or neutral style) drawn per case in
+  // requisition-shared.js. `{h}` is replaced by the examination delay in hours.
   const EXAM = t("recueilli lors de l'examen médico-légal, environ {h} h après les faits allégués","collected during the forensic medical examination, about {h} h after the alleged events");
   const ASSAULTS = [
-    {id:"flat",
-     background:t("Une personne a déposé plainte pour des faits d'agression sexuelle qu'elle déclare avoir subis dans un appartement à {place}. Elle décrit une pénétration vaginale et indique que l'auteur présumé a embrassé son cou.","A person reported a sexual assault said to have occurred in a flat in {place}. They describe vaginal penetration and state that the alleged assailant kissed their neck."),
-     ejaculation:[
-       {status:"yes",site:"intravaginal",text:t("Elle déclare qu'il y a eu une éjaculation intravaginale.","They state that ejaculation occurred inside the vagina.")},
-       {status:"no",site:null,text:t("Elle déclare qu'il n'y a pas eu d'éjaculation.","They state that there was no ejaculation.")},
-       {status:"unknown",site:null,text:t("Elle ne peut pas dire s'il y a eu une éjaculation.","They cannot say whether ejaculation occurred.")}],
-     items:[[t("écouvillon vaginal","vaginal swab"),EXAM],
-            [t("sous-vêtement porté après les faits","underwear worn after the events"),t("remis par la personne plaignante lors du dépôt de plainte","provided by the complainant when the report was made")],
-            [t("écouvillon cutané du cou (zone embrassée)","neck skin swab (area kissed)"),EXAM]]},
-    {id:"street",
-     background:t("Une personne rapporte avoir subi des attouchements imposés à {place}. Elle décrit des attouchements des parties intimes sous les vêtements et indique avoir griffé l'auteur présumé en se débattant.","A person reports non-consensual touching in {place}. They describe touching of intimate areas under the clothing and state that they scratched the alleged assailant while struggling."),
-     ejaculation:[
-       {status:"no",site:null,text:t("Elle déclare qu'il n'y a pas eu d'éjaculation.","They state that there was no ejaculation.")},
-       {status:"yes",site:"garment",text:t("Elle déclare qu'une éjaculation a eu lieu sur le vêtement qu'elle portait.","They state that ejaculation occurred on the garment they were wearing.")},
-       {status:"unknown",site:null,text:t("Elle ne peut pas dire s'il y a eu une éjaculation.","They cannot say whether ejaculation occurred.")}],
-     items:[[t("prélèvements sous-unguéaux","fingernail scrapings"),t("recueillis lors de l'examen médico-légal, environ {h} h après les faits allégués, car la personne plaignante déclare avoir griffé l'auteur présumé","collected during the forensic medical examination, about {h} h after the alleged events, because the complainant states that they scratched the alleged assailant")],
-            [t("vêtement porté au moment des faits","garment worn during the alleged incident"),t("remis par la personne plaignante","provided by the complainant")]]},
-    {id:"vehicle",
-     background:t("Une personne déclare avoir subi une agression sexuelle à bord d'un véhicule près de {place}. Elle décrit un acte bucco-génital imposé sur le siège passager.","A person reports a sexual assault in a vehicle near {place}. They describe an oral-genital act forced on them on the passenger seat."),
-     ejaculation:[
-       {status:"yes",site:"mouth",text:t("Elle déclare qu'il y a eu une éjaculation dans sa bouche.","They state that ejaculation occurred in their mouth.")},
-       {status:"yes",site:"seat",text:t("Elle déclare qu'une éjaculation a eu lieu sur le siège.","They state that ejaculation occurred on the seat.")},
-       {status:"no",site:null,text:t("Elle déclare qu'il n'y a pas eu d'éjaculation.","They state that there was no ejaculation.")},
-       {status:"unknown",site:null,text:t("Elle ne peut pas dire s'il y a eu une éjaculation.","They cannot say whether ejaculation occurred.")}],
-     items:[[t("écouvillon buccal de la personne plaignante, prélevé à la recherche de traces de l'auteur présumé","oral swab of the complainant, taken to look for traces of the alleged assailant"),EXAM],
-            [t("découpe de tissu du siège passager (lieu de l'acte allégué)","cutting of the passenger seat fabric (place of the alleged act)"),t("prélevée dans le véhicule","taken from the vehicle")],
-            [t("haut porté par la personne plaignante","top worn by the complainant"),t("remis après les faits allégués","provided after the alleged events")]]}
+    {id:"flat", build(p) {
+       const v=S.victim(p),a=S.author(p),pen=S.penetration(p);
+       return {
+         background:t(v.a.fr+" a déposé plainte pour des faits d'agression sexuelle qui se seraient produits dans un appartement à {place}. "+v.Subj.fr+" décrit "+pen.act.fr+" et indique que "+a.noun.fr+" a embrassé son cou.",
+                      v.a.en+" reported a sexual assault said to have occurred in a flat in {place}. "+v.Subj.en+" describe"+v.s+" "+pen.act.en+" and state"+v.s+" that the alleged assailant kissed "+v.poss+" neck."),
+         ejaculation:[{status:"yes",site:pen.site},{status:"no",site:null},{status:"unknown",site:null}],
+         items:[[pen.swab,EXAM],
+                [t("sous-vêtement porté après les faits","underwear worn after the events"),t("remis par "+v.noun.fr+" lors du dépôt de plainte","provided by "+v.noun.en+" when the report was made")],
+                [t("écouvillon cutané du cou (zone embrassée)","neck skin swab (area kissed)"),EXAM]]};
+     }},
+    {id:"street", build(p) {
+       const v=S.victim(p),a=S.author(p);
+       return {
+         background:t(v.a.fr+" rapporte des attouchements imposés à {place}. "+v.Subj.fr+" décrit des attouchements des parties intimes sous les vêtements et indique avoir griffé "+a.noun.fr+" en se débattant.",
+                      v.a.en+" reports non-consensual touching in {place}. "+v.Subj.en+" describe"+v.s+" touching of intimate areas under the clothing and state"+v.s+" that "+v.subj.en+" scratched the alleged assailant while struggling."),
+         ejaculation:[{status:"no",site:null},{status:"yes",site:"garment"},{status:"unknown",site:null}],
+         items:[[t("prélèvements sous-unguéaux","fingernail scrapings"),t("recueillis lors de l'examen médico-légal, environ {h} h après les faits allégués, car "+v.noun.fr+" déclare avoir griffé "+a.noun.fr,"collected during the forensic medical examination, about {h} h after the alleged events, because "+v.noun.en+" states having scratched the alleged assailant")],
+                [t("vêtement porté au moment des faits","garment worn during the alleged incident"),t("remis par "+v.noun.fr,"provided by "+v.noun.en)]]};
+     }},
+    {id:"vehicle", build(p) {
+       const v=S.victim(p);
+       return {
+         background:t(v.a.fr+" déclare avoir subi une agression sexuelle à bord d'un véhicule près de {place}. "+v.Subj.fr+" décrit un acte bucco-génital imposé sur le siège passager.",
+                      v.a.en+" reports a sexual assault in a vehicle near {place}. "+v.Subj.en+" describe"+v.s+" an oral-genital act forced on "+v.obj+" on the passenger seat."),
+         ejaculation:[{status:"yes",site:"mouth"},{status:"yes",site:"seat"},{status:"no",site:null},{status:"unknown",site:null}],
+         items:[[S.oralEvidenceSwab(p),EXAM],
+                [t("découpe de tissu du siège passager (lieu de l'acte allégué)","cutting of the passenger seat fabric (place of the alleged act)"),t("prélevée dans le véhicule","taken from the vehicle")],
+                [t("haut porté par "+v.noun.fr,"top worn by "+v.noun.en),t("remis après les faits allégués","provided after the alleged events")]]};
+     }}
   ];
   const ITEMS = [
     [t("brosse à dents","toothbrush"),t("trouvée dans la salle de bains du dernier domicile connu de la personne signalée disparue","found in the bathroom of the last known home of the reported missing person")],
@@ -76,8 +82,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
     return {float,int,pick,shuffle};
   }
   // One reported family per missing person. The references are alleged, not verified.
-  const MALE_NAMES = ["Paul","Louis","Thomas","Nicolas","Pierre","Jean","Hugo","Marc","Luc","David","Émile","Alexandre","Simon","Julien","Arthur","Gabriel"];
-  const FEMALE_NAMES = ["Marie","Claire","Sophie","Louise","Jeanne","Anne","Julie","Alice","Léa","Emma","Élise","Camille","Lucie","Chloé","Sarah","Agathe"];
+  const MALE_NAMES = S.MALE_NAMES, FEMALE_NAMES = S.FEMALE_NAMES;
   function buildPedigree(r) {
     const birthYear=2026-r.int(30,44),surname=r.pick(SURNAMES),
           maiden=r.pick(SURNAMES.filter(n=>n!==surname)), used=new Set();
@@ -210,42 +215,42 @@ window.NARRATIVE_REQUISITIONS = (function () {
     return data;
   }
   function makeAssault(r) {
-    const template=r.pick(ASSAULTS),data=base(r,"sexualAssault",template,r.pick(PLACES));
+    const tpl=r.pick(ASSAULTS),parties=S.drawParties(r),template=Object.assign({id:tpl.id},tpl.build(parties));
+    const V=S.victim(parties),M=S.suspect(parties);
+    const data=base(r,"sexualAssault",template,r.pick(PLACES));
+    data.parties=parties;
     const hours=r.pick([3,6,12,24,36,48]),fill=pair=>t(pair.fr.replace("{h}",hours),pair.en.replace("{h}",hours));
     const ejac=r.pick(template.ejaculation);
     data.objective=t("Rechercher d'éventuelles traces biologiques utiles à l'enquête et évaluer les comparaisons envisageables.","Examine possible biological traces relevant to the investigation and assess available comparisons.");
     // Clean request: the alleged act, the reported ejaculation (or its absence)
     // and the delay before the examination are all stated explicitly.
-    const ejSentence=t(ejac.text.fr,ejac.text.en),delaySentence=t("L'examen médico-légal a eu lieu environ "+hours+" h après les faits allégués.","The forensic medical examination took place about "+hours+" h after the alleged events.");
+    const ejSentence=S.ejaculation(parties,ejac.status,ejac.site),delaySentence=S.examDelay(hours);
     data.narrative=t(data.narrative.fr+" "+ejSentence.fr+" "+delaySentence.fr,data.narrative.en+" "+ejSentence.en+" "+delaySentence.en);
     data.facts.stated.ejaculation={status:ejac.status,site:ejac.site,sentence:ejSentence};
     data.facts.stated.examDelayHours=hours;
     for(const item of template.items) exhibit(data,"evidence",item[0],fill(item[1]));
     const victim=r.float()<0.7,suspect=r.float()<0.35;
-    const REFS=[[victim,t("personne plaignante","complainant"),t("la personne plaignante","the complainant"),"complainant"],
-                [suspect,t("personne mise en cause","person under investigation"),t("la personne mise en cause","the person under investigation"),"suspect"]];
-    for(const [enabled,role,the,key] of REFS) {
+    for(const [enabled,who] of [[victim,"complainant"],[suspect,"suspect"]]) {
       if(!enabled)continue;
-      const e=exhibit(data,"knownReference",
-        t("écouvillon buccal de référence de "+the.fr,"reference cheek swab of "+the.en),
-        t("prélevé pour comparaison ; échantillon de référence sans lien avec les faits eux-mêmes","taken for comparison; reference sample unrelated to the events themselves"));
-      e.role=key;
-      addRef(data,"knownReference",e,t("référence de "+the.fr,"reference sample of "+the.en));
+      const ref=S.referenceSwab(parties,who);
+      const e=exhibit(data,"knownReference",ref.label,ref.provenance);
+      e.role=who;
+      addRef(data,"knownReference",e,ref.claimedSource);
     }
     data.referenceStatus=victim&&suspect
-      ?t("Les références de la personne plaignante et de la personne mise en cause figurent parmi les scellés.","The references of the complainant and of the person under investigation are among the exhibits.")
+      ?t("Les références "+V.of.fr+" et "+M.of.fr+" figurent parmi les scellés.","The references of "+V.noun.en+" and of "+M.noun.en+" are among the exhibits.")
       :victim
-        ?t("Seule la référence de la personne plaignante est jointe ; aucune personne mise en cause n'est référencée à ce stade.","Only the complainant's reference is enclosed; no person under investigation has been sampled at this stage.")
+        ?t("Seule la référence "+V.of.fr+" est jointe ; aucune personne mise en cause n'est référencée à ce stade.","Only the reference of "+V.noun.en+" is enclosed; no person under investigation has been sampled at this stage.")
         :suspect
-          ?t("Seule la référence de la personne mise en cause est jointe ; aucune référence de la personne plaignante n'est disponible.","Only the reference of the person under investigation is enclosed; no complainant reference is available.")
-          :t("Aucune référence n'est jointe à ce stade, ni de la personne plaignante ni d'une personne mise en cause.","No reference is enclosed at present, neither from the complainant nor from a person under investigation.");
+          ?t("Seule la référence "+M.of.fr+" est jointe ; aucune référence "+V.of.fr+" n'est disponible.","Only the reference of "+M.noun.en+" is enclosed; no reference of "+V.noun.en+" is available.")
+          :t("Aucune référence n'est jointe à ce stade, ni "+V.of.fr+" ni "+M.of.fr+".","No reference is enclosed at present, neither from "+V.noun.en+" nor from "+M.noun.en+".");
     data.facts.stated.referenceStatus=data.referenceStatus;
     data.facts.stated.referenceAvailability=victim||suspect;
-    const ev=data.exhibits.filter(x=>x.kind==="evidence").map(x=>x.id).join(", ");
+    const ev=data.exhibits.filter(x=>x.kind==="evidence").map(x=>x.id).join(", "),A=S.author(parties);
     data.question=victim||suspect
-      ?t("Question posée : les scellés "+ev+" contiennent-ils du matériel biologique de l'auteur présumé ? Le cas échéant, le profil obtenu est-il exploitable et comparable aux références jointes ?",
+      ?t("Question posée : les scellés "+ev+" contiennent-ils du matériel biologique "+A.of.fr+" ? Le cas échéant, le profil obtenu est-il exploitable et comparable aux références jointes ?",
          "Question put to you: do exhibits "+ev+" contain biological material from the alleged assailant? If so, is the profile obtained usable and comparable with the references enclosed?")
-      :t("Question posée : les scellés "+ev+" contiennent-ils du matériel biologique de l'auteur présumé ? Le cas échéant, le profil obtenu est-il exploitable pour une comparaison ultérieure ?",
+      :t("Question posée : les scellés "+ev+" contiennent-ils du matériel biologique "+A.of.fr+" ? Le cas échéant, le profil obtenu est-il exploitable pour une comparaison ultérieure ?",
          "Question put to you: do exhibits "+ev+" contain biological material from the alleged assailant? If so, is the profile obtained usable for a later comparison?");
     return data;
   }
