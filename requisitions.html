@@ -17,8 +17,8 @@
     <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
     <h1 class="page-title mt" data-fr="Générateur de réquisitions génétiques" data-en="Forensic genetic requisition generator"></h1>
     <p class="page-intro"
-       data-fr="Génère au hasard un formulaire FNAEG structuré ou une réquisition narrative libre, ainsi qu’une qualité de demande variable (nette ou vague, un fait décisif pouvant manquer). Vous pouvez aussi imposer le format et la qualité pour vous exercer. Chaque tirage produit un PDF fictif."
-       data-en="Randomly generates either a structured FNAEG form or a free-form narrative requisition, with independently randomized request quality (clean or vague, a decisive fact possibly missing). You can also choose a format and quality for practice. Each draw produces a fictional PDF."></p>
+       data-fr="Chaque tirage est entièrement aléatoire : formulaire FNAEG structuré ou réquisition libre, affaire, et précision de la demande. Lisez le PDF comme le ferait le laboratoire. S’il manque une information décisive, le bouton « Montrer les informations manquantes » apparaît ; s’il n’apparaît pas, la demande est complète."
+       data-en="Every draw is fully random: structured FNAEG form or free-form requisition, case, and how precise the request is. Read the PDF as the laboratory would. If a decisive piece of information is missing, the “Show missing information” button appears; if it does not, the request is complete."></p>
 
     <p class="note-fictif"
        data-fr="⚠ Documents entièrement fictifs à usage pédagogique. Les noms, services, juridictions et numéros de scellés sont générés aléatoirement et ne désignent aucune personne ni aucun service réels. Les PDF portent la mention « document fictif » et n'ont aucune valeur légale."
@@ -26,53 +26,16 @@
 
     <div class="panel">
       <div class="controls-row">
-        <label for="rtype" data-fr="Format :" data-en="Format:"></label>
-        <select id="rtype" class="input">
-          <option value="mixed" data-fr="Mixte — au hasard (FNAEG ou libre)" data-en="Mixed — random (FNAEG or narrative)"></option>
-          <option value="fnaegRandom" data-fr="Formulaire FNAEG — au hasard" data-en="FNAEG form — random"></option>
-          <option value="narrative" data-fr="Réquisition libre — au hasard" data-en="Narrative requisition — random"></option>
-          <option value="suspect" data-fr="Individu — suspect" data-en="Individual — suspect"></option>
-          <option value="condamne" data-fr="Individu — condamné" data-en="Individual — convicted"></option>
-          <option value="trace" data-fr="Trace(s) / personne décédée" data-en="Trace(s) / deceased person"></option>
-          <option value="disparu" data-fr="Personne disparue &amp; parentèle" data-en="Missing person &amp; relatives"></option>
-        </select>
-        <span id="narrativeControls" class="controls-row" style="display:none;gap:8px;margin:0">
-          <label for="nscenario" data-fr="Affaire :" data-en="Case:"></label>
-          <select id="nscenario" class="input">
-            <option value="random" data-fr="Aléatoire" data-en="Random"></option>
-            <option value="johnDoe" data-fr="Personne non identifiée" data-en="Unidentified person"></option>
-            <option value="sexualAssault" data-fr="Agression sexuelle" data-en="Sexual assault"></option>
-          </select>
-          <span id="referenceControls" style="display:flex;gap:8px;align-items:center">
-            <label for="nreference" data-fr="Comparaison :" data-en="Comparison:"></label>
-            <select id="nreference" class="input">
-              <option value="random" data-fr="Aléatoire" data-en="Random"></option>
-              <option value="singleItem" data-fr="Un effet personnel" data-en="One personal item"></option>
-              <option value="multipleItems" data-fr="Plusieurs effets personnels" data-en="Multiple personal items"></option>
-              <option value="closeKin" data-fr="Parentèle proche" data-en="Close relatives"></option>
-              <option value="distantKin" data-fr="Parentèle éloignée" data-en="Distant relatives"></option>
-              <option value="mixed" data-fr="Objets et parentèle" data-en="Items and relatives"></option>
-              <option value="none" data-fr="Aucune référence" data-en="No reference material"></option>
-            </select>
-          </span>
-        </span>
-        <label for="rquality" data-fr="Qualité :" data-en="Quality:"></label>
-        <select id="rquality" class="input">
-          <option value="random" data-fr="Aléatoire (nette ou vague)" data-en="Random (clean or vague)"></option>
-          <option value="nette" data-fr="Nette" data-en="Clean"></option>
-          <option value="vague" data-fr="Vague (fait décisif manquant)" data-en="Vague (missing decisive fact)"></option>
-        </select>
-        <button class="btn btn-primary" id="gen" data-fr="Générer" data-en="Generate"></button>
+        <button class="btn btn-primary" id="gen" data-fr="Générer une réquisition" data-en="Generate a requisition"></button>
         <button class="btn btn-ghost" id="dl" data-fr="Télécharger le PDF" data-en="Download the PDF" disabled></button>
-        <button class="btn btn-ghost" id="corrigeBtn" data-fr="Afficher le corrigé" data-en="Show answer key" disabled></button>
-        <span id="corrigeHint" class="muted-note" style="font-size:.85rem"></span>
+        <button class="btn btn-ghost" id="missingBtn" style="display:none" data-fr="Montrer les informations manquantes" data-en="Show missing information"></button>
       </div>
       <iframe id="preview" title="aperçu réquisition"></iframe>
     </div>
 
-    <div class="panel hidden" id="corrige" style="margin-top:14px">
-      <h2 style="margin-top:0" data-fr="Corrigé — défauts de la réquisition" data-en="Answer key — requisition defects"></h2>
-      <div id="corrigeBody"></div>
+    <div class="panel hidden" id="missing" style="margin-top:14px">
+      <h2 style="margin-top:0" data-fr="Informations manquantes dans cette réquisition" data-en="Information missing from this requisition"></h2>
+      <div id="missingBody"></div>
     </div>
   </main>
 
@@ -373,7 +336,8 @@
       }
       s.y += 3;
 
-      // The request (mission), politely phrased.
+      // The specific question put to the laboratory, then the request politely phrased.
+      if (data.question && str(data.question)) { para(s, str(data.question), 9); s.y += 3; }
       para(s, label("À cette fin, je vous prie de bien vouloir procéder aux examens génétiques que vous jugerez utiles, de préciser les limites d'interprétation et de me rendre compte de vos conclusions.",
                     "To this end, I would be grateful if you could carry out the genetic examinations you consider useful, explain the interpretative limitations and report your conclusions to me."), 9);
       s.y += 2;
@@ -398,27 +362,15 @@
     function pickNote(o) { return (o && typeof o === "object" && (o.fr != null || o.en != null)) ? L2(o.fr, o.en) : String(o || ""); }
     function esc2(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
-    // Choosing random document format must not silently force a clean writing style.
-    // Quality is drawn once per Generate click, independently of the format.
-    function readOpts() {
-      var q = document.getElementById("rquality").value;
-      if (q === "random") q = Math.random() < 0.5 ? "nette" : "vague";
-      return { vague: q === "vague" };
-    }
-    // In mixed mode each click independently draws a real FNAEG form or narrative.
-    function chooseType(selected) {
-      if (selected === "mixed") return Math.random() < 0.5 ? "narrative" : "fnaegRandom";
-      if (selected === "fnaegRandom") {
-        var forms = ["suspect", "condamne", "trace", "disparu"];
-        return forms[Math.floor(Math.random() * forms.length)];
-      }
-      return selected;
-    }
-    function updateNarrativeControls() {
-      var isNarrative = document.getElementById("rtype").value === "narrative";
-      document.getElementById("narrativeControls").style.display = isNarrative ? "flex" : "none";
-      var scenario = document.getElementById("nscenario").value;
-      document.getElementById("referenceControls").style.display = isNarrative && scenario !== "sexualAssault" ? "flex" : "none";
+    // Everything is random on each click (#format, case, comparison, quality).
+    // Quality is drawn independently of the format, so a vague request can be a
+    // FNAEG form or a free-form letter. The page then tells the student whether
+    // something is missing (the button appears) without saying what.
+    function randomOpts() { return { vague: Math.random() < 0.5 }; }
+    function randomType() {
+      if (Math.random() < 0.5) return "narrative";
+      var forms = ["suspect", "condamne", "trace", "disparu"];
+      return forms[Math.floor(Math.random() * forms.length)];
     }
     function displayData(data) {
       lastData = data;
@@ -441,76 +393,51 @@
                   scenario: data.scenario || null, referenceMode: data.referenceMode || null, seed: data.seed };
       window.__lastReq = lastReq;
       window.__lastData = data;
-      refreshCorrige();
+      refreshMissing();
     }
-    function build(selected, opts) {
-      var type = chooseType(selected);
-      if (type === "fnaegRandom") type = chooseType(type);
+    function build() {
+      var type = randomType(), opts = randomOpts();
       var data = type === "narrative"
-        ? window.NARRATIVE_REQUISITIONS.generate({
-            scenario: selected === "narrative" ? document.getElementById("nscenario").value : "random",
-            referenceMode: selected === "narrative" ? document.getElementById("nreference").value : "random",
-            vague: !!opts.vague
-          })
-        : REQ.generate(type, opts || {});
-      // Do not leave a previously opened answer key visible on the next case.
-      document.getElementById("corrige").classList.add("hidden");
+        ? window.NARRATIVE_REQUISITIONS.generate({ scenario: "random", referenceMode: "random", vague: !!opts.vague })
+        : REQ.generate(type, opts);
+      // Do not leave the previous case's missing-information panel open.
+      document.getElementById("missing").classList.add("hidden");
       displayData(data);
     }
 
-    // ---- corrigé: explain the withheld decisive fact of a vague doc (#56) ----
-    function refreshCorrige() {
-      var deg = (lastReq && lastReq.degraded) || [];
-      var btn = document.getElementById("corrigeBtn");
-      var hint = document.getElementById("corrigeHint");
-      // The exercise must not reveal whether a document is clean before
-      // the student deliberately opens the answer key.
-      btn.disabled = false;
-      var hidden = document.getElementById("corrige").classList.contains("hidden");
-      btn.textContent = hidden ? L2("Afficher le corrigé", "Show answer key")
-                               : L2("Masquer le corrigé", "Hide answer key");
-      hint.textContent = L2("Évaluez la demande avant de consulter le corrigé.",
-                           "Evaluate the request before opening the answer key.");
-      renderCorrigeBody();
+    // ---- missing information: shown on request, only for vague cases ----
+    function missingEntries() { return ((lastReq && lastReq.degraded) || []).filter(function (e) { return e.kind === "vague"; }); }
+    function refreshMissing() {
+      var btn = document.getElementById("missingBtn");
+      var has = missingEntries().length > 0;
+      btn.style.display = has ? "" : "none";
+      var hidden = document.getElementById("missing").classList.contains("hidden");
+      btn.textContent = hidden ? L2("Montrer les informations manquantes", "Show missing information")
+                               : L2("Masquer les informations manquantes", "Hide missing information");
+      renderMissingBody();
     }
-    function renderCorrigeBody() {
-      var deg = (lastReq && lastReq.degraded) || [];
-      var vague = deg.filter(function (e) { return e.kind === "vague"; });
-      var html = "";
-      if (vague.length) {
-        html += "<p><strong>" + L2("Fait décisif manquant", "Missing decisive fact") + "</strong> — " +
-                L2("à reconnaître et à demander au requérant :", "to recognise and ask the requester about:") + "</p><ul>";
-        vague.forEach(function (e) {
-          html += "<li>" + esc2(pickNote(e.note));
-          if (e.was != null && e.was !== "") html += " <span class=\"muted-note\">(" + L2("valeur masquée", "hidden value") + " : " + esc2(pickNote(e.was)) + ")</span>";
-          html += "</li>";
-        });
-        html += "</ul>";
-      }
-      if (!deg.length) html = "<p>" + L2("Aucun défaut intentionnel : demande suffisamment précise et correctement rédigée.",
-        "No intentional defect: the request is sufficiently informative and properly written.") + "</p>";
-      document.getElementById("corrigeBody").innerHTML = html;
+    function renderMissingBody() {
+      var html = "<ul>";
+      missingEntries().forEach(function (e) {
+        html += "<li>" + esc2(pickNote(e.note));
+        if (e.was != null && e.was !== "") html += " <span class=\"muted-note\">(" + L2("information retirée", "information removed") + " : " + esc2(pickNote(e.was)) + ")</span>";
+        html += "</li>";
+      });
+      document.getElementById("missingBody").innerHTML = html + "</ul>";
     }
 
-    document.getElementById("rtype").addEventListener("change", updateNarrativeControls);
-    document.getElementById("nscenario").addEventListener("change", updateNarrativeControls);
-    document.getElementById("gen").addEventListener("click", function () { build(document.getElementById("rtype").value, readOpts()); });
+    document.getElementById("gen").addEventListener("click", build);
     document.getElementById("dl").addEventListener("click", function () { if (window.__lastDoc) window.__lastDoc.save(lastName); });
-    document.getElementById("corrigeBtn").addEventListener("click", function () {
-      var hidden = document.getElementById("corrige").classList.toggle("hidden");
-      this.textContent = hidden ? L2("Afficher le corrigé", "Show answer key") : L2("Masquer le corrigé", "Hide answer key");
+    document.getElementById("missingBtn").addEventListener("click", function () {
+      var hidden = document.getElementById("missing").classList.toggle("hidden");
+      this.textContent = hidden ? L2("Montrer les informations manquantes", "Show missing information")
+                                : L2("Masquer les informations manquantes", "Hide missing information");
     });
     document.addEventListener("langchange", function () {
-      var hidden = document.getElementById("corrige").classList.contains("hidden");
-      document.getElementById("corrigeBtn").textContent = document.getElementById("corrigeBtn").disabled
-        ? L2("Afficher le corrigé", "Show answer key")
-        : (hidden ? L2("Afficher le corrigé", "Show answer key") : L2("Masquer le corrigé", "Hide answer key"));
       if (lastData && lastData.type === "narrative") displayData(lastData);
-      else refreshCorrige();
+      else refreshMissing();
     });
-    // Mixed formats by default; the explicit old FNAEG options remain selectable.
-    updateNarrativeControls();
-    build("mixed", readOpts());
+    build();
   })();
   </script>
 </body>

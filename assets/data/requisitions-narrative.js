@@ -13,20 +13,46 @@ window.NARRATIVE_REQUISITIONS = (function () {
     {id:"building",label:t("fragment osseux","bone fragment"),background:t("Des restes humains ont été découverts dans un bâtiment désaffecté à {place}. Leur identité demeure inconnue.","Human remains were found in a disused building in {place}. Their identity remains unknown.")},
     {id:"fire",label:t("dent issue de restes altérés par la chaleur","tooth from heat-altered remains"),background:t("Des restes humains ont été découverts après un incendie près de {place}. Une identification morphologique n'a pas été possible.","Human remains were found after a fire near {place}. Morphological identification has not been possible.")}
   ];
+  // Each sexual-assault template states, in a clean request: the alleged act,
+  // whether the complainant reports an ejaculation (and where), the delay before
+  // the medical examination, and for every seal its nature/site and why it is
+  // relevant. `{h}` is replaced by the examination delay in hours.
+  const EXAM = t("recueilli lors de l'examen médico-légal, environ {h} h après les faits allégués","collected during the forensic medical examination, about {h} h after the alleged events");
   const ASSAULTS = [
-    {id:"flat",background:t("Une personne a déposé plainte pour des faits d'agression sexuelle qu'elle déclare avoir subis dans un appartement à {place}. Des prélèvements ont été recueillis lors de son examen médico-légal.","A person reported a sexual assault said to have occurred in a flat in {place}. Samples were collected during a forensic medical examination."),
-     items:[[t("écouvillon vaginal","vaginal swab"),t("recueilli lors de l'examen médico-légal","collected during the forensic medical examination")],[t("sous-vêtement remis par la personne plaignante","underwear provided by the complainant"),t("remis après les faits allégués","provided after the alleged events")],[t("écouvillon cutané du cou","neck skin swab"),t("recueilli lors de l'examen médico-légal","collected during the forensic medical examination")]]},
-    {id:"street",background:t("Une personne rapporte avoir subi des attouchements imposés à {place} et indique avoir tenté de repousser l'auteur présumé. Des prélèvements et effets ont été placés sous scellés.","A person reports non-consensual touching in {place} and states that they tried to push the alleged assailant away. Samples and items were sealed as evidence."),
-     items:[[t("prélèvements sous-unguéaux","fingernail scrapings"),t("recueillis lors de l'examen médico-légal","collected during the forensic medical examination")],[t("vêtement porté au moment des faits","garment worn during the alleged incident"),t("remis par la personne plaignante","provided by the complainant")]]},
-    {id:"vehicle",background:t("Une personne déclare avoir subi une agression sexuelle à bord d'un véhicule près de {place}. Les enquêteurs transmettent des prélèvements médico-légaux et des objets saisis.","A person reports a sexual assault in a vehicle near {place}. Investigators submit forensic medical samples and seized items."),
-     items:[[t("écouvillon buccal de trace","evidentiary oral swab"),t("recueilli lors de l'examen médico-légal","collected during the forensic medical examination")],[t("découpe de tissu du siège","seat fabric cutting"),t("prélevée dans le véhicule","taken from the vehicle")],[t("haut porté par la personne plaignante","top worn by the complainant"),t("remis après les faits allégués","provided after the alleged events")]]}
+    {id:"flat",
+     background:t("Une personne a déposé plainte pour des faits d'agression sexuelle qu'elle déclare avoir subis dans un appartement à {place}. Elle décrit une pénétration vaginale et indique que l'auteur présumé a embrassé son cou.","A person reported a sexual assault said to have occurred in a flat in {place}. They describe vaginal penetration and state that the alleged assailant kissed their neck."),
+     ejaculation:[
+       {status:"yes",site:"intravaginal",text:t("Elle déclare qu'il y a eu une éjaculation intravaginale.","They state that ejaculation occurred inside the vagina.")},
+       {status:"no",site:null,text:t("Elle déclare qu'il n'y a pas eu d'éjaculation.","They state that there was no ejaculation.")},
+       {status:"unknown",site:null,text:t("Elle ne peut pas dire s'il y a eu une éjaculation.","They cannot say whether ejaculation occurred.")}],
+     items:[[t("écouvillon vaginal","vaginal swab"),EXAM],
+            [t("sous-vêtement porté après les faits","underwear worn after the events"),t("remis par la personne plaignante lors du dépôt de plainte","provided by the complainant when the report was made")],
+            [t("écouvillon cutané du cou (zone embrassée)","neck skin swab (area kissed)"),EXAM]]},
+    {id:"street",
+     background:t("Une personne rapporte avoir subi des attouchements imposés à {place}. Elle décrit des attouchements des parties intimes sous les vêtements et indique avoir griffé l'auteur présumé en se débattant.","A person reports non-consensual touching in {place}. They describe touching of intimate areas under the clothing and state that they scratched the alleged assailant while struggling."),
+     ejaculation:[
+       {status:"no",site:null,text:t("Elle déclare qu'il n'y a pas eu d'éjaculation.","They state that there was no ejaculation.")},
+       {status:"yes",site:"garment",text:t("Elle déclare qu'une éjaculation a eu lieu sur le vêtement qu'elle portait.","They state that ejaculation occurred on the garment they were wearing.")},
+       {status:"unknown",site:null,text:t("Elle ne peut pas dire s'il y a eu une éjaculation.","They cannot say whether ejaculation occurred.")}],
+     items:[[t("prélèvements sous-unguéaux","fingernail scrapings"),t("recueillis lors de l'examen médico-légal, environ {h} h après les faits allégués, car la personne plaignante déclare avoir griffé l'auteur présumé","collected during the forensic medical examination, about {h} h after the alleged events, because the complainant states that they scratched the alleged assailant")],
+            [t("vêtement porté au moment des faits","garment worn during the alleged incident"),t("remis par la personne plaignante","provided by the complainant")]]},
+    {id:"vehicle",
+     background:t("Une personne déclare avoir subi une agression sexuelle à bord d'un véhicule près de {place}. Elle décrit un acte bucco-génital imposé sur le siège passager.","A person reports a sexual assault in a vehicle near {place}. They describe an oral-genital act forced on them on the passenger seat."),
+     ejaculation:[
+       {status:"yes",site:"mouth",text:t("Elle déclare qu'il y a eu une éjaculation dans sa bouche.","They state that ejaculation occurred in their mouth.")},
+       {status:"yes",site:"seat",text:t("Elle déclare qu'une éjaculation a eu lieu sur le siège.","They state that ejaculation occurred on the seat.")},
+       {status:"no",site:null,text:t("Elle déclare qu'il n'y a pas eu d'éjaculation.","They state that there was no ejaculation.")},
+       {status:"unknown",site:null,text:t("Elle ne peut pas dire s'il y a eu une éjaculation.","They cannot say whether ejaculation occurred.")}],
+     items:[[t("écouvillon buccal de la personne plaignante, prélevé à la recherche de traces de l'auteur présumé","oral swab of the complainant, taken to look for traces of the alleged assailant"),EXAM],
+            [t("découpe de tissu du siège passager (lieu de l'acte allégué)","cutting of the passenger seat fabric (place of the alleged act)"),t("prélevée dans le véhicule","taken from the vehicle")],
+            [t("haut porté par la personne plaignante","top worn by the complainant"),t("remis après les faits allégués","provided after the alleged events")]]}
   ];
   const ITEMS = [
-    [t("brosse à dents","toothbrush"),t("trouvée dans la salle de bains","found in the bathroom")],
-    [t("rasoir","razor"),t("trouvé dans une trousse de toilette","found in a wash bag")],
-    [t("peigne","comb"),t("trouvé dans une chambre","found in a bedroom")],
-    [t("casquette","cap"),t("trouvée dans un placard","found in a cupboard")],
-    [t("gourde","water bottle"),t("trouvée sur une étagère","found on a shelf")]
+    [t("brosse à dents","toothbrush"),t("trouvée dans la salle de bains du dernier domicile connu de la personne signalée disparue","found in the bathroom of the last known home of the reported missing person")],
+    [t("rasoir","razor"),t("trouvé dans une trousse de toilette au dernier domicile connu de la personne signalée disparue","found in a wash bag at the last known home of the reported missing person")],
+    [t("peigne","comb"),t("trouvé dans la chambre du dernier domicile connu de la personne signalée disparue","found in a bedroom of the last known home of the reported missing person")],
+    [t("casquette","cap"),t("trouvée dans un placard du dernier domicile connu de la personne signalée disparue","found in a cupboard at the last known home of the reported missing person")],
+    [t("gourde","water bottle"),t("trouvée sur une étagère du dernier domicile connu de la personne signalée disparue","found on a shelf at the last known home of the reported missing person")]
   ];
   const CLOSE = [
     {id:"mother",path:["candidate","mother"],desc:t("mère biologique présumée","reported biological mother"),sex:"F"},
@@ -95,7 +121,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
     return {type:"narrative",scenario,caseId:template.id,referenceMode:null,seed:null,
       requerant:{nom:r.pick(SURNAMES),prenom:r.pick(GIVEN),grade:"OFFICIER DE POLICE JUDICIAIRE",service:"UNITE PEDAGOGIQUE "+place.toUpperCase(),procedure:r.int(100,9999)+"/2026"},
       place:t(place,place),eventDate:String(r.int(1,28)).padStart(2,"0")+"/"+String(r.int(1,12)).padStart(2,"0")+"/"+String(r.int(2022,2025)),
-      objective:null,narrative:substitute(template.background,place),
+      objective:null,question:t("",""),narrative:substitute(template.background,place),
       mission:t("Procéder aux examens génétiques utiles à l'enquête, préciser les limites d'interprétation et rendre compte des résultats. Signaler toute information ou référence complémentaire nécessaire.","Carry out genetic examinations relevant to the investigation, explain interpretative limitations and report results. Indicate any further information or reference material needed."),
       exhibits:[],references:[],referenceStatus:t("",""),facts:{stated:{},withheld:{}},
       quality:{vague:false,sloppy:false},degraded:[]};
@@ -175,23 +201,52 @@ window.NARRATIVE_REQUISITIONS = (function () {
           ?t("L'attribution des effets personnels à la personne disparue reste à vérifier.","The attribution of personal items to the missing person remains to be verified.")
           :t("Les liens de parenté déclarés avec la personne disparue restent à vérifier.","The claimed relationships with the missing person remain to be verified.");
     data.facts.stated.referenceStatus=data.referenceStatus;
+    const seals=data.references.map(x=>x.exhibitId).join(", ");
+    data.question=mode==="none"
+      ?t("Question posée : le scellé S1 permet-il d'établir un profil génétique exploitable pour une comparaison ultérieure ?",
+         "Question put to you: can exhibit S1 yield a genetic profile that is usable for a later comparison?")
+      :t("Question posée : le scellé S1 permet-il d'établir un profil génétique exploitable et, le cas échéant, ce profil est-il compatible avec les références jointes ("+seals+") ?",
+         "Question put to you: can exhibit S1 yield a usable genetic profile and, if so, is it compatible with the references enclosed ("+seals+")?");
     return data;
   }
   function makeAssault(r) {
     const template=r.pick(ASSAULTS),data=base(r,"sexualAssault",template,r.pick(PLACES));
+    const hours=r.pick([3,6,12,24,36,48]),fill=pair=>t(pair.fr.replace("{h}",hours),pair.en.replace("{h}",hours));
+    const ejac=r.pick(template.ejaculation);
     data.objective=t("Rechercher d'éventuelles traces biologiques utiles à l'enquête et évaluer les comparaisons envisageables.","Examine possible biological traces relevant to the investigation and assess available comparisons.");
-    for(const item of template.items) exhibit(data,"evidence",item[0],item[1]);
+    // Clean request: the alleged act, the reported ejaculation (or its absence)
+    // and the delay before the examination are all stated explicitly.
+    const ejSentence=t(ejac.text.fr,ejac.text.en),delaySentence=t("L'examen médico-légal a eu lieu environ "+hours+" h après les faits allégués.","The forensic medical examination took place about "+hours+" h after the alleged events.");
+    data.narrative=t(data.narrative.fr+" "+ejSentence.fr+" "+delaySentence.fr,data.narrative.en+" "+ejSentence.en+" "+delaySentence.en);
+    data.facts.stated.ejaculation={status:ejac.status,site:ejac.site,sentence:ejSentence};
+    data.facts.stated.examDelayHours=hours;
+    for(const item of template.items) exhibit(data,"evidence",item[0],fill(item[1]));
     const victim=r.float()<0.7,suspect=r.float()<0.35;
-    for(const [enabled,role] of [[victim,t("personne plaignante","complainant")],[suspect,t("personne mise en cause","person under investigation")]]) {
+    const REFS=[[victim,t("personne plaignante","complainant"),t("la personne plaignante","the complainant"),"complainant"],
+                [suspect,t("personne mise en cause","person under investigation"),t("la personne mise en cause","the person under investigation"),"suspect"]];
+    for(const [enabled,role,the,key] of REFS) {
       if(!enabled)continue;
-      const e=exhibit(data,"knownReference",t("écouvillon buccal de référence — "+role.fr,"reference cheek swab — "+role.en),t("prélèvement transmis pour comparaison","sample provided for comparison"));
-      addRef(data,"knownReference",e,role);
+      const e=exhibit(data,"knownReference",
+        t("écouvillon buccal de référence de "+the.fr,"reference cheek swab of "+the.en),
+        t("prélevé pour comparaison ; échantillon de référence sans lien avec les faits eux-mêmes","taken for comparison; reference sample unrelated to the events themselves"));
+      e.role=key;
+      addRef(data,"knownReference",e,t("référence de "+the.fr,"reference sample of "+the.en));
     }
-    data.referenceStatus=victim||suspect
-      ?t("Les prélèvements de référence disponibles figurent parmi les scellés.","Available reference samples are included among the exhibits.")
-      :t("Aucun prélèvement de référence n'est joint à ce stade.","No reference samples are attached at present.");
+    data.referenceStatus=victim&&suspect
+      ?t("Les références de la personne plaignante et de la personne mise en cause figurent parmi les scellés.","The references of the complainant and of the person under investigation are among the exhibits.")
+      :victim
+        ?t("Seule la référence de la personne plaignante est jointe ; aucune personne mise en cause n'est référencée à ce stade.","Only the complainant's reference is enclosed; no person under investigation has been sampled at this stage.")
+        :suspect
+          ?t("Seule la référence de la personne mise en cause est jointe ; aucune référence de la personne plaignante n'est disponible.","Only the reference of the person under investigation is enclosed; no complainant reference is available.")
+          :t("Aucune référence n'est jointe à ce stade, ni de la personne plaignante ni d'une personne mise en cause.","No reference is enclosed at present, neither from the complainant nor from a person under investigation.");
     data.facts.stated.referenceStatus=data.referenceStatus;
     data.facts.stated.referenceAvailability=victim||suspect;
+    const ev=data.exhibits.filter(x=>x.kind==="evidence").map(x=>x.id).join(", ");
+    data.question=victim||suspect
+      ?t("Question posée : les scellés "+ev+" contiennent-ils du matériel biologique de l'auteur présumé ? Le cas échéant, le profil obtenu est-il exploitable et comparable aux références jointes ?",
+         "Question put to you: do exhibits "+ev+" contain biological material from the alleged assailant? If so, is the profile obtained usable and comparable with the references enclosed?")
+      :t("Question posée : les scellés "+ev+" contiennent-ils du matériel biologique de l'auteur présumé ? Le cas échéant, le profil obtenu est-il exploitable pour une comparaison ultérieure ?",
+         "Question put to you: do exhibits "+ev+" contain biological material from the alleged assailant? If so, is the profile obtained usable for a later comparison?");
     return data;
   }
   function degrade(data,opts,r) {
@@ -219,6 +274,34 @@ window.NARRATIVE_REQUISITIONS = (function () {
         note:t("Le requérant n'indique pas à qui cet effet personnel est attribué.",
                "The requester does not specify whose item this is claimed to be.")});
       if(data.scenario==="sexualAssault") {
+        const ej=data.facts.stated.ejaculation;
+        options.push({field:"narrative.ejaculation",archetype:"ejaculation-unstated",
+          change() {
+            // Silent omission: the sentence is simply absent from the narrative.
+            const was=ej.sentence;
+            data.narrative=t(data.narrative.fr.replace(" "+was.fr,""),data.narrative.en.replace(" "+was.en,""));
+            return was;
+          },
+          note:t("La requête ne dit pas s'il y a eu éjaculation, ni où ; cela oriente les scellés à examiner en priorité et la recherche de sperme (extraction différentielle).",
+                 "The request does not say whether ejaculation occurred or where; this guides which exhibits to examine first and the search for semen (differential extraction).")});
+        const sw=data.exhibits.find(x=>x.kind==="knownReference"||/buccal|oral/i.test(x.label.fr+" "+x.label.en));
+        if(sw) options.push({field:"exhibits."+sw.id+".label",archetype:"swab-source-unstated",
+          change() {
+            const was=t(sw.label.fr+" — "+sw.provenance.fr,sw.label.en+" — "+sw.provenance.en);
+            // Name the swab generically: whose it is, and whether it relates to
+            // the events or is a reference, are no longer stated (silently).
+            sw.label=t("écouvillon buccal","cheek swab");
+            sw.provenance=t("transmis sous scellé","submitted under seal");
+            const ref=data.references.find(x=>x.exhibitId===sw.id);
+            if(ref) {
+              ref.label=sw.label; ref.provenance=sw.provenance; ref.claimedSource=t("écouvillon buccal","cheek swab");
+              // The reference-status sentence must not name the donor either.
+              data.referenceStatus=t("Des prélèvements de comparaison figurent parmi les scellés.","Comparison samples are included among the exhibits.");
+            }
+            return was;
+          },
+          note:t("On ne sait pas de qui provient cet écouvillon buccal ni s'il se rapporte aux faits ou s'il s'agit d'une référence ; demander l'identité du donneur et le motif du prélèvement.",
+                 "It is not stated whose cheek swab this is, nor whether it relates to the events or is a reference; ask for the donor's identity and the reason for sampling.")});
         const e=data.exhibits.find(x=>x.kind==="evidence");
         if(e) options.push({field:"exhibits."+e.id+".label",archetype:"sample-nature-unstated",
           change() {
