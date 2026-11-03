@@ -149,12 +149,12 @@ assert.throws(() => N.generate({scenario:'unrecognized'}));
 assert.throws(() => N.generate({scenario:'johnDoe',referenceMode:'thirdCousin'}));
 assert.throws(() => N.generate({seed:-1}));
 const narrativeUI = readFileSync(new URL('../requisitions.html', import.meta.url), 'utf8');
-assert.match(narrativeUI, /value="mixed"/);
-assert.match(narrativeUI, /value="fnaegRandom"/);
-assert.match(narrativeUI, /value="narrative"/);
-assert.match(narrativeUI, /Math\.random\(\) < 0\.5/, 'mixed format must choose both families');
 assert.match(narrativeUI, /function renderNarrative\(/);
-assert.match(narrativeUI, /build\("mixed", readOpts\(\)\)/, 'initial preview respects randomized quality');
+// Full random: no format / case / comparison / quality selectors any more.
+assert.doesNotMatch(narrativeUI, /id="(rtype|nscenario|nreference|rquality)"/, 'selectors removed: every draw is fully random');
+assert.doesNotMatch(narrativeUI, /corrigé|answer key/i, 'no answer-key wording');
+assert.match(narrativeUI, /Montrer les informations manquantes/);
+assert.match(narrativeUI, /Show missing information/);
 assert.match(narrativeUI, /requisitions-narrative\.js/);
 // #69: the free-form document reads as a letter, not a sectioned FNAEG form.
 assert.match(narrativeUI, /Je vous fais parvenir, sous scellés,/, 'scellés are woven into prose');
@@ -188,6 +188,17 @@ for (const scenario of N.SCENARIOS) {
       } else if (defect.archetype === 'exhibit-origin-unstated') {
         const e = vague.exhibits.find(x => defect.field === 'exhibits.'+x.id+'.provenance');
         assert(e && !e.provenance.fr.includes(defect.was.fr), 'collection circumstances were actually omitted');
+      } else if (defect.archetype === 'ejaculation-unstated') {
+        assert.equal(scenario, 'sexualAssault');
+        assert(!/éjacul/i.test(vague.narrative.fr) && !/ejaculat/i.test(vague.narrative.en), 'ejaculation sentence silently absent');
+        assert(/éjacul/i.test(clean.narrative.fr) && /ejaculat/i.test(clean.narrative.en), 'clean version states it');
+        assert(!/non précis|not stated|omitted/i.test(vague.narrative.fr + vague.narrative.en), 'no self-announcing gap');
+      } else if (defect.archetype === 'swab-source-unstated') {
+        assert.equal(scenario, 'sexualAssault');
+        const sw = vague.exhibits.find(x => defect.field === 'exhibits.' + x.id + '.label');
+        assert(sw && sw.label.fr === 'écouvillon buccal' && sw.label.en === 'cheek swab', 'swab named generically');
+        assert(!/plaignante|mise en cause|complainant|under investigation/.test(sw.label.fr + sw.provenance.fr + sw.label.en + sw.provenance.en), 'donor and purpose withheld');
+        assert(!/plaignante|mise en cause|complainant|under investigation/.test(vague.referenceStatus.fr + vague.referenceStatus.en) || !vague.references.some(x => x.exhibitId === sw.id), 'reference status does not name the donor of the hidden swab');
       } else if (defect.archetype === 'comparison-status-unstated') {
         assert.equal(mode, 'none');
         assert(!vague.referenceStatus.fr.includes('Aucune référence'), 'availability no longer explicit');
@@ -351,6 +362,52 @@ assert.deepEqual([...seenDistant].sort(), [...distantIds].sort(), 'all distant r
 console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configurations checked for patrilineal, gender-agreeing kinship coherence.');
 
 
+// ---- clear free-form requests (owner feedback): sexual-assault cases state the
+// act, whether ejaculation is reported (and where), the examination delay, and
+// for every seal its nature/site and link to the facts. ----
+{
+  const seen = { ejaculation: new Set(), vagueKinds: new Set(), statuses: new Set() };
+  for (let seed = 0; seed < 600; seed++) {
+    const d = N.generate({ scenario: 'sexualAssault', seed });
+    assert.match(d.narrative.fr, /éjacul/i, 'clean FR narrative states ejaculation (or its absence)');
+    assert.match(d.narrative.en, /ejaculat/i, 'clean EN narrative states ejaculation (or its absence)');
+    assert.match(d.narrative.fr, /environ \d+ h après les faits/, 'examination delay stated');
+    assert.match(d.narrative.en, /about \d+ h after the alleged events/);
+    assert.match(d.question.fr, /^Question posée :/);
+    assert.match(d.question.en, /^Question put to you:/);
+    seen.statuses.add(d.facts.stated.ejaculation.status);
+    for (const e of d.exhibits) {
+      assert(e.provenance.fr.length > 15 && e.provenance.en.length > 15, 'every seal states how/where it was collected');
+      if (e.kind === 'evidence') assert(!/^(un|une) /.test(e.label.fr), 'evidence seal names its nature/site');
+      if (/buccal|oral/.test(e.label.fr)) {
+        // A cheek swab is never anonymous: either a reference of a named party, or
+        // the complainant's evidentiary swab with its purpose.
+        assert(/de référence de la personne (plaignante|mise en cause)|de la personne plaignante, prélevé à la recherche/.test(e.label.fr), 'cheek swab states whose it is and why: ' + e.label.fr);
+      }
+    }
+    for (const ref of d.references) {
+      assert(/référence de la personne (plaignante|mise en cause)/.test(ref.claimedSource.fr));
+      const e = d.exhibits.find(x => x.id === ref.exhibitId);
+      assert(/sans lien avec les faits/.test(e.provenance.fr) && /unrelated to the events/.test(e.provenance.en), 'reference swab is explicitly unrelated to the facts');
+    }
+    const v = N.generate({ scenario: 'sexualAssault', seed, vague: true });
+    seen.vagueKinds.add(v.degraded[0].archetype);
+    // Silent omission must not leak through other text.
+    if (v.degraded[0].archetype === 'ejaculation-unstated') {
+      assert(!/éjacul/i.test(JSON.stringify(v.exhibits) + v.question.fr + v.referenceStatus.fr), 'no leak of the removed ejaculation fact');
+    }
+  }
+  assert.deepEqual([...seen.vagueKinds].sort(), ['ejaculation-unstated', 'sample-nature-unstated', 'swab-source-unstated']);
+  assert(seen.statuses.has('yes') && seen.statuses.has('no') && seen.statuses.has('unknown'), 'all ejaculation statuses generated');
+  // John Doe: the question and the origin of personal items are stated.
+  for (let seed = 0; seed < 200; seed++) {
+    const d = N.generate({ scenario: 'johnDoe', seed });
+    assert.match(d.question.fr, /^Question posée :/);
+    for (const x of d.references.filter(r => r.kind === 'personalItem')) assert(/dernier domicile connu/.test(x.provenance.fr), 'personal item origin stated');
+  }
+  console.log('Requisitions: free-form sexual-assault and unidentified-person requests state the decisive facts.');
+}
+
 // ---- UI / mock PDF integration: random quality must work for both document
 // families; forced quality must remain reliable; the narrative must render as a
 // polite letter. A lightweight jsPDF double validates the actual page
@@ -407,40 +464,38 @@ console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configu
   new Function('window', 'document', 'I18N', 'Math', 'URL', source)(
     win, doc, i18n, math, { revokeObjectURL() {} }
   );
-  const counts = { fnaeg: 0, narrative: 0, clean: 0, vague: 0 };
+  const counts = { fnaeg: 0, narrative: 0, clean: 0, vague: 0, assault: 0, johnDoe: 0 };
   for (let i = 0; i < 320; i++) {
     events['gen:click']();
     const data = win.__lastReq;
     counts[data.type === 'narrative' ? 'narrative' : 'fnaeg']++;
+    if (data.scenario === 'sexualAssault') counts.assault++;
+    if (data.scenario === 'johnDoe') counts.johnDoe++;
     const q = data.quality;
     counts[q.vague ? 'vague' : 'clean']++;
     assert(!('sloppy' in q), 'no typo axis reaches the controller');
-    assert(element('corrige').classList.contains('hidden'), 'new case must hide prior answer key');
-    assert(!element('corrigeBtn').disabled, 'answer key also available on clean cases');
-    assert(!element('corrigeHint').textContent.includes('nette'), 'no clean-case spoilers');
+    assert(element('missing').classList.contains('hidden'), 'new case must hide the previous missing-information panel');
+    // The button is the signal: visible exactly when something is missing.
+    assert.equal(element('missingBtn').style.display, q.vague ? '' : 'none', 'missing-information button iff the case is vague');
+    if (q.vague) {
+      events['missingBtn:click'].call(element('missingBtn'));
+      assert(!element('missing').classList.contains('hidden'), 'panel opens');
+      assert.match(element('missingBody').innerHTML, /<li>/, 'missing items listed');
+      events['missingBtn:click'].call(element('missingBtn'));
+      assert(element('missing').classList.contains('hidden'), 'panel closes again');
+    }
   }
-  for (const value of Object.values(counts)) assert(value >= 10, 'all formats/qualities appear with random default');
-  for (const q of ['nette', 'vague']) {
-    element('rtype').value = 'narrative';
-    element('nscenario').value = 'johnDoe';
-    element('nreference').value = 'closeKin';
-    element('rquality').value = q;
-    events['gen:click']();
-    assert.equal(win.__lastReq.quality.vague, q === 'vague');
-    assert(!('sloppy' in win.__lastReq.quality));
-  }
+  for (const [k, value] of Object.entries(counts)) assert(value >= 10, `${k} appears with the fully random draw`);
   // The free-form narrative renders as a letter: polite formulations, woven
-  // scellés and the fictional watermark, in both languages. (#69)
-  element('rtype').value = 'narrative';
-  element('nscenario').value = 'johnDoe';
-  element('nreference').value = 'closeKin';
-  element('rquality').value = 'nette';
-  events['gen:click']();
+  // scellés, the explicit question and the fictional watermark, in both languages. (#69)
+  let guard = 0;
+  while ((events['gen:click'](), win.__lastData.type !== 'narrative') && ++guard < 100);
   assert.equal(win.__lastData.type, 'narrative');
   const renderedFR = win.__lastDoc.texts.join(' \n ');
   assert.match(renderedFR, /DOCUMENT FICTIF/, 'watermark present on the fictional letter');
   assert.match(renderedFR, /Madame, Monsieur,/, 'letter salutation');
   assert.match(renderedFR, /Je vous fais parvenir, sous scellés, .*\bS1\b/, 'scellés woven into prose with their codes');
+  assert.match(renderedFR, /Question posée :/, 'the question put to the laboratory is stated');
   assert.match(renderedFR, /Je vous prie d'agréer, Madame, Monsieur/, 'polite closing');
   assert.doesNotMatch(renderedFR, /SCELLÉ\(S\)|REQUÉRANT|CADRE JURIDIQUE/, 'no FNAEG section bars in the free-form letter');
   const originalData = JSON.stringify(win.__lastData);
@@ -451,14 +506,10 @@ console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configu
   assert.match(renderedEN, /FICTIONAL DOCUMENT/);
   assert.match(renderedEN, /Dear Sir or Madam,/);
   assert.match(renderedEN, /I am sending you, under seal,/);
+  assert.match(renderedEN, /Question put to you:/);
   assert.match(renderedEN, /Yours faithfully,/);
-  // A clean answer is disclosed only after the user opens the corrigé.
-  element('rquality').value = 'nette';
+  currentLang = 'fr';
   events['gen:click']();
-  assert(!element('corrigeHint').textContent.includes('Clean requisition'));
-  events['corrigeBtn:click'].call(element('corrigeBtn'));
-  assert.match(element('corrigeBody').innerHTML, /No intentional defect/);
-  events['gen:click']();
-  assert(element('corrige').classList.contains('hidden'), 'fresh case re-hides a previously opened corrigé');
-  console.log('Requisitions UI: 320 mixed cases, forced quality choices and a bilingual letter-format PDF smoke PASS', counts);
+  assert(element('missing').classList.contains('hidden'), 'fresh case re-hides an opened panel');
+  console.log('Requisitions UI: 320 fully random cases, missing-information button and a bilingual letter-format PDF smoke PASS', counts);
 }
