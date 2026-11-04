@@ -137,14 +137,33 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
   // random match: p^2 and 2pq
   assert(Math.abs(D.randomMatch(mkProf([8, 8])).rmp - pA * pA) < 1e-12);
   assert(Math.abs(D.randomMatch(mkProf([8, 9.3])).rmp - 2 * pA * pB) < 1e-12);
-  // consensus
+  // consensus: built by the student from calls, never automatic (#92)
+  assert.equal(D.consensusOf, undefined, 'no automatic consensus is exported');
   const A = mkProf([8, 9.3]), B = mkProf([8]); B.loci.TH01.reliable = false;
-  const cs = D.consensusOf([A, B]);
-  assert.deepEqual(cs.loci.TH01, { alleles: [8], reliable: false }, 'allele seen once is not reproduced; lone allele stays partial');
+  assert.deepEqual(D.observedAlleles([A, B], 'TH01'), [8, 9.3]);
+  assert.deepEqual(D.observedAlleles([A, B], 'vWA'), []);
+  const empty = D.profileFromCalls({ derived: 'consensus' }, {});
+  assert.equal(empty.complete, 0); assert.equal(empty.pct, 0);
+  const built = D.profileFromCalls({ derived: 'consensus', id: 'C1' }, { TH01: [8, 9.3] });
+  assert.deepEqual(built.loci.TH01, { alleles: [8, 9.3], reliable: true }); assert.equal(built.complete, 1); assert.equal(built.id, 'C1');
+  assert.deepEqual(D.profileFromCalls({}, { TH01: [8, 8] }).loci.TH01, { alleles: [8], reliable: true }, 'same allele twice = homozygote');
+  assert.deepEqual(D.profileFromCalls({}, { TH01: [8, ''] }).loci.TH01, { alleles: [8], reliable: false }, 'one allele = partial');
+  assert.deepEqual(D.profileFromCalls({}, { TH01: ['', 9.3] }).loci.TH01, { alleles: [9.3], reliable: false });
+  assert.equal(D.profileFromCalls({}, { TH01: ['', ''] }).complete, 0);
+  assert.equal(D.compareProfiles(built, A).identical, 1, 'a student-built column is used like any profile');
+  // hints (amber, ungraded)
+  const hint = (calls, reps) => D.checkConsensus({ TH01: calls }, reps).filter(h => h.locus === 'TH01').map(h => h.id);
+  assert.deepEqual(hint([8, 9.3], [A, A]), [], 'reproduced heterozygote: no hint');
+  assert.deepEqual(hint([8, 9.3], [A, B]), ['single'], 'allele 9.3 seen once');
+  assert.deepEqual(hint([8, ''], [A, A]), ['omitted'], 'reproduced allele left out');
+  assert.deepEqual(hint(['', ''], [A, A]), ['empty']);
   const H = mkProf([8]); H.loci.TH01.reliable = true;
-  assert.deepEqual(D.consensusOf([H, H]).loci.TH01, { alleles: [8], reliable: true }, 'tall lone reproduced allele = homozygote');
-  assert.deepEqual(D.consensusOf([A, A]).loci.TH01, { alleles: [8, 9.3], reliable: true });
-  assert.throws(() => D.consensusOf([A]));
+  assert.deepEqual(hint([8, 8], [H, H]), [], 'tall reproduced single peak: homozygote supported');
+  assert.deepEqual(hint([8, 8], [B, B]), ['homWeak'], 'low single peak: drop-out not excluded');
+  assert.deepEqual(hint([8, 8], [A, A]), ['omitted', 'homConflict'], 'other alleles seen: reproduced allele left out and not a homozygote');
+  assert.deepEqual(D.checkConsensus({}, [A]), [], 'a single replicate gives no hints');
+  assert(D.checkConsensus({ TH01: [8, 9.3] }, [A, A]).every(h => h.locus !== 'TH01'));
+  assert(D.checkConsensus({ TH01: [8, 9.3] }, [A, A]).every(h => h.text.fr && h.text.en));
   // haplotypes
   assert.deepEqual(D.compareHaplotypes({ kind: 'y', values: { a: '1', b: '2' } }, { kind: 'y', values: { a: '1', b: '3', c: '4' } }), { compared: 2, differences: 1, differing: ['b'], total: 25, identical: false });
   assert.equal(D.compareHaplotypes({ kind: 'y', values: {} }, { kind: 'mt', values: {} }), null);
