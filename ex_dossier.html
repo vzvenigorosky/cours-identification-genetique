@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dossier complet simplifié — Exercice</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .feedback.info { background:#e8f1fb; color:#1e4e8c; border-color:#b9d3f0; }
+    .feedback ul { margin:6px 0 0; padding-left:20px; }
+    .feedback li + li { margin-top:4px; }
+    .steps { display:flex; flex-wrap:wrap; gap:6px 8px; list-style:none; padding:0; margin:0 0 18px; counter-reset:s; }
+    .steps li { counter-increment:s; font-size:.82rem; font-weight:700; padding:4px 10px; border-radius:999px; background:#eef2f6; color:var(--muted); }
+    .steps li::before { content:counter(s) " · "; opacity:.7; }
+    .steps li.done { background:var(--success-bg); color:var(--success-fg); }
+    .steps li.now { background:var(--accent); color:#fff; }
+    .req { background:var(--stripe); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:8px; padding:12px 14px; }
+    .sc { border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin:10px 0; }
+    .sc.on { border-color:var(--accent); }
+    .sc .muted-note { margin:2px 0 8px; }
+    .sc label { display:flex; flex-direction:column; gap:4px; min-width:0; }
+    .sc select, .row select, .tool select { width:100%; max-width:100%; min-width:0; }
+    .row { display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
+    .row > span { flex:1 1 240px; min-width:0; }
+    .row > select { flex:1 1 260px; }
+    .totalbar { display:flex; justify-content:space-between; align-items:baseline; gap:12px; border-top:1px solid var(--border); padding-top:10px; margin-top:10px; }
+    .totalbar strong { font-size:1.4rem; font-variant-numeric:tabular-nums; }
+    .case-note { border-left:4px solid var(--accent); padding:8px 14px; background:var(--stripe); }
+    table.data td.l, table.data th.l { text-align:left; }
+    table.data td.part { color:var(--warn-fg); background:var(--warn-bg); }
+    table.data td.none { color:var(--muted); }
+    .bar { display:inline-block; width:90px; height:8px; background:#e6ebf0; border-radius:4px; vertical-align:middle; margin-right:6px; overflow:hidden; }
+    .bar > i { display:block; height:100%; background:var(--accent); }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 12px; }
+    .tabs .btn.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .tool { border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+    .tool label.chk { display:flex; flex-direction:row; align-items:center; gap:8px; padding:4px 0; }
+    .tool .pair { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+    .tool .pair label { display:flex; flex-direction:column; gap:4px; }
+    .reveal h3 { margin:16px 0 4px; font-size:1.02rem; }
+    .reveal h4 { margin:8px 0 2px; font-size:.9rem; color:var(--muted); }
+    .reveal p { margin:3px 0; }
+    details > summary { cursor:pointer; font-weight:600; padding:6px 0; }
+    .pbar { display:flex; align-items:center; gap:8px; margin:2px 0; font-size:.9rem; }
+    .pbar .n { flex:0 0 150px; } .pbar .v { flex:0 0 52px; text-align:right; font-variant-numeric:tabular-nums; }
+    @media (max-width:520px) { .pbar .n { flex-basis:110px; } .bar { width:60px; } }
+  </style>
+</head>
+<body data-page="exercices">
+<main class="wrap narrow">
+  <a class="btn btn-ghost" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+  <h1 class="page-title mt" data-fr="Dossier complet simplifié" data-en="Simplified full case"></h1>
+  <p class="page-intro"
+     data-fr="Du début à la fin d’un dossier : lisez la réquisition, établissez le devis, prélevez, quantifiez, choisissez les extraits à amplifier, puis exploitez les profils. Aucune note : à la fin, une réponse « ce que l’on pouvait conclure » peut être révélée."
+     data-en="A case from start to finish: read the requisition, draw up the quote, sample, quantify, choose the extracts to amplify, then use the profiles. No grade: at the end, a “what could be concluded” answer can be revealed."></p>
+  <p class="case-note"
+     data-fr="Prototype à valider : prix et contenus des forfaits fournis par le responsable du cours ; concentrations, seuils, dégradation et modèle d’ancestralité/phénotype sont des valeurs pédagogiques. Version simplifiée : pas de mélanges ni d’extraction différentielle (chaque zone ne porte qu’une seule source), fréquences alléliques européennes approchées."
+     data-en="Prototype for review: package prices and contents were supplied by the course maintainer; concentrations, thresholds, degradation and the ancestry / phenotype model are teaching values. Simplified: no mixtures and no differential extraction (each area carries a single source), approximate European allele frequencies."></p>
+
+  <ol class="steps" id="steps"></ol>
+  <div class="controls" style="justify-content:space-between;margin-bottom:14px">
+    <span id="seed" class="muted-note"></span>
+    <button class="btn btn-ghost" id="newCase" data-i18n="common.newcase"></button>
+  </div>
+
+  <section class="panel" id="s1"></section>
+  <section class="panel hidden" id="s2"></section>
+  <section class="panel hidden" id="s3"></section>
+  <section class="panel hidden" id="s4"></section>
+  <section class="panel hidden" id="s5"></section>
+  <section class="panel hidden" id="s6"></section>
+</main>
+<script src="assets/i18n.js"></script>
+<script src="assets/layout.js"></script>
+<script src="assets/data/requisition-shared.js"></script>
+<script type="module" src="assets/dossier-ui.js"></script>
+</body>
+</html>
