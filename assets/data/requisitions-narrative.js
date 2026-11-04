@@ -207,6 +207,9 @@ window.NARRATIVE_REQUISITIONS = (function () {
     data.family={father:family.father,mother:family.mother,
       paternalGrandfather:family.grandfather,paternalGrandmother:family.grandmother};
     data.objective=t("Rechercher les éléments génétiques utiles à l'identification des restes humains non identifiés.","Seek genetic information relevant to identifying the unidentified human remains.");
+    // The date of discovery is stated (owner decision, issue #80).
+    data.narrative=t(data.narrative.fr+" La découverte date du "+data.eventDate+".",data.narrative.en+" The discovery dates from "+data.eventDate+".");
+    data.facts.stated.eventDate=data.eventDate;
     exhibit(data,"unknownRemains",template.label,t("prélevé sur les restes non identifiés","sampled from the unidentified remains"));
     if(mode!=="none") {
       data.narrative.fr+=" Une comparaison avec "+candidate.name+" ("+born(candidate.sex)+candidate.birthDate+
@@ -268,7 +271,9 @@ window.NARRATIVE_REQUISITIONS = (function () {
     // Clean request: the alleged act, the reported ejaculation (or its absence)
     // and the delay before the examination are all stated explicitly.
     const ejSentence=S.ejaculation(parties,ejac.status,ejac.site),delaySentence=S.examDelay(hours);
-    data.narrative=t(data.narrative.fr+" "+ejSentence.fr+" "+delaySentence.fr,data.narrative.en+" "+ejSentence.en+" "+delaySentence.en);
+    const dateSentence=t("Les faits allégués seraient survenus le "+data.eventDate+".","The alleged events are said to have occurred on "+data.eventDate+".");
+    data.narrative=t(data.narrative.fr+" "+dateSentence.fr+" "+ejSentence.fr+" "+delaySentence.fr,data.narrative.en+" "+dateSentence.en+" "+ejSentence.en+" "+delaySentence.en);
+    data.facts.stated.eventDate=data.eventDate;
     data.facts.stated.ejaculation={status:ejac.status,site:ejac.site,sentence:ejSentence};
     data.facts.stated.examDelayHours=hours;
     for(const item of template.items) exhibit(data,"evidence",item[0],fill(item[1]));

@@ -462,6 +462,41 @@ console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configu
   console.log('Requisitions: audit fixes (elision, named common ancestor, coherent FNAEG dates) verified.');
 }
 
+// ---- issue #80 owner decisions: one article, authority follows it, seal types follow it, dated letters ----
+{
+  const JUGE = ['80-4', '151'];
+  const bodyTypes = new Set(['Prélèvement sur cadavre', 'Vêtement taché', 'Écouvillonnage de surface']);
+  const missingTypes = new Set(['Trace biologique sur objet', 'Écouvillonnage de surface', 'Tache de sang séché', 'Vêtement taché']);
+  const seenArticles = new Set(), seenTypes = new Set();
+  for (let i = 0; i < 4000; i++) {
+    const d = R.generate('trace');
+    assert.equal(d.cadre.length, 1, 'exactly one legal-basis article per trace form');
+    const a = d.cadre[0];
+    seenArticles.add(a);
+    assert.equal(d.autorite.kind, JUGE.includes(a) ? 'juge' : 'procureur', 'authority follows article ' + a);
+    if (d.autorite.kind === 'juge') assert(d.autorite.date, 'the judge’s instruction is dated');
+    for (const sc of d.scelles) {
+      seenTypes.add(sc.type);
+      if (a === '74') assert(bodyTypes.has(sc.type), 'art. 74 draws body-related seals: ' + sc.type);
+      if (a === '74-1' || a === '80-4') assert(missingTypes.has(sc.type) && !/cadavre|Mégot/.test(sc.type), 'disappearance articles draw missing-person traces: ' + sc.type);
+    }
+  }
+  assert.deepEqual([...seenArticles].sort(), ['151', '60', '74', '74-1', '77-1', '80-4'], 'all six articles occur');
+  assert(seenTypes.has('Mégot de cigarette') && seenTypes.has('Prélèvement sur cadavre'), 'free articles still draw every type');
+  // dated free-form letters
+  const dateRe = /\b\d{2}\/\d{2}\/20(2[2-5])\b/;
+  for (let seed = 0; seed < 400; seed++) {
+    const j = N.generate({ scenario: 'johnDoe', seed }), a = N.generate({ scenario: 'sexualAssault', seed });
+    assert(j.narrative.fr.includes('La découverte date du ' + j.eventDate) && j.narrative.en.includes('The discovery dates from ' + j.eventDate), 'discovery date stated');
+    assert(a.narrative.fr.includes('Les faits allégués seraient survenus le ' + a.eventDate) && a.narrative.en.includes('occurred on ' + a.eventDate), 'date of the alleged events stated');
+    assert(dateRe.test(j.eventDate) && dateRe.test(a.eventDate));
+    for (const v of [N.generate({ scenario: 'johnDoe', seed, vague: true }), N.generate({ scenario: 'sexualAssault', seed, vague: true })]) {
+      assert(v.narrative.fr.includes(v.eventDate), 'a vague request still states the date');
+    }
+  }
+  console.log('Requisitions: trace-form legal coherence and dated letters (#80 decisions) verified.');
+}
+
 // ---- UI / mock PDF integration: random quality must work for both document
 // families; forced quality must remain reliable; the narrative must render as a
 // polite letter. A lightweight jsPDF double validates the actual page
