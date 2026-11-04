@@ -1,6 +1,6 @@
 import { PACKAGES, PACKAGE_ORDER, TEMPLATES, makeDossier, checkQuote, quoteTotal, extractionBudget, checkSampling, doExtraction, analysisSlots,
   SLOT_LABEL, checkAnalysis, runSlot, compareProfiles, profileFromCalls, observedAlleles, checkConsensus, randomMatch, compareHaplotypes, KIN_LEVELS, fmtPct, THRESHOLD_LABEL, reachesThreshold, lrWord, fmtSci, buildReveal,
-  ANCESTRY, PHENO, LOW_CONC, N_AUTO } from './data/dossier.js';
+  ANCESTRY, PHENO, LOW_CONC, N_AUTO, hasDifferential, DIFFERENTIAL_NOTICE, DIFFERENTIAL_SITE_TAG, DIFFERENTIAL_MARGIN } from './data/dossier.js';
 
 const $ = id => document.getElementById(id);
 // Anonymous step counts (assets/analytics.js; a no-op unless a GoatCounter code is configured). Event names only: never answers or seeds.
@@ -67,13 +67,16 @@ function renderReq() {
       <button class="btn btn-primary" data-act="toQuote"${st.stage >= 2 ? ' disabled' : ''}>${L('Proposer un devis', 'Propose a quote')}</button></div>`;
 }
 
+// Automatic differential extraction (#104): an information box, never a choice.
+const diffNotice = id => hasDifferential(c, id) ? `<div class="feedback show info" role="note" style="margin-top:8px">${esc(pick(DIFFERENTIAL_NOTICE))}</div>` : '';
+
 /* ---------- stage 2: quote ---------- */
 function renderQuote() {
   const locked = st.quoteLocked;
   const cards = c.scelles.map(s => {
     const t = st.quote[s.id] || '';
     return `<div class="sc${t ? ' on' : ''}" data-id="${s.id}"><strong>${L('Scellé n°', 'Exhibit #')}${s.no}</strong> — ${esc(pick(s.title))}
-      <p class="muted-note">${esc(pick(s.nature))}</p>
+      <p class="muted-note">${esc(pick(s.nature))}</p>${diffNotice(s.id)}
       <label>${L('Proposition', 'Proposal')}
         <select class="input" data-f="quote"${locked ? ' disabled' : ''}><option value="">${L('— non pris en charge —', '— not taken on —')}</option>${PACKAGE_ORDER.map(k => `<option value="${k}"${t === k ? ' selected' : ''}>${esc(pick(PACKAGES[k].label))} — ${PACKAGES[k].price} €</option>`).join('')}</select></label>
       ${t ? `<p class="muted-note">${esc(pick(PACKAGES[t].detail))}</p>` : ''}</div>`;
@@ -101,9 +104,9 @@ function renderSampling() {
     const rows = Array.from({ length: n }, (_, k) => {
       const cur = (st.sampling[s.id] || [])[k] || '';
       return `<div class="row"><span>${L('Extraction', 'Extraction')} ${k + 1}/${n}</span>
-        <select class="input" data-f="site" data-k="${k}"${locked ? ' disabled' : ''}><option value="">${L('— ne pas réaliser —', '— do not perform —')}</option>${c.sites[s.id].map(x => `<option value="${x.id}"${cur === x.id ? ' selected' : ''}>${esc(pick(x.label))}</option>`).join('')}</select></div>`;
+        <select class="input" data-f="site" data-k="${k}"${locked ? ' disabled' : ''}><option value="">${L('— ne pas réaliser —', '— do not perform —')}</option>${c.sites[s.id].map(x => `<option value="${x.id}"${cur === x.id ? ' selected' : ''}>${esc(pick(x.label))}${x.differential ? esc(pick(DIFFERENTIAL_SITE_TAG)) : ''}</option>`).join('')}</select></div>`;
     }).join('');
-    return `<div class="sc on" data-id="${s.id}">${head}<p class="muted-note">${esc(pick(s.nature))} ${L('Extractions prévues au devis :', 'Extractions planned in the quote:')} <strong>${n}</strong></p>${rows}</div>`;
+    return `<div class="sc on" data-id="${s.id}">${head}<p class="muted-note">${esc(pick(s.nature))} ${L('Extractions prévues au devis :', 'Extractions planned in the quote:')} <strong>${n}</strong></p>${diffNotice(s.id)}${rows}</div>`;
   }).join('');
   const done = locked ? extractTable(false) : '';
   $('s3').innerHTML = `<h2>${L('3 · Prélèvements et extractions', '3 · Sampling and extraction')}</h2>
@@ -172,7 +175,7 @@ function profileTable() {
   const ps = autos();
   if (!ps.length) return '';
   const loci = Object.keys(ps[0].loci);
-  const head = `<tr><th class="l">Locus</th>${ps.map(p => `<th title="${esc(resLabel(p))}">${p.id}</th>`).join('')}</tr>`;
+  const head = `<tr><th class="l">Locus</th>${ps.map(p => `<th title="${esc(resLabel(p))}">${p.id}${p.differential ? ' †' : ''}</th>`).join('')}</tr>`;
   const rows = loci.map(l => `<tr><td class="l"><strong>${l}</strong></td>${ps.map(p => {
     if (p.derived) return `<td class="mono">${consCell(p, l)}</td>`;
     const [t, k] = cellOf(p.loci[l]); return `<td class="mono ${k}">${t}</td>`;
@@ -182,6 +185,7 @@ function profileTable() {
   return `<h3>${L('Profils STR autosomaux', 'Autosomal STR profiles')}</h3>
     <div class="table-scroll"><table class="data"><thead>${head}</thead><tbody>${rows}${foot}</tbody></table></div>
     <ul class="muted-note" style="margin:6px 0">${ps.map(p => `<li><strong>${p.id}</strong> = ${esc(resLabel(p))}</li>`).join('')}</ul>
+    ${ps.some(p => p.differential) ? `<div class="feedback show warn" role="note"><strong>†</strong> ${esc(pick(DIFFERENTIAL_MARGIN))}</div>` : ''}
     <p class="muted-note">${L('— : locus non typé. « a, * » : un seul allèle observé, le second a pu ne pas s’amplifier (perte d’allèle).', '—: locus not typed. “a, *”: a single allele seen, the second may have failed to amplify (drop-out).')}${ps.some(p => p.derived) ? ' ' + L('Colonne consensus : choisissez l’allèle 1 et l’allèle 2 de chaque locus (deux fois le même = homozygote ; un seul = partiel).', 'Consensus column: choose allele 1 and allele 2 at each locus (the same twice = homozygote; a single one = partial).') : ''}</p>`;
 }
 function hapTable() {
@@ -355,7 +359,7 @@ const actions = {
     if (new Set(picked.map(p => p.scelleId)).size > 1) warn.push('mixed');
     for (let i = 0; i < picked.length; i++) for (let j = i + 1; j < picked.length; j++) if (compareProfiles(picked[i], picked[j]).discordant >= 3 && !warn.includes('discordant')) warn.push('discordant');
     const ids = [...new Set(picked.map(p => p.scelleId))];
-    const col = profileFromCalls({ derived: 'consensus', id, scelleId: ids.length === 1 ? ids[0] : null, sources: picked.map(p => p.id), calls: {} }, {}, picked.map(p => p.sex).find(Boolean) || null);
+    const col = profileFromCalls({ derived: 'consensus', id, scelleId: ids.length === 1 ? ids[0] : null, sources: picked.map(p => p.id), calls: {}, differential: picked.every(p => p.differential) }, {}, picked.map(p => p.sex).find(Boolean) || null);
     st.results.push(col);
     st.consLog.push({ id, from: col.sources, warn });
     st.consSel = {};
@@ -385,7 +389,7 @@ document.addEventListener('change', e => {
     const calls = { ...col.calls }, cell = (calls[e.target.dataset.locus] || ['', '']).slice();
     cell[Number(e.target.dataset.i)] = v === '' ? '' : Number(v);
     calls[e.target.dataset.locus] = cell;
-    st.results[idx] = profileFromCalls({ derived: 'consensus', id: col.id, scelleId: col.scelleId, sources: col.sources, calls }, calls, col.sex);
+    st.results[idx] = profileFromCalls({ derived: 'consensus', id: col.id, scelleId: col.scelleId, sources: col.sources, calls, differential: col.differential }, calls, col.sex);
   }
   render();
 });
