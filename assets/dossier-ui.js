@@ -1,5 +1,5 @@
 import { PACKAGES, PACKAGE_ORDER, TEMPLATES, makeDossier, checkQuote, quoteTotal, extractionBudget, checkSampling, doExtraction, analysisSlots,
-  SLOT_LABEL, checkAnalysis, runSlot, compareProfiles, profileFromCalls, observedAlleles, checkConsensus, randomMatch, compareHaplotypes, HYPOTHESES, lrWord, fmtSci, buildReveal,
+  SLOT_LABEL, checkAnalysis, runSlot, compareProfiles, profileFromCalls, observedAlleles, checkConsensus, randomMatch, compareHaplotypes, KIN_LEVELS, fmtPct, lrWord, fmtSci, buildReveal,
   ANCESTRY, PHENO, LOW_CONC, N_AUTO } from './data/dossier.js';
 
 const $ = id => document.getElementById(id);
@@ -218,16 +218,21 @@ function kinOutHtml() {
   if (!A || !B) return '';
   if (A.kind === 'auto' && B.kind === 'auto') {
     const r = compareProfiles(A, B);
-    const rows = Object.entries(HYPOTHESES).map(([h, d]) => {
-      const lr = r.hyp[h].lr, w = lrWord(lr);
-      return `<tr><td class="l">${esc(pick(d.label))}</td><td class="mono">${sci(lr)}</td><td class="l">${esc(pick(w.text))} ${w.fav ? L('pour cette hypothèse', 'for this hypothesis') : L('pour « non apparentés »', 'for “unrelated”')}</td></tr>`;
-    }).join('');
+    if (!r.lociCompared) return `<h4>${A.id} ↔ ${B.id}</h4><div class="feedback show info">${L('Aucun locus typé de façon fiable dans les deux profils : la comparaison n’est pas possible.', 'No locus reliably typed in both profiles: the comparison is not possible.')}</div>`;
+    const pc = x => fmtPct(x, lang());
+    const same = r.lociCompared >= 8 && r.discordant === 0 && r.identical === r.lociCompared
+      ? `<div class="feedback show info">${L('Les deux profils sont identiques à tous les loci comparés : il s’agit de réplicats ou d’une même source. Les niveaux de parenté ne s’appliquent pas à deux profils d’une même personne (FS, qui inclut ce cas limite, ressort alors artificiellement).', 'The two profiles are identical at every locus compared: they are replicates or the same source. Kinship levels do not apply to two profiles of one person (FS, which includes this limiting case, then comes out artificially).')}</div>` : '';
+    const rows = Object.entries(KIN_LEVELS).map(([h, d]) => {
+      const lr = r.hyp[h].lr, w = lrWord(lr), excl = lr === 0;
+      return `<tr><td class="l"><strong>${d.code}</strong> — ${esc(pick(d.label))}</td><td class="mono">${sci(lr)}</td><td class="mono"><strong>${pc(r.post[h])}</strong></td><td class="l">${excl ? L('exclu (au moins un locus sans allèle commun)', 'excluded (at least one locus with no shared allele)') : esc(pick(w.text)) + ' ' + (w.fav ? L('pour ce niveau', 'for this level') : L('pour « non apparentés »', 'for “unrelated”'))}</td></tr>`;
+    }).join('') + `<tr><td class="l">${L('Non apparentés (référence)', 'Unrelated (reference)')}</td><td class="mono">1</td><td class="mono"><strong>${pc(r.post.unrelated)}</strong></td><td class="l">—</td></tr>`;
     const chips = Object.entries(r.perLocus).map(([l, s]) => `<span class="pill" style="margin:2px">${l}: ${{ identical: L('identique', 'identical'), discordant: L('discordant', 'discordant'), compatible: L('compatible', 'compatible'), untyped: L('non typé', 'untyped') }[s]}</span>`).join('');
-    return `<h4>${A.id} ↔ ${B.id}</h4>
-      <p>${L('Loci comparables', 'Comparable loci')} : <strong>${r.lociCompared}</strong> · ${L('identiques', 'identical')} : ${r.identical} · ${L('discordants', 'discordant')} : ${r.discordant} · ${L('compatibles (perte d’allèle)', 'compatible (drop-out)')} : ${r.compatible} · ${L('non typés', 'untyped')} : ${r.untyped} · ${L('sans allèle commun', 'with no shared allele')} : ${r.noShared}</p>
-      <div class="table-scroll"><table class="data"><thead><tr><th class="l">${L('Hypothèse comparée à « non apparentés »', 'Hypothesis compared with “unrelated”')}</th><th>LR</th><th class="l">${L('Lecture', 'Reading')}</th></tr></thead><tbody>${rows}</tbody></table></div>
+    return `<h4>${A.id} ↔ ${B.id}</h4>${same}
+      <p>${L('Loci comparables', 'Comparable loci')} : <strong>${r.lociCompared}</strong> · ${L('identiques', 'identical')} : ${r.identical} · ${L('discordants', 'discordant')} : ${r.discordant} · ${L('compatibles (perte d’allèle)', 'compatible (drop-out)')} : ${r.compatible} · ${L('non typés', 'untyped')} : ${r.untyped} · ${L('sans allèle commun', 'with no shared allele')} : <strong>${r.noShared}</strong>${r.noShared ? ' → ' + L('PO exclu', 'PO excluded') : ''}</p>
+      <div class="table-scroll"><table class="data"><thead><tr><th class="l">${L('Niveau de parenté', 'Kinship level')}</th><th>LR</th><th>${L('Probabilité a posteriori', 'Posterior probability')}</th><th class="l">${L('Lecture', 'Reading')}</th></tr></thead><tbody>${rows}</tbody></table></div>
       <details><summary>${L('Détail par locus', 'Per-locus detail')}</summary>${chips}</details>
-      <p class="muted-note">${L('LR calculés sur les loci typés dans les deux profils, avec une petite tolérance de mutation / erreur (0,2 %) et des fréquences européennes approchées. Un LR décrit la comparaison de deux hypothèses sur ces profils ; ce n’est pas une probabilité que l’une soit vraie.', 'LRs computed on the loci typed in both profiles, with a small mutation / error allowance (0.2%) and approximate European frequencies. An LR compares two hypotheses given these profiles; it is not the probability that one is true.')}</p>`;
+      <p class="muted-note"><strong>PO</strong> = ${L('parent – enfant', 'parent – offspring')} · <strong>FS</strong> = ${L('germains', 'full siblings')} · <strong>HS/AV/GC</strong> = ${L('demi-germains, oncle/tante – neveu/nièce, grand-parent – petit-enfant (mêmes probabilités de partage d’allèles : non distinguables par ces marqueurs)', 'half-siblings, avuncular, grandparent – grandchild (same allele-sharing probabilities: not distinguishable with these markers)')}.</p>
+      <p class="muted-note">${L('LR calculés sur les loci typés dans les deux profils, avec des fréquences européennes approchées et sans tolérance de mutation : un locus sans allèle commun exclut PO (LR = 0). Probabilités a posteriori calculées avec des probabilités a priori égales (25 % pour PO, FS, HS/AV/GC et non apparentés) : elles changeraient avec d’autres a priori. Elles décrivent la comparaison de ces hypothèses pour ces profils, pas la situation réelle.', 'LRs computed on the loci typed in both profiles, with approximate European frequencies and no mutation allowance: a locus with no shared allele excludes PO (LR = 0). Posterior probabilities use equal prior probabilities (25% for PO, FS, HS/AV/GC and unrelated): other priors would change them. They describe the comparison of these hypotheses for these profiles, not the real situation.')}</p>`;
   }
   if (A.kind === B.kind && (A.kind === 'y' || A.kind === 'mt')) {
     const h = compareHaplotypes(A, B);

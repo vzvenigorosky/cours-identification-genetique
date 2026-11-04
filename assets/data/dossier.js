@@ -503,7 +503,7 @@ export function runSlot(c, slot, extract) {
 /* ============================================================
    Stage 6 — interpretation tools
    ============================================================ */
-const MU = 0.002; // per-locus allowance for mutation / typing error (teaching value)
+const MU = 0.002; // per-locus allowance for typing error, used ONLY by the same-person identity LR; kinship levels have none (#97)
 const freqFn = l => { const m = alleleFrequencies(l); return a => m.get(a) || 0.01; };
 const pGeno = (g, p) => g[0] === g[1] ? p(g[0]) ** 2 : 2 * p(g[0]) * p(g[1]);
 const otherAllele = (g, z) => g[0] === z ? g[1] : g[0];
@@ -513,22 +513,39 @@ function ibd1(ga, gb, p) {
   return s;
 }
 const sameG = (a, b) => a[0] === b[0] && a[1] === b[1];
-// P(G1,G2 | relationship with IBD probabilities k = [k0,k1,k2]) blended with a small mutation / error term.
-function pairProb(ga, gb, p, k) {
+// P(G1,G2 | relationship with IBD probabilities k = [k0,k1,k2]); `mu` blends in an optional error term.
+function pairProb(ga, gb, p, k, mu = 0) {
   const unrel = pGeno(ga, p) * pGeno(gb, p);
-  let v = k[0] * unrel + (k[1] ? k[1] * ibd1(ga, gb, p) : 0) + (k[2] && sameG(ga, gb) ? k[2] * pGeno(ga, p) : 0);
-  return { rel: (1 - MU) * v + MU * unrel, unrel };
+  const v = k[0] * unrel + (k[1] ? k[1] * ibd1(ga, gb, p) : 0) + (k[2] && sameG(ga, gb) ? k[2] * pGeno(ga, p) : 0);
+  return { rel: (1 - mu) * v + mu * unrel, unrel };
 }
-export const HYPOTHESES = {
-  same:        { k: [0, 0, 1],       label: text('Même personne', 'Same person') },
-  parentChild: { k: [0, 1, 0],       label: text('Parent – enfant', 'Parent – child') },
-  fullSibs:    { k: [0.25, 0.5, 0.25], label: text('Germains (frères/sœurs)', 'Full siblings') },
-  degree2:     { k: [0.5, 0.5, 0],   label: text('Demi-germains, oncle/tante – neveu/nièce, grand-parent – petit-enfant', 'Half-siblings, uncle/aunt – nephew/niece, grandparent – grandchild') }
+// Kinship levels (#95): PO parent–offspring, FS full siblings, HS/AV/GC half-siblings / avuncular / grandparent–grandchild
+// (the three share the same IBD probabilities, so these markers cannot tell them apart). No mutation allowance:
+// a locus without a shared allele excludes PO (LR = 0, posterior = 0).
+export const KIN_LEVELS = {
+  PO:     { code: 'PO',       k: [0, 1, 0],         label: text('Parent – enfant', 'Parent – offspring') },
+  FS:     { code: 'FS',       k: [0.25, 0.5, 0.25], label: text('Germains (frères / sœurs)', 'Full siblings') },
+  HSAVGC: { code: 'HS/AV/GC', k: [0.5, 0.5, 0],     label: text('Demi-germains / oncle-tante – neveu-nièce / grand-parent – petit-enfant', 'Half-siblings / avuncular / grandparent – grandchild') }
 };
+export const KIN_PRIORS = { PO: 0.25, FS: 0.25, HSAVGC: 0.25, unrelated: 0.25 }; // equal priors (teaching assumption, #96)
+const SAME = { k: [0, 0, 1], mu: MU };
+
+// Posterior probability of each level and of "unrelated" given the LRs (each against unrelated) and the priors.
+export function posteriors(hyp, priors = KIN_PRIORS) {
+  const w = { PO: priors.PO * hyp.PO.lr, FS: priors.FS * hyp.FS.lr, HSAVGC: priors.HSAVGC * hyp.HSAVGC.lr, unrelated: priors.unrelated };
+  const sum = w.PO + w.FS + w.HSAVGC + w.unrelated;
+  return Object.fromEntries(Object.entries(w).map(([k, v]) => [k, v / sum]));
+}
+export function fmtPct(p, lang = 'en') {
+  const dec = x => lang === 'fr' ? x.replace('.', ',') : x;
+  if (p === 0) return '0 %';
+  if (p < 0.0005) return '< ' + dec('0.1') + ' %';
+  return dec((Math.round(p * 1000) / 10).toFixed(1)) + ' %';
+}
 
 export function compareProfiles(pa, pb) {
   const res = { lociCompared: 0, identical: 0, compatible: 0, discordant: 0, untyped: 0, noShared: 0, perLocus: {}, hyp: {} };
-  const logs = Object.fromEntries(Object.keys(HYPOTHESES).map(h => [h, 0]));
+  const defs = { ...KIN_LEVELS, same: SAME }, logs = Object.fromEntries(Object.keys(defs).map(h => [h, 0]));
   for (const l of AUTO_LOCI) {
     const ea = pa.loci[l.name], eb = pb.loci[l.name], ga = genotypeOf(ea), gb = genotypeOf(eb);
     let status;
@@ -537,7 +554,7 @@ export function compareProfiles(pa, pb) {
       res.lociCompared++;
       if (!ga.some(a => gb.includes(a))) res.noShared++;
       const p = freqFn(l);
-      for (const [h, def] of Object.entries(HYPOTHESES)) { const { rel, unrel } = pairProb(ga, gb, p, def.k); logs[h] += Math.log10(rel / unrel); }
+      for (const [h, def] of Object.entries(defs)) { const { rel, unrel } = pairProb(ga, gb, p, def.k, def.mu || 0); logs[h] += Math.log10(rel / unrel); }
     } else if (!ea.alleles.length || !eb.alleles.length) status = 'untyped';
     else { // at least one partial locus: compatible when the alleles seen are included in the other profile
       const A = ea.alleles, B = eb.alleles;
@@ -545,7 +562,9 @@ export function compareProfiles(pa, pb) {
     }
     res.perLocus[l.name] = status; res[status]++;
   }
-  for (const h of Object.keys(HYPOTHESES)) res.hyp[h] = { log10: logs[h], lr: 10 ** logs[h] };
+  for (const h of Object.keys(defs)) res.hyp[h] = { log10: logs[h], lr: 10 ** logs[h] };
+  res.hyp.PO.excluded = res.noShared > 0;
+  res.post = posteriors(res.hyp);
   return res;
 }
 
@@ -612,7 +631,7 @@ export function fmtSci(x, lang = 'en') {
   if (x === 0) return '0';
   const dec = s => lang === 'fr' ? s.replace('.', ',') : s;
   if (x >= 1e4 || x < 0.01) { const [m, e] = x.toExponential(1).split('e'); return dec(m) + ' × 10' + String(parseInt(e, 10)).split('').map(ch => SUP[ch]).join(''); }
-  return dec(String(Math.round(x * 100) / 100));
+  return dec(x >= 100 ? String(Math.round(x)) : String(Math.round(x * 100) / 100));
 }
 
 /* ============================================================
@@ -623,23 +642,41 @@ const T = (fr, en) => text(fr, en);
 const nm = (c, id) => text('scellé n°' + scelleOf(c, id).no, 'exhibit #' + scelleOf(c, id).no);
 const NOTE_PROFILES = T('Cette conclusion porte uniquement sur la comparaison de ces profils ; elle ne dit rien des circonstances du dossier ni de la provenance des échantillons.', 'This statement concerns only the comparison of these profiles; it says nothing about the circumstances of the case or the origin of the samples.');
 
+// "PO: LR …, probability …" for the three kinship levels and the unrelated reference, in one language.
+function levelsLine(r, lang) {
+  const f = x => fmtSci(x, lang), pc = x => fmtPct(x, lang);
+  const parts = Object.entries(KIN_LEVELS).map(([k, d]) => d.code + ' : LR ' + f(r.hyp[k].lr) + ', ' + pc(r.post[k]));
+  return lang === 'fr' ? parts.join(' ; ') + ' ; non apparentés : ' + pc(r.post.unrelated) : parts.join('; ').replaceAll(' : LR', ': LR') + '; unrelated: ' + pc(r.post.unrelated);
+}
+const levelsTexts = r => [
+  T('Niveaux de parenté (LR contre « non apparentés », probabilité a posteriori) — ' + levelsLine(r, 'fr') + '. Les probabilités a posteriori supposent des probabilités a priori égales (25 % par hypothèse).',
+    'Kinship levels (LR against “unrelated”, posterior probability) — ' + levelsLine(r, 'en') + '. Posterior probabilities assume equal prior probabilities (25% per hypothesis).')
+];
+
 function describeKinship(c, cmp, get) {
   const A = get(cmp.a, 'auto'), B = get(cmp.b, 'auto'), na = nm(c, cmp.a), nb = nm(c, cmp.b), out = [];
   if (cmp.relation === 'parent') {
-    if (!A || !B) return [T('Les deux profils autosomiques (' + na.fr + ' et ' + nb.fr + ') ne sont pas tous disponibles : aucune comparaison parent–enfant n’est possible.', 'The two autosomal profiles (' + na.en + ' and ' + nb.en + ') are not both available: no parent–child comparison is possible.')];
-    const r = compareProfiles(A, B), lr = r.hyp.parentChild.lr, w = lrWord(lr);
-    out.push(T('Profils autosomiques du ' + na.fr + ' et du ' + nb.fr + ' : ' + r.lociCompared + ' loci comparables, dont ' + r.noShared + ' sans allèle commun. Rapport de vraisemblance (parent–enfant contre non apparentés) ≈ ' + fmtSci(lr, 'fr') + '.',
-      'Autosomal profiles of ' + na.en + ' and ' + nb.en + ': ' + r.lociCompared + ' comparable loci, ' + r.noShared + ' of them with no shared allele. Likelihood ratio (parent–child versus unrelated) ≈ ' + fmtSci(lr, 'en') + '.'));
+    if (!A || !B) return [T('Les deux profils autosomiques (' + na.fr + ' et ' + nb.fr + ') ne sont pas tous disponibles : aucune comparaison PO n’est possible.', 'The two autosomal profiles (' + na.en + ' and ' + nb.en + ') are not both available: no PO comparison is possible.')];
+    const r = compareProfiles(A, B), lr = r.hyp.PO.lr, w = lrWord(lr);
+    out.push(T('Profils autosomiques du ' + na.fr + ' et du ' + nb.fr + ' : ' + r.lociCompared + ' loci comparables, dont ' + r.noShared + ' sans allèle commun.',
+      'Autosomal profiles of ' + na.en + ' and ' + nb.en + ': ' + r.lociCompared + ' comparable loci, ' + r.noShared + ' of them with no shared allele.'));
+    out.push(...levelsTexts(r));
     if (r.lociCompared < 8) out.push(T('Le nombre de loci comparables est faible : la valeur de cette comparaison est limitée.', 'The number of comparable loci is low: the value of this comparison is limited.'));
-    else if (r.noShared >= 3) out.push(T('Les profils sont incompatibles avec une relation parent–enfant (au moins trois loci sans allèle commun).', 'The profiles are incompatible with a parent–child relationship (at least three loci with no shared allele).'));
-    else if (w.fav) out.push(T('Les profils sont compatibles avec une relation parent–enfant ; ils apportent ' + w.text.fr + ' à cette hypothèse plutôt qu’à celle de deux personnes non apparentées.', 'The profiles are compatible with a parent–child relationship; they provide ' + w.text.en + ' for that hypothesis rather than for two unrelated people.'));
+    else if (r.noShared >= 1) out.push(T('Au moins un locus sans allèle commun : exclusion allélique de PO (LR = 0, probabilité a posteriori 0 %).', 'At least one locus with no shared allele: allelic exclusion of PO (LR = 0, posterior probability 0%).'));
+    else if (w.fav) out.push(T('Aucune exclusion allélique : les profils sont compatibles avec PO ; ils apportent ' + w.text.fr + ' à PO plutôt qu’à l’hypothèse de deux personnes non apparentées.', 'No allelic exclusion: the profiles are compatible with PO; they provide ' + w.text.en + ' for PO rather than for two unrelated people.'));
     else out.push(T('Les profils favorisent plutôt l’hypothèse de deux personnes non apparentées.', 'The profiles rather favour the hypothesis of two unrelated people.'));
     out.push(NOTE_PROFILES);
     return out;
   }
   const lin = cmp.relation === 'paternalUncle' ? 'y' : 'mt';
   const H1 = get(cmp.a, lin), H2 = get(cmp.b, lin);
-  if (A && B) { const r = compareProfiles(A, B); out.push(T('Les profils autosomiques seuls (' + r.lociCompared + ' loci comparables) donnent, pour une parenté du deuxième degré, un rapport de vraisemblance ≈ ' + fmtSci(r.hyp.degree2.lr, 'fr') + ' : insuffisant pour répondre seul à la question de la parenté.', 'The autosomal profiles alone (' + r.lociCompared + ' comparable loci) give, for a second-degree relationship, a likelihood ratio ≈ ' + fmtSci(r.hyp.degree2.lr, 'en') + ': not sufficient on its own to answer the kinship question.')); }
+  if (A && B) {
+    const r = compareProfiles(A, B);
+    out.push(T('Profils autosomiques seuls (' + r.lociCompared + ' loci comparables, ' + r.noShared + ' sans allèle commun).', 'Autosomal profiles alone (' + r.lociCompared + ' comparable loci, ' + r.noShared + ' with no shared allele).'));
+    out.push(...levelsTexts(r));
+    if (r.noShared >= 1) out.push(T('Au moins un locus sans allèle commun : PO est exclu (LR = 0).', 'At least one locus with no shared allele: PO is excluded (LR = 0).'));
+    out.push(T('HS, AV et GC ont les mêmes probabilités de partage d’allèles : ces marqueurs ne les distinguent pas, et seul un marqueur de lignée peut compléter la comparaison.', 'HS, AV and GC have the same allele-sharing probabilities: these markers cannot tell them apart, and only a lineage marker can complete the comparison.'));
+  }
   const hc = compareHaplotypes(H1, H2);
   if (!hc) { out.push(T('Les haplotypes ' + (lin === 'y' ? 'STR-Y' : 'mitochondriaux') + ' ne sont pas disponibles pour les deux scellés (' + na.fr + ' et ' + nb.fr + ') : la comparaison de lignée n’est pas possible.', (lin === 'y' ? 'Y-STR' : 'Mitochondrial') + ' haplotypes are not available for both exhibits (' + na.en + ' and ' + nb.en + '): the lineage comparison is not possible.')); return out; }
   const what = lin === 'y' ? T('marqueurs STR-Y', 'Y-STR markers') : T('sites variables mitochondriaux', 'mitochondrial variable sites'), line = lin === 'y' ? T('lignée paternelle', 'paternal line') : T('lignée maternelle', 'maternal line');
