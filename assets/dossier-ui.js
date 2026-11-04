@@ -1,5 +1,5 @@
 import { PACKAGES, PACKAGE_ORDER, TEMPLATES, makeDossier, checkQuote, quoteTotal, extractionBudget, checkSampling, doExtraction, analysisSlots,
-  SLOT_LABEL, checkAnalysis, runSlot, compareProfiles, consensusOf, randomMatch, compareHaplotypes, HYPOTHESES, lrWord, fmtSci, buildReveal,
+  SLOT_LABEL, checkAnalysis, runSlot, compareProfiles, profileFromCalls, observedAlleles, checkConsensus, randomMatch, compareHaplotypes, HYPOTHESES, lrWord, fmtSci, buildReveal,
   ANCESTRY, PHENO, LOW_CONC, N_AUTO } from './data/dossier.js';
 
 const $ = id => document.getElementById(id);
@@ -21,7 +21,7 @@ function fresh() {
     quote: {}, quoteLocked: false, checks: {},
     sampling: {}, samplingLocked: false, extracts: [], quantified: false,
     assign: {}, ampLocked: false, results: [],
-    tool: 'kin', kinA: '', kinB: '', rmpSel: '', consSel: {}, kinOut: null, rmpOut: null, consLog: [], revealed: false, notice: null };
+    tool: 'kin', kinA: '', kinB: '', rmpSel: '', consSel: {}, consCheck: {}, kinOut: null, rmpOut: null, consLog: [], revealed: false, notice: null };
 }
 function newCase(opts) {
   c = makeDossier(Math.floor(Math.random() * 1e9), opts);
@@ -150,7 +150,7 @@ function renderAmp() {
 const autos = () => st.results.filter(r => r.kind === 'auto');
 const habs = () => st.results.filter(r => r.kind === 'y' || r.kind === 'mt');
 const resLabel = r => {
-  if (r.derived) return `${r.id} — ${L('consensus de', 'consensus of')} ${r.sources.join(', ')}`;
+  if (r.derived) return `${r.id} — ${L('consensus construit à partir de', 'consensus built from')} ${r.sources.join(', ')}`;
   const lab = pick(SLOT_LABEL[r.kind]) + (r.slotOf > 1 ? ` ${r.slotIndex}/${r.slotOf}` : '');
   return `${r.id} — ${sName(r.scelleId)} · ${lab} (${L('extrait', 'extract')} ${r.extractId})`;
 };
@@ -159,18 +159,27 @@ function cellOf(e) {
   if (e.alleles.length >= 2) return [e.alleles.map(fmtA).join(', '), ''];
   return e.reliable ? [`${fmtA(e.alleles[0])}, ${fmtA(e.alleles[0])}`, ''] : [`${fmtA(e.alleles[0])}, *`, 'part'];
 }
+const repsOf = p => p.sources.map(id => byId(id)).filter(Boolean);
+function consCell(p, locus) {
+  const opts = observedAlleles(repsOf(p), locus), cur = p.calls[locus] || [];
+  const sel = i => `<select class="input cc" data-f="ccall" data-id="${p.id}" data-locus="${locus}" data-i="${i}" aria-label="${locus} ${L('allèle', 'allele')} ${i + 1}"><option value="">—</option>${opts.map(a => `<option value="${a}"${String(cur[i]) === String(a) ? ' selected' : ''}>${fmtA(a)}</option>`).join('')}</select>`;
+  return `<div class="cc2">${sel(0)}${sel(1)}</div>`;
+}
 function profileTable() {
   const ps = autos();
   if (!ps.length) return '';
   const loci = Object.keys(ps[0].loci);
   const head = `<tr><th class="l">Locus</th>${ps.map(p => `<th title="${esc(resLabel(p))}">${p.id}</th>`).join('')}</tr>`;
-  const rows = loci.map(l => `<tr><td class="l"><strong>${l}</strong></td>${ps.map(p => { const [t, k] = cellOf(p.loci[l]); return `<td class="mono ${k}">${t}</td>`; }).join('')}</tr>`).join('');
+  const rows = loci.map(l => `<tr><td class="l"><strong>${l}</strong></td>${ps.map(p => {
+    if (p.derived) return `<td class="mono">${consCell(p, l)}</td>`;
+    const [t, k] = cellOf(p.loci[l]); return `<td class="mono ${k}">${t}</td>`;
+  }).join('')}</tr>`).join('');
   const foot = `<tr><td class="l"><strong>AMEL</strong></td>${ps.map(p => `<td class="mono">${p.sex || '—'}</td>`).join('')}</tr>` +
     `<tr><td class="l"><strong>${L('Loci typés', 'Loci typed')}</strong></td>${ps.map(p => `<td>${p.complete}/${N_AUTO} (${p.pct} %)</td>`).join('')}</tr>`;
   return `<h3>${L('Profils STR autosomaux', 'Autosomal STR profiles')}</h3>
     <div class="table-scroll"><table class="data"><thead>${head}</thead><tbody>${rows}${foot}</tbody></table></div>
     <ul class="muted-note" style="margin:6px 0">${ps.map(p => `<li><strong>${p.id}</strong> = ${esc(resLabel(p))}</li>`).join('')}</ul>
-    <p class="muted-note">${L('— : locus non typé. « a, * » : un seul allèle observé, le second a pu ne pas s’amplifier (perte d’allèle).', '—: locus not typed. “a, *”: a single allele seen, the second may have failed to amplify (drop-out).')}</p>`;
+    <p class="muted-note">${L('— : locus non typé. « a, * » : un seul allèle observé, le second a pu ne pas s’amplifier (perte d’allèle).', '—: locus not typed. “a, *”: a single allele seen, the second may have failed to amplify (drop-out).')}${ps.some(p => p.derived) ? ' ' + L('Colonne consensus : choisissez l’allèle 1 et l’allèle 2 de chaque locus (deux fois le même = homozygote ; un seul = partiel).', 'Consensus column: choose allele 1 and allele 2 at each locus (the same twice = homozygote; a single one = partial).') : ''}</p>`;
 }
 function hapTable() {
   const hs = habs();
@@ -238,9 +247,15 @@ function rmpOutHtml() {
     <p class="muted-note">${L('Produit des fréquences génotypiques (p² ou 2pq) avec des fréquences européennes approchées, sans correction de co-ancestralité. C’est la probabilité qu’une personne non apparentée prise au hasard présente ce profil, pas la probabilité qu’une personne donnée en soit la source.', 'Product of genotype frequencies (p² or 2pq) with approximate European frequencies, without co-ancestry correction. It is the chance that an unrelated random person has this profile, not the probability that a given person is its source.')}</p>`;
 }
 function consOutHtml() {
-  if (!st.consLog.length) return '';
-  return st.consLog.map(e => `<div class="feedback show ${e.warn.length ? 'warn' : 'info'}" role="status"><strong>${e.id}</strong> ${L('créé à partir de', 'created from')} ${e.from.join(', ')}.` +
-    (e.warn.length ? `<ul>${e.warn.map(k => `<li>${k === 'mixed' ? L('Ces profils ne proviennent pas du même scellé : un consensus suppose des réplicats d’une même source.', 'These profiles do not come from the same exhibit: a consensus assumes replicates of one source.') : L('Ces profils diffèrent à plusieurs loci : ce ne sont probablement pas des réplicats d’une même source.', 'These profiles differ at several loci: they are probably not replicates of one source.')}</li>`).join('')}</ul>` : ` ${L('Un allèle est retenu s’il est observé dans au moins deux réplicats.', 'An allele is kept when it is seen in at least two replicates.')}`) + '</div>').join('');
+  const cols = autos().filter(p => p.derived);
+  const log = st.consLog.map(e => e.warn.length ? `<div class="feedback show warn" role="status"><strong>${e.id}</strong><ul>${e.warn.map(k => `<li>${k === 'mixed' ? L('Ces profils ne proviennent pas du même scellé : un consensus suppose des réplicats d’une même source.', 'These profiles do not come from the same exhibit: a consensus assumes replicates of one source.') : L('Ces profils diffèrent à plusieurs loci : ce ne sont probablement pas des réplicats d’une même source.', 'These profiles differ at several loci: they are probably not replicates of one source.')}</li>`).join('')}</ul></div>` : '').join('');
+  const checks = cols.map(p => {
+    if (!st.consCheck[p.id]) return `<div class="controls mt"><span><strong>${p.id}</strong> — ${p.complete}/${N_AUTO}</span><button class="btn btn-ghost" data-act="consCheck" data-id="${p.id}">${L('Vérifier mon consensus', 'Check my consensus')} ${p.id}</button></div>`;
+    const hints = checkConsensus(p.calls, repsOf(p));
+    return `<div class="controls mt"><span><strong>${p.id}</strong> — ${p.complete}/${N_AUTO}</span><button class="btn btn-ghost" data-act="consCheck" data-id="${p.id}">${L('Vérifier mon consensus', 'Check my consensus')} ${p.id}</button></div>` +
+      (hints.length ? `<div class="feedback show warn" role="status"><ul>${hints.map(h => `<li>${esc(pick(h.text))}</li>`).join('')}</ul></div>` : `<div class="feedback show info" role="status">${L('Aucun avertissement.', 'No warning.')}</div>`);
+  }).join('');
+  return log + checks;
 }
 
 function renderResults() {
@@ -253,9 +268,9 @@ function renderResults() {
       <div class="controls mt"><button class="btn btn-primary" data-act="kin">${L('Comparer', 'Compare')}</button></div>${kinOutHtml()}`;
   } else if (st.tool === 'cons') {
     const ps = autos().filter(p => !p.derived);
-    tool = `<p class="muted-note">${L('Cochez au moins deux profils autosomaux (idéalement des réplicats du même scellé).', 'Tick at least two autosomal profiles (ideally replicates of the same exhibit).')}</p>` +
+    tool = `<p class="muted-note">${L('Cochez au moins deux profils autosomaux (idéalement des réplicats du même scellé), puis ajoutez une colonne consensus : c’est à vous de choisir, locus par locus, les allèles à retenir dans le tableau ci-dessus.', 'Tick at least two autosomal profiles (ideally replicates of the same exhibit), then add a consensus column: it is up to you to choose, locus by locus, which alleles to keep in the table above.')}</p>` +
       (ps.length ? ps.map(p => `<label class="chk"><input type="checkbox" data-f="cons" data-id="${p.id}"${st.consSel[p.id] ? ' checked' : ''}> ${esc(resLabel(p))} — ${p.complete}/${N_AUTO}</label>`).join('') : `<p class="muted-note">${L('Aucun profil autosomal.', 'No autosomal profile.')}</p>`) +
-      `<div class="controls mt"><button class="btn btn-primary" data-act="cons"${ps.length < 2 ? ' disabled' : ''}>${L('Créer le profil consensus', 'Create the consensus profile')}</button></div>` + consOutHtml();
+      `<div class="controls mt"><button class="btn btn-primary" data-act="cons"${ps.length < 2 ? ' disabled' : ''}>${L('Ajouter une colonne consensus', 'Add a consensus column')}</button></div>` + consOutHtml();
   } else {
     tool = `<label>${L('Profil ou haplotype', 'Profile or haplotype')}<select class="input" data-f="rmp">${itemOptions(['auto', 'y', 'mt'], st.rmpSel)}</select></label>
       <div class="controls mt"><button class="btn btn-primary" data-act="rmp">${L('Calculer', 'Compute')}</button></div>${rmpOutHtml()}`;
@@ -327,17 +342,17 @@ const actions = {
   cons() {
     const picked = autos().filter(p => !p.derived && st.consSel[p.id]);
     if (picked.length < 2) return;
-    const cs = consensusOf(picked);
-    cs.id = 'C' + (st.consLog.length + 1);
-    const warn = [];
+    const id = 'C' + (st.consLog.length + 1), warn = [];
     if (new Set(picked.map(p => p.scelleId)).size > 1) warn.push('mixed');
     for (let i = 0; i < picked.length; i++) for (let j = i + 1; j < picked.length; j++) if (compareProfiles(picked[i], picked[j]).discordant >= 3 && !warn.includes('discordant')) warn.push('discordant');
-    cs.sources = picked.map(p => p.id);
-    st.results.push(cs);
-    st.consLog.push({ id: cs.id, from: cs.sources, warn });
+    const ids = [...new Set(picked.map(p => p.scelleId))];
+    const col = profileFromCalls({ derived: 'consensus', id, scelleId: ids.length === 1 ? ids[0] : null, sources: picked.map(p => p.id), calls: {} }, {}, picked.map(p => p.sex).find(Boolean) || null);
+    st.results.push(col);
+    st.consLog.push({ id, from: col.sources, warn });
     st.consSel = {};
     render();
   },
+  consCheck(el) { st.consCheck[el.dataset.id] = true; render(); },
   reveal() { st.revealed = true; render(); }
 };
 
@@ -355,6 +370,13 @@ document.addEventListener('change', e => {
   else if (f === 'kinB') st.kinB = v;
   else if (f === 'rmp') st.rmpSel = v;
   else if (f === 'cons') { st.consSel[e.target.dataset.id] = e.target.checked; return; }
+  else if (f === 'ccall') {
+    const idx = st.results.findIndex(r => r.id === e.target.dataset.id), col = st.results[idx];
+    const calls = { ...col.calls }, cell = (calls[e.target.dataset.locus] || ['', '']).slice();
+    cell[Number(e.target.dataset.i)] = v === '' ? '' : Number(v);
+    calls[e.target.dataset.locus] = cell;
+    st.results[idx] = profileFromCalls({ derived: 'consensus', id: col.id, scelleId: col.scelleId, sources: col.sources, calls }, calls, col.sex);
+  }
   render();
 });
 $('newCase').addEventListener('click', () => newCase());

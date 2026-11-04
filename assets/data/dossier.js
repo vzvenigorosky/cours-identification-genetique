@@ -555,23 +555,42 @@ export function randomMatch(profile) {
   return { loci: n, log10: log, rmp: 10 ** log, oneIn: n ? Math.round(10 ** -log) : null };
 }
 
-// Consensus of replicates: an allele is kept when it is seen in at least two replicates; a lone reproduced allele
-// is a homozygote only when no other allele was ever seen and a replicate shows it above the stochastic threshold.
-export function consensusOf(profiles) {
-  if (profiles.length < 2) throw new Error('A consensus needs at least two profiles');
+/* Consensus: built BY THE STUDENT (#92), never computed automatically.
+   calls = { locus: [allele1, allele2] } with '' / null for "not chosen":
+   two alleles = genotype (the same allele twice = homozygote), a single allele
+   = partial locus (the second allele may have dropped out), none = not typed. */
+export function profileFromCalls(base, calls, sex = null) {
   const loci = {};
   for (const l of AUTO_LOCI) {
-    const es = profiles.map(p => p.loci[l.name]), count = new Map();
-    es.forEach(e => e.alleles.forEach(a => count.set(a, (count.get(a) || 0) + 1)));
-    const rep = [...count].filter(([, n]) => n >= 2).map(([a]) => a).sort((a, b) => a - b).slice(0, 2);
-    let reliable = false;
-    if (rep.length === 2) reliable = true;
-    else if (rep.length === 1) reliable = count.size === 1 && es.some(e => e.alleles.length === 1 && e.reliable);
-    loci[l.name] = { alleles: rep, reliable };
+    const picked = ((calls && calls[l.name]) || []).filter(a => a !== '' && a != null && !Number.isNaN(a)).map(Number);
+    if (picked.length >= 2) loci[l.name] = { alleles: [...new Set(picked.slice(0, 2))].sort((a, b) => a - b), reliable: true };
+    else loci[l.name] = { alleles: picked.slice(0, 1), reliable: false };
   }
-  const sex = profiles.map(p => p.sex).find(Boolean) || null;
-  const ids = [...new Set(profiles.map(p => p.scelleId))];
-  return autoResult({ derived: 'consensus', scelleId: ids.length === 1 ? ids[0] : null, sources: profiles.map(p => p.id) }, loci, sex);
+  return autoResult(base, loci, sex);
+}
+// Alleles actually seen in the replicates at a locus: the only ones the student can call.
+export function observedAlleles(replicates, locus) {
+  return [...new Set(replicates.flatMap(r => r.loci[locus].alleles))].sort((a, b) => a - b);
+}
+// Ungraded hints on a student's consensus (shown in amber, never a score).
+export function checkConsensus(calls, replicates) {
+  const out = [];
+  if (replicates.length < 2) return out;
+  for (const l of AUTO_LOCI) {
+    const seenIn = a => replicates.filter(r => r.loci[l.name].alleles.includes(a)).length;
+    const seen = observedAlleles(replicates, l.name);
+    const picked = ((calls && calls[l.name]) || []).filter(a => a !== '' && a != null).map(Number);
+    const kept = [...new Set(picked)];
+    const add = (id, fr, en) => out.push({ id, locus: l.name, text: text(l.name + ' : ' + fr, l.name + ': ' + en) });
+    if (!kept.length) { if (seen.length) add('empty', 'locus laissé vide alors que des allèles ont été observés.', 'locus left empty although alleles were observed.'); continue; }
+    for (const a of kept) if (seenIn(a) === 1) add('single', 'l’allèle ' + a + ' n’apparaît que dans un seul réplicat : il n’est pas reproduit.', 'allele ' + a + ' appears in only one replicate: it is not reproduced.');
+    for (const a of seen) if (seenIn(a) >= 2 && !kept.includes(a)) add('omitted', 'l’allèle ' + a + ' est reproduit dans plusieurs réplicats mais n’est pas retenu.', 'allele ' + a + ' is reproduced in several replicates but is not kept.');
+    if (picked.length >= 2 && picked[0] === picked[1]) { // homozygote call
+      if (seen.length > 1) add('homConflict', 'homozygote proposé alors que d’autres allèles ont été observés dans les réplicats.', 'homozygote called although other alleles were observed in the replicates.');
+      else if (!replicates.some(r => r.loci[l.name].alleles.length === 1 && r.loci[l.name].reliable)) add('homWeak', 'homozygote proposé alors qu’aucun réplicat ne montre un pic haut (au-dessus du seuil stochastique) : une perte d’allèle n’est pas exclue.', 'homozygote called although no replicate shows a tall peak (above the stochastic threshold): allele drop-out is not excluded.');
+    }
+  }
+  return out;
 }
 
 export function compareHaplotypes(h1, h2) {
