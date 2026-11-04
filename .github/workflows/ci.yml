@@ -43,3 +43,5 @@ jobs:
         run: node tools/devis-selftest.mjs
       - name: Requisition generator self-tests
         run: node tools/requisitions-selftest.mjs
+      - name: Simplified full-case self-tests
+        run: node tools/dossier-selftest.mjs
