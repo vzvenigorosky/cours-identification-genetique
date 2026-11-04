@@ -17,63 +17,20 @@ for (const t of TYPES) {
 assert.equal(R.generate('trace').type, 'trace');
 assert.equal(R.generate('disparu').type, 'disparu');
 
-// ---- vague: the mapped decisive fact is dropped and recorded ----
-for (let i = 0; i < 20; i++) {
-  const d = R.generate('suspect', { vague: true });
-  assert.equal(d.infractions, '', 'individu vague: offence blanked');
-  assert(d.degraded.some((x) => x.kind === 'vague' && x.archetype === 'offence-unstated'), 'individu vague recorded');
-}
-for (let i = 0; i < 20; i++) {
-  const d = R.generate('trace', { vague: true });
-  // The withheld nature is replaced by a plausible generic seal description —
-  // never a flag like "Nature à déterminer" that would announce the omission.
-  assert(d.scelles.every((sc) => sc.type === 'Objet placé sous scellé'), 'trace vague: nature silently unstated');
-  assert(d.scelles.every((sc) => !/à déterminer|non (détaillé|précisé|spécifié|communiqué|indiqué)/i.test(sc.type)), 'no self-announcing placeholder');
-  assert(d.degraded.some((x) => x.archetype === 'trace-nature-unstated'), 'trace vague recorded');
-}
-for (let i = 0; i < 30; i++) {
-  const d = R.generate('disparu', { vague: true });
-  // The withheld relationship is a blank field, not an announced "LIEN NON PRÉCISÉ".
-  const missing = d.parentele.filter((p) => p.lien === '');
-  assert.equal(missing.length, 1, 'disparu vague: exactly one relative relationship silently unstated');
-  assert(d.parentele.every((p) => !/non précisé|non spécifié/i.test(p.lien)), 'no self-announcing lien placeholder');
-  assert(d.degraded.some((x) => x.archetype === 'relationship-unstated'), 'disparu vague recorded');
-}
-
-// ---- the only quality axis is "vague"; no typo defect is ever produced ----
+// ---- #81: FNAEG forms are never vague, even if a caller asks for it ----
 for (const t of TYPES) {
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 20; i++) {
     const d = R.generate(t, { vague: true });
-    assert(d.degraded.every((x) => x.kind === 'vague'), `${t}: no non-vague degradation`);
-    assert(d.quality.vague === true, `${t}: vague flag set`);
+    assert.equal(d.quality.vague, false, `${t}: FNAEG form never vague`);
+    assert.equal(d.degraded.length, 0, `${t}: no degradation record`);
+    if (t === 'suspect' || t === 'condamne') assert(d.infractions, `${t}: offence always stated`);
+    if (t === 'trace') assert(d.scelles.every((sc) => sc.type !== 'Objet placé sous scellé'), 'trace: nature always stated');
+    if (t === 'disparu') assert(d.parentele.every((p) => p.lien), 'disparu: every kinship link stated');
   }
 }
+assert.equal(R.generate('trace').type, 'trace');
 
-// ---- data stays fictional: requérant/expert are from the fixed pools, no PII ----
-{
-  const d = R.generate('suspect', { vague: true });
-  assert(typeof d.expert === 'string' && d.expert.length > 0, 'expert present');
-  assert(d.etatCivil && d.etatCivil.pere === 'INCONNU INCONNU', 'filiation stays fictional placeholder');
-}
-
-// ---- corrigé support (#56): bilingual notes + a preserved dropped value ----
-for (const t of TYPES) {
-  const d = R.generate(t, { vague: true });
-  for (const e of d.degraded) {
-    assert(e.note && typeof e.note.fr === 'string' && e.note.fr.trim(), `${t}/${e.field}: French note`);
-    assert(typeof e.note.en === 'string' && e.note.en.trim(), `${t}/${e.field}: English note`);
-  }
-  const vagueEntry = d.degraded.find((e) => e.kind === 'vague');
-  assert(vagueEntry && 'was' in vagueEntry, `${t}: vague entry records the dropped value`);
-}
-// the dropped value is the real original (disparu: a true LIENS entry, not a blank)
-for (let i = 0; i < 20; i++) {
-  const d = R.generate('disparu', { vague: true });
-  const v = d.degraded.find((e) => e.archetype === 'relationship-unstated');
-  assert(v && v.was && v.was.trim() !== '', 'disparu: hidden lien preserved for the corrigé');
-}
-
-console.log(`Requisitions: clean / vague generation and bilingual corrigé notes for ${TYPES.length} types checked.`);
+console.log(`Requisitions: clean FNAEG generation (never vague) for ${TYPES.length} types checked.`);
 
 
 // ---- #61: bilingual, seeded narrative requisitions, independently of FNAEG forms ----
@@ -217,8 +174,7 @@ const yearOf = date => Number(date.split('/')[2]);
 const identifier = p => p.prenom + ' ' + p.nomNaissance;
 let legacyRelatives = 0, femaleCandidateChildren = 0;
 for (let i = 0; i < 3000; i++) {
-  const vague = i % 2 === 0;
-  const d = R.generate('disparu', { vague });
+  const d = R.generate('disparu');
   const candidate = d.disparue, candidateYear = yearOf(candidate.dateNaissance);
   const currentYear = new Date().getFullYear();
   assert(candidateYear <= currentYear - 32 && candidateYear >= currentYear - 55);
@@ -269,16 +225,13 @@ for (let i = 0; i < 3000; i++) {
 }
 assert(legacyRelatives > 3000, 'sample numerous relatives');
 assert(femaleCandidateChildren > 0, 'female-candidate children exercised the patrilineal naming branch');
-// The consented reference in a deliberately vague requisition still reflects
-// the same simulated person, only their stated relation is withheld — silently.
-for (let i = 0; i < 500; i++) {
-  const d = R.generate('disparu', { vague: true });
-  assert.equal(d.parentele.filter(p => p.lien === '').length, 1);
-  const hidden = d.parentele.find(p => p.lien === '');
-  assert(d.degraded[0].was && d.degraded[0].was.trim() !== '');
-  // The filiation that would reveal the hidden parent is blanked, not flagged.
-  if (hidden.relationId === 'father') assert.equal(d.disparue.pere, '');
-  if (hidden.relationId === 'mother') assert.equal(d.disparue.mere, '');
+// ---- #81: randomly drawn kinship cases only use close relatives ----
+for (let seed = 1; seed <= 600; seed++) {
+  const d = N.generate({ scenario: 'johnDoe', referenceMode: 'random', seed });
+  assert.notEqual(d.referenceMode, 'distantKin', 'random draw never picks distantKin');
+  for (const ref of d.references || []) {
+    assert(!/firstCousin|secondCousin|greatAunt|thirdCousin|fourthCousin/.test(String(ref.relation || ref.id || '')), 'no distant relative in random draw');
+  }
 }
 const distantIds = new Set(['firstCousin','secondCousin','greatAunt','thirdCousin','fourthCousin']);
 const distantDepth = {firstCousin:2,secondCousin:3,greatAunt:3,thirdCousin:4,fourthCousin:5};

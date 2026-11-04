@@ -367,12 +367,11 @@
     function esc2(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
     // Everything is random on each click (#format, case, comparison, quality).
-    // Quality is drawn independently of the format, so a vague request can be a
-    // FNAEG form or a free-form letter. The page then tells the student whether
+    // Only a free-form letter can be vague. The page then tells the student whether
     // something is missing (the button appears) without saying what.
-    function randomOpts() { return { vague: Math.random() < 0.5 }; }
+    // Free-form is the default (~80%); FNAEG forms are never vague (#81).
     function randomType() {
-      if (Math.random() < 0.5) return "narrative";
+      if (Math.random() < 0.8) return "narrative";
       var forms = ["suspect", "condamne", "trace", "disparu"];
       return forms[Math.floor(Math.random() * forms.length)];
     }
@@ -401,10 +400,10 @@
       refreshMissing();
     }
     function build() {
-      var type = randomType(), opts = randomOpts();
+      var type = randomType(), vague = type === "narrative" && Math.random() < 0.5;
       var data = type === "narrative"
-        ? window.NARRATIVE_REQUISITIONS.generate({ scenario: "random", referenceMode: "random", vague: !!opts.vague })
-        : REQ.generate(type, opts);
+        ? window.NARRATIVE_REQUISITIONS.generate({ scenario: "random", referenceMode: "random", vague: vague })
+        : REQ.generate(type);
       // Do not leave the previous case's missing-information panel open.
       document.getElementById("missing").classList.add("hidden");
       displayData(data);

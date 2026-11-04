@@ -189,52 +189,6 @@ window.REQUISITIONS = (function () {
     };
   }
 
-  // ---- quality degradation (issue #49) ------------------------------------
-  // A réquisition can be generated "vague": a decisive fact is left unstated,
-  // mapped to the devis-simulator archetypes (#32). What was degraded is
-  // recorded in data.degraded so a future exercise can grade against it. (The
-  // earlier "mal rédigée"/typo axis was removed in #68 — we do not teach typo
-  // detection.) All values stay fictional; the watermark and footer live in the
-  // render layer and are untouched. DRAFT teaching content.
-  // Drop one decisive fact, chosen by type (mirrors the devis clarity archetypes).
-  // Each entry carries a bilingual `note` and the hidden `was` value, so the
-  // generator's corrigé (#56) can explain and reveal what was dropped.
-  function vaguify(data) {
-    var log = [];
-    if (data.type === "trace") {
-      var wasTypes = data.scelles.map(function (sc) { return sc.type; }).join(", ");
-      // Withhold the nature silently: a generic, plausible seal description, NOT
-      // a flag like "Nature à déterminer". The student must notice that no
-      // biological nature is given, rather than be told so.
-      data.scelles.forEach(function (sc) { sc.type = "Objet placé sous scellé"; });
-      log.push({ field: "scelles[].type", kind: "vague", archetype: "trace-nature-unstated", was: wasTypes,
-                 note: { fr: "La nature des traces n'est pas précisée — demander au requérant quels prélèvements analyser.",
-                         en: "The nature of the traces is not stated — ask the requester which samples to analyse." } });
-    } else if (data.type === "disparu") {
-      if (data.parentele && data.parentele.length) {
-        var idx = Math.floor(Math.random() * data.parentele.length);
-        var wasLien = data.parentele[idx].lien;
-        // Leave the relationship field blank rather than flagging it: a missing
-        // "lien" is a silent omission the student must catch, not an announced
-        // "LIEN NON PRÉCISÉ" that gives the exercise away.
-        data.parentele[idx].lien = "";
-        // Do not disclose the hidden parent relationship through the
-        // missing person's filiation in the same PDF (blank, not flagged).
-        if (data.parentele[idx].relationId === "father") data.disparue.pere = "";
-        if (data.parentele[idx].relationId === "mother") data.disparue.mere = "";
-        log.push({ field: "parentele[" + idx + "].lien", kind: "vague", archetype: "relationship-unstated", was: wasLien,
-                   note: { fr: "Le lien de parenté d'un membre n'est pas indiqué — il détermine l'analyse (autosomique / Y-STR / mtADN).",
-                           en: "A relative's kinship link is not stated — it determines the analysis (autosomal / Y-STR / mtDNA)." } });
-      }
-    } else { // individu
-      var wasInf = data.infractions;
-      data.infractions = "";
-      log.push({ field: "infractions", kind: "vague", archetype: "offence-unstated", was: wasInf,
-                 note: { fr: "L'infraction 706-55 n'est pas précisée.", en: "The 706-55 offence is not stated." } });
-    }
-    return log;
-  }
-
   function generate(type, opts) {
     opts = opts || {};
     var data;
@@ -242,10 +196,10 @@ window.REQUISITIONS = (function () {
     else if (type === "trace") data = genTrace();
     else if (type === "disparu") data = genDisparu();
     else data = genIndividu("suspect");
-    var degraded = [];
-    if (opts.vague) degraded = degraded.concat(vaguify(data));
-    data.quality = { vague: !!opts.vague };
-    data.degraded = degraded;
+    // FNAEG forms are always complete and clear (#81): only free-form
+    // requests can be vague (see requisitions-narrative.js).
+    data.quality = { vague: false };
+    data.degraded = [];
     return data;
   }
 

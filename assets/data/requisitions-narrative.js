@@ -6,6 +6,9 @@ window.NARRATIVE_REQUISITIONS = (function () {
   const t = (fr,en) => ({fr,en});
   const SCENARIOS = ["johnDoe","sexualAssault"];
   const MODES = ["singleItem","multipleItems","closeKin","distantKin","mixed","none"];
+  // Randomly drawn cases never use very distant relatives (#81): investigators
+  // request first-degree references. "distantKin" stays selectable explicitly.
+  const RANDOM_MODES = ["singleItem","multipleItems","closeKin","mixed","none"];
   const PLACES = ["Lyon","Rennes","Toulouse","Dijon","Strasbourg","Nantes"];
   const SURNAMES = S.SURNAMES;
   const GIVEN = ["Camille","Alex","Morgan","Lou","Sacha","Claude","Dominique"];
@@ -181,7 +184,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
     if(["closeKin","distantKin","mixed"].includes(mode)) {
       const close=CLOSE.filter(x=>x.id!=="child"||family.child);
       const distant=DISTANT.filter(x=>x.id!=="greatAunt"||family.greatAunt);
-      const pool=mode==="closeKin"?close:mode==="distantKin"?distant:r.pick([close,distant]);
+      const pool=mode==="distantKin"?distant:close;
       const count=mode==="mixed"?r.int(1,2):r.int(1,Math.min(3,pool.length));
       for(const rel of r.shuffle(pool).slice(0,count)) {
         const p=family.relative(rel.id),title=p.sex==="M"?"M.":"Mme",desc=relationDesc(rel.id,p.sex);
@@ -354,7 +357,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
     const seed=opts.seed==null?Math.floor(Math.random()*4294967296):opts.seed;
     if(!Number.isInteger(Number(seed))||Number(seed)<0||Number(seed)>4294967295)throw Error("Invalid seed");
     const r=rng(seed),scenario=opts.scenario&&opts.scenario!=="random"?opts.scenario:r.pick(SCENARIOS);
-    const mode=scenario==="johnDoe"?(opts.referenceMode&&opts.referenceMode!=="random"?opts.referenceMode:r.pick(MODES)):null;
+    const mode=scenario==="johnDoe"?(opts.referenceMode&&opts.referenceMode!=="random"?opts.referenceMode:r.pick(RANDOM_MODES)):null;
     const d=scenario==="johnDoe"?makeJohnDoe(r,mode):makeAssault(r);
     d.seed=Number(seed);return degrade(d,opts,r);
   }
