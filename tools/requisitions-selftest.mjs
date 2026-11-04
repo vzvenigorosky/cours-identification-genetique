@@ -233,6 +233,38 @@ for (let seed = 1; seed <= 600; seed++) {
     assert(!/firstCousin|secondCousin|greatAunt|thirdCousin|fourthCousin/.test(String(ref.relation || ref.id || '')), 'no distant relative in random draw');
   }
 }
+// ---- #81: second-degree relatives always state their side (paternal / maternal) ----
+{
+  const seen = new Set();
+  const sideRe = /paternel|paternelle|maternel|maternelle/;
+  const enSideRe = /paternal|maternal/;
+  for (let seed = 1; seed <= 1500; seed++) {
+    const d = N.generate({ scenario: 'johnDoe', referenceMode: 'closeKin', seed });
+    for (const ref of d.references) {
+      const rel = ref.relationship, donor = rel.relativePerson;
+      if (!/^(paternal|maternal)/.test(rel.id)) continue;
+      seen.add(rel.id.replace(/^(paternal|maternal)/, '$1 '));
+      assert(sideRe.test(rel.summary.fr) && enSideRe.test(rel.summary.en), 'side stated in both languages: ' + rel.id);
+      assert(sideRe.test(ref.claimedSource.fr) && enSideRe.test(ref.claimedSource.en), 'side appears in the request text');
+      assert(donor.birthYear <= 2008, 'adult donor');
+      const f = rel.summary.fr;
+      if (/Grandfather|Uncle|Brother/.test(rel.id)) { assert.equal(donor.sex, 'M'); assert(/^(grand-père|oncle|demi-frère)/.test(f)); }
+      else { assert.equal(donor.sex, 'F'); assert(/^(grand-mère|tante|demi-sœur)/.test(f)); }
+      const paternal = rel.id.startsWith('paternal');
+      if (/Uncle|Aunt|Grandfather/.test(rel.id) && paternal) assert.equal(donor.surname, d.candidatePerson.surname, 'paternal-line male keeps the surname');
+      if (/Uncle|Aunt|Grandfather/.test(rel.id) && !paternal) assert.equal(donor.surname, d.family.mother.surname, 'maternal-line keeps the maternal surname');
+      if (/HalfBrother|HalfSister/.test(rel.id)) {
+        assert(Math.abs(donor.birthYear - d.candidatePerson.birthYear) >= 2);
+        if (paternal) assert.equal(donor.surname, d.candidatePerson.surname);
+        else assert.notEqual(donor.surname, d.candidatePerson.surname);
+      }
+      // A vague variant drops the whole relationship, side included.
+      const v = N.generate({ scenario: 'johnDoe', referenceMode: 'closeKin', seed, vague: true });
+      assert(v.degraded.length === 1);
+    }
+  }
+  assert(seen.size >= 12, 'every side/kind combination was exercised, got ' + seen.size);
+}
 const distantIds = new Set(['firstCousin','secondCousin','greatAunt','thirdCousin','fourthCousin']);
 const distantDepth = {firstCousin:2,secondCousin:3,greatAunt:3,thirdCousin:4,fourthCousin:5};
 const seenDistant = new Set();

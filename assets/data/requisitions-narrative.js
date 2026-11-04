@@ -69,6 +69,13 @@ window.NARRATIVE_REQUISITIONS = (function () {
     {id:"fullSibling",path:["candidate","sharedParents","sibling"],desc:t("frère ou sœur germain(e) présumé(e)","reported full sibling")},
     {id:"child",path:["candidate","child"],desc:t("enfant biologique présumé","reported biological child")}
   ];
+  // Second-degree relatives, always with their side (#81). One entry of each
+  // group is offered at random so that the groups are equally likely.
+  const SIDE_GROUPS = [
+    ["paternalGrandfather","paternalGrandmother","maternalGrandfather","maternalGrandmother"].map(id=>({id,path:["candidate",id.startsWith("p")?"father":"mother",id.endsWith("father")?"father":"mother"],sex:id.endsWith("father")?"M":"F"})),
+    ["paternalUncle","paternalAunt","maternalUncle","maternalAunt"].map(id=>({id,path:["candidate",id.startsWith("p")?"father":"mother","sibling"],sex:id.endsWith("Uncle")?"M":"F"})),
+    ["paternalHalfBrother","paternalHalfSister","maternalHalfBrother","maternalHalfSister"].map(id=>({id,path:["candidate",id.startsWith("p")?"father":"mother","child"],sex:id.endsWith("Brother")?"M":"F"}))
+  ];
   const DISTANT = [
     {id:"firstCousin",path:["candidate","parent","sharedGrandparents","auntOrUncle","cousin"],desc:t("cousin(e) germain(e) présumé(e) : grands-parents communs allégués","reported first cousin: claimed shared grandparents")},
     {id:"secondCousin",path:["candidate","grandparent","sharedGreatGrandparents","otherGrandchild","cousin"],desc:t("cousin(e) issu(e) de germains présumé(e) : arrière-grands-parents communs allégués","reported second cousin: claimed shared great-grandparents")},
@@ -114,7 +121,26 @@ window.NARRATIVE_REQUISITIONS = (function () {
     const greatAunt=auntYear>=1931?make("F",surname,auntYear):null;
     const ancestors={firstCousin:grandfather,secondCousin:greatGrandfather,greatAunt:greatGrandfather,
       thirdCousin:greatGreatGrandfather,fourthCousin:greatGreatGreatGrandfather};
-    const people={father,mother,fullSibling:sibling,child,greatAunt};
+    // Second-degree relatives (#81). Every one is on an explicit side, paternal
+    // or maternal; the side is what makes the kinship analysable. Paternal-line
+    // relatives carry the candidate's surname, maternal-line ones the mother's.
+    const mGrandfather=make("M",maiden,mother.birthYear-r.int(20,28));
+    const mGrandmother=make("F",r.pick(SURNAMES.filter(n=>n!==maiden)),mGrandfather.birthYear+r.int(-6,8));
+    const offset=()=>r.pick([-1,1])*r.int(2,9);
+    const sib=(sex,sn,ref)=>make(sex,sn,ref.birthYear+offset());
+    const halfSurname=()=>r.pick(SURNAMES.filter(n=>n!==surname));
+    const extended={
+      paternalGrandfather:grandfather,paternalGrandmother:grandmother,
+      maternalGrandfather:mGrandfather,maternalGrandmother:mGrandmother,
+      paternalUncle:sib("M",surname,father),paternalAunt:sib("F",surname,father),
+      maternalUncle:sib("M",maiden,mother),maternalAunt:sib("F",maiden,mother),
+      // Same father => candidate's surname; same mother => a different father's surname.
+      paternalHalfBrother:make("M",surname,birthYear+r.pick([-1,1])*r.int(2,10)),
+      paternalHalfSister:make("F",surname,birthYear+r.pick([-1,1])*r.int(2,10)),
+      maternalHalfBrother:make("M",halfSurname(),birthYear+r.pick([-1,1])*r.int(2,10)),
+      maternalHalfSister:make("F",halfSurname(),birthYear+r.pick([-1,1])*r.int(2,10))
+    };
+    const people=Object.assign({father,mother,fullSibling:sibling,child,greatAunt},extended);
     function relative(id) {
       if(people[id])return people[id];
       // A first cousin on the paternal male line shares the surname; more distant
@@ -149,6 +175,18 @@ window.NARRATIVE_REQUISITIONS = (function () {
       case "father": return t("père biologique présumé","reported biological father");
       case "fullSibling": return f?t("sœur germaine présumée","reported full sister"):t("frère germain présumé","reported full brother");
       case "child": return f?t("fille biologique présumée","reported biological daughter"):t("fils biologique présumé","reported biological son");
+      case "paternalGrandfather": return t("grand-père paternel présumé (père du père)","reported paternal grandfather (father's father)");
+      case "paternalGrandmother": return t("grand-mère paternelle présumée (mère du père)","reported paternal grandmother (father's mother)");
+      case "maternalGrandfather": return t("grand-père maternel présumé (père de la mère)","reported maternal grandfather (mother's father)");
+      case "maternalGrandmother": return t("grand-mère maternelle présumée (mère de la mère)","reported maternal grandmother (mother's mother)");
+      case "paternalUncle": return t("oncle paternel présumé (frère du père)","reported paternal uncle (father's brother)");
+      case "paternalAunt": return t("tante paternelle présumée (sœur du père)","reported paternal aunt (father's sister)");
+      case "maternalUncle": return t("oncle maternel présumé (frère de la mère)","reported maternal uncle (mother's brother)");
+      case "maternalAunt": return t("tante maternelle présumée (sœur de la mère)","reported maternal aunt (mother's sister)");
+      case "paternalHalfBrother": return t("demi-frère paternel présumé (même père)","reported paternal half-brother (same father)");
+      case "paternalHalfSister": return t("demi-sœur paternelle présumée (même père)","reported paternal half-sister (same father)");
+      case "maternalHalfBrother": return t("demi-frère maternel présumé (même mère)","reported maternal half-brother (same mother)");
+      case "maternalHalfSister": return t("demi-sœur maternelle présumée (même mère)","reported maternal half-sister (same mother)");
       case "firstCousin": return f?t("cousine germaine présumée : grands-parents communs allégués","reported first cousin: claimed shared grandparents")
                                   :t("cousin germain présumé : grands-parents communs allégués","reported first cousin: claimed shared grandparents");
       case "secondCousin": return f?t("cousine issue de germains présumée : arrière-grands-parents communs allégués","reported second cousin: claimed shared great-grandparents")
@@ -182,7 +220,7 @@ window.NARRATIVE_REQUISITIONS = (function () {
       }
     }
     if(["closeKin","distantKin","mixed"].includes(mode)) {
-      const close=CLOSE.filter(x=>x.id!=="child"||family.child);
+      const close=CLOSE.filter(x=>x.id!=="child"||family.child).concat(SIDE_GROUPS.map(g=>r.pick(g)));
       const distant=DISTANT.filter(x=>x.id!=="greatAunt"||family.greatAunt);
       const pool=mode==="distantKin"?distant:close;
       const count=mode==="mixed"?r.int(1,2):r.int(1,Math.min(3,pool.length));
