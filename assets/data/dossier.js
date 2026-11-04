@@ -117,7 +117,7 @@ const site = (id, fr, en, role, source, conc, di) => ({ id, label: text(fr, en),
 const single = (fr, en, source, conc = [0.4, 3.0], di = [1.0, 1.4]) => [site('main', fr, en, 'target', source, conc, di)];
 const BLANK = [0.0001, 0.003];
 const objectSites = (source, targetFr, targetEn, otherFr, otherEn, conc) => [
-  site('target', targetFr, targetEn, 'target', source, conc || [0.002, 0.3], [1.0, 5.0]),
+  site('target', targetFr, targetEn, 'target', source, conc || [0.0015, 0.12], [1.0, 5.0]),
   site('blank', otherFr || 'Zone non touchée (témoin)', otherEn || 'Untouched area (control)', 'blank', null, BLANK, [1.0, 1.2])
 ];
 
@@ -195,7 +195,7 @@ function buildFromDevis(rng, templateId, variant) {
     const slip = byId.slip, stainSource = slip.sperm === 'no' ? 'victim' : 'author';
     sites.slip = [
       site('stain', 'Gousset (zone souillée)', 'Gusset (stained area)', 'target', stainSource, [0.01, 0.6], [1.0, 4.0]),
-      site('band', 'Élastique de taille (ADN de contact)', 'Waistband (touch DNA)', 'secondary', 'victim', [0.003, 0.05], [1.0, 3.0]),
+      site('band', 'Élastique de taille (ADN de contact)', 'Waistband (touch DNA)', 'secondary', 'victim', [0.001, 0.03], [1.0, 3.0]),
       site('outer', 'Face externe propre (témoin)', 'Clean outer face (control)', 'blank', null, BLANK, [1.0, 1.2])
     ];
     // Sperm present or possible: the lab runs a differential extraction automatically and amplifies the sperm fraction only (#104).
@@ -214,7 +214,7 @@ function buildFromDevis(rng, templateId, variant) {
       const personal = FLAT_PERSONAL.has(s.id);
       const key = personal ? 'body' : 'visitor' + (++v);
       if (!personal) persons[key] = newPerson(rng);
-      sites[s.id] = objectSites(key, 'Zone d’usage', 'Area of use', 'Autre zone de l’objet', 'Other area of the item', [0.004, 0.4]);
+      sites[s.id] = objectSites(key, 'Zone d’usage', 'Area of use', 'Autre zone de l’objet', 'Other area of the item', [0.002, 0.15]);
       if (!personal) reasons[s.id] = text('Objet trouvé dans le salon, non rattaché à la personne à identifier.', 'Item found in the living room, not linked to the person to identify.');
       else comparisons.push({ kind: 'match', a: 'corps', b: s.id });
     }
@@ -417,13 +417,18 @@ export function checkAnalysis(c, quote, extracts, assign) {
 
 /* ---- simulated analyses ---- */
 const ART_OFF = { stutter: true, minusA: true, pullup: false, dropin: false, spike: false, blob: false, offladder: false, noise: false };
-const TH = { at: 150, st: 400 };
+// st (stochastic threshold) is deliberately high (#106): with ~130 RFU per template copy a lone peak must stand for many copies before it can
+// be read as a homozygote. Measured on truly parent-offspring pairs: st 400 wrongly excluded 17 %, st 1600 0.13 % (7 / 5,211, always a
+// heterozygote read as one tall peak), st 2400 0 / 3,143.
+const TH = { at: 150, st: 2400 };
+// Low-template (stochastic) behaviour for this exercise only (#106): teaching values, calibrated in docs/dossier.md.
+export const STOCHASTIC = { rfuPerCopy: 130, locusSigma: 0.6, rfuPerNg: 10000 };
 const degK = di => clamp((di - 1) * 0.5, 0, 3.5);
 const pcrNg = conc => Math.min(1, conc * 10); // up to 10 µL of extract, capped at 1 ng
 
 function peaksOf(kit, geno, amount, di, rng) {
   const contributors = geno ? [{ geno, amount, degradation: degK(di) }] : [];
-  return simulate(kit, contributors, { rng, art: ART_OFF, thresholds: TH }).peaks;
+  return simulate(kit, contributors, { rng, art: ART_OFF, thresholds: TH, stochastic: STOCHASTIC }).peaks;
 }
 export function genotypeOf(e) {
   if (!e) return null;
@@ -482,11 +487,11 @@ export function runSlot(c, slot, extract) {
   const rng = makeRng(c.seed + ':run:' + slot.key + ':' + extract.id);
   const base = { scelleId: slot.scelleId, slotKey: slot.key, extractId: extract.id, differential: !!extract.differential };
   if (slot.kind === 'auto') {
-    const o = autoFromPeaks(peaksOf(GF, person && person.auto.geno, 7000 * pcrNg(extract.conc), extract.di, rng));
+    const o = autoFromPeaks(peaksOf(GF, person && person.auto.geno, STOCHASTIC.rfuPerNg * pcrNg(extract.conc), extract.di, rng));
     return autoResult(base, o.loci, o.sex);
   }
   if (slot.kind === 'y') {
-    const peaks = peaksOf(YF, person && person.y && person.y.geno, 7000 * pcrNg(extract.male), extract.di, rng);
+    const peaks = peaksOf(YF, person && person.y && person.y.geno, STOCHASTIC.rfuPerNg * pcrNg(extract.male), extract.di, rng);
     const values = {};
     for (const l of YF.loci) {
       const want = person && person.y ? [...new Set(person.y.geno[l.name])].sort((a, b) => a - b) : null;

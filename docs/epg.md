@@ -20,6 +20,10 @@ Output shape: `{ samples, svg, answerKey }`.
 
 The EPG lab (`epg.html`) provides a bilingual `Vue globale / Full electropherogram` selector and one option per kit locus. Changing the selection reuses the same seed, case type and settings; allelic ladder and controls, when requested, are displayed with the same zoom. Omitting `zoomLocus` preserves the ordinary full-view display. The per-locus interval, kit bins and stochastic threshold remain approximate teaching values, not validated sizing or analytical thresholds.
 
+## Optional low-template model (issue #106)
+
+`simulate(kit, contributors, { stochastic: { rfuPerCopy, locusSigma } })` replaces the ±10 % peak noise by a copy-number model: each allele peak is `rfuPerCopy × N` with `N ~ Poisson(expected / rfuPerCopy)`, optionally times a per-locus log-normal efficiency (`locusSigma`, shared by the locus's alleles). The mean height is unchanged but variance grows as the template falls, giving heterozygote imbalance and random allele drop-out. **Off by default**: without the option the simulation is unchanged, and `generateCase` / the EPG lab do not use it. Used by the full-case exercise only (see `docs/dossier.md`).
+
 ## Case types
 The `CASE_TYPES` list exported from `assets/epg/index.js`:
 `clean`, `degraded`, `mixture2`, `mixture3`, `parent-child`, `full-siblings`, `half-siblings`, `avuncular`, `grandparent`, `unrelated`

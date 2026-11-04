@@ -17,6 +17,16 @@ export const DEFAULT_ART = {
 };
 
 /* degradation multiplier: larger fragments amplify less */
+/* Poisson draw (Knuth for small means, normal approximation above 40). */
+function poisson(lambda, rng) {
+  if (lambda <= 0) return 0;
+  if (lambda > 40) return Math.max(0, Math.round(rng.normal(lambda, Math.sqrt(lambda))));
+  const L = Math.exp(-lambda);
+  let k = 0, p = 1;
+  do { k++; p *= rng.next(); } while (p > L);
+  return k - 1;
+}
+
 function degFactor(size, k) {
   return Math.exp(-k * Math.max(0, size - 90) / 160);
 }
@@ -55,6 +65,9 @@ export function simulate(kit, contributors, opts = {}) {
     }
 
     const isY = l.type === "ystr" || kit.kind === "ystr";
+    // Stochastic model only: locus-to-locus amplification efficiency (log-normal, mean 1), shared by both alleles of the locus.
+    const st = opts.stochastic;
+    const locusEff = st && st.locusSigma ? Math.exp(rng.normal(0, st.locusSigma) - (st.locusSigma * st.locusSigma) / 2) : 1;
     for (const c of contributors) {
       const alleles = c.geno[l.name] || [];
       if (!alleles.length) continue;
@@ -68,7 +81,13 @@ export function simulate(kit, contributors, opts = {}) {
         let base = c.amount * (isY ? 1.7 : 1) * dose;
         // heterozygote balance: the longer allele amplifies a touch less
         if (dose === 1 && dm.size > 1 && size === maxAlleleSize) base *= rng.range(0.82, 1.0);
-        const h = base * degFactor(size, c.degradation) * rng.clampNormal(1, 0.10, 0.6, 1.4);
+        const expected = base * degFactor(size, c.degradation) * locusEff;
+        // Optional low-template (stochastic) model, opts.stochastic = { rfuPerCopy: K }: the peak is K × N, N ~ Poisson(expected / K)
+        // template copies actually amplified. The mean is unchanged, but the variance grows as the template falls (CV = 1/√copies):
+        // heterozygote imbalance and random allele drop-out appear at low quantities. Off by default (EPG lab unchanged).
+        const h = opts.stochastic
+          ? opts.stochastic.rfuPerCopy * poisson(expected / opts.stochastic.rfuPerCopy, rng) * rng.clampNormal(1, 0.10, 0.6, 1.4)
+          : expected * rng.clampNormal(1, 0.10, 0.6, 1.4);
         push({ locus: l.name, dye: l.dye, size, height: h, label: fmtAllele(a), kind: "allele" });
 
         // stutter
