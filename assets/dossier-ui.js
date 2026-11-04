@@ -3,6 +3,8 @@ import { PACKAGES, PACKAGE_ORDER, TEMPLATES, makeDossier, checkQuote, quoteTotal
   ANCESTRY, PHENO, LOW_CONC, N_AUTO } from './data/dossier.js';
 
 const $ = id => document.getElementById(id);
+// Anonymous step counts (assets/analytics.js; a no-op unless a GoatCounter code is configured). Event names only: never answers or seeds.
+const track = name => { if (window.Analytics) window.Analytics.event(name); };
 const lang = () => window.I18N.getLang();
 const L = (fr, en) => lang() === 'en' ? en : fr;
 const pick = o => window.I18N.pick(o);
@@ -26,6 +28,7 @@ function fresh() {
 function newCase(opts) {
   c = makeDossier(Math.floor(Math.random() * 1e9), opts);
   st = fresh();
+  track('full-case/case/' + c.template + '/' + c.variant);
   render();
 }
 
@@ -364,7 +367,8 @@ const actions = {
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
-  const fn = actions[b.dataset.act]; if (fn) fn(b);
+  const fn = actions[b.dataset.act];
+  if (fn) { track('full-case/' + (b.dataset.act === 'tool' ? 'tool-' + b.dataset.tool : b.dataset.act)); fn(b); }
 });
 document.addEventListener('change', e => {
   const f = e.target.dataset && e.target.dataset.f; if (!f) return;

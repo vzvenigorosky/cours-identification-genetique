@@ -45,3 +45,5 @@ jobs:
         run: node tools/requisitions-selftest.mjs
       - name: Simplified full-case self-tests
         run: node tools/dossier-selftest.mjs
+      - name: Analytics self-tests
+        run: node tools/analytics-selftest.mjs
