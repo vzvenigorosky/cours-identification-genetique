@@ -11,6 +11,8 @@ assert.deepEqual(D.PACKAGE_ORDER.map(k => [P[k].extractions, P[k].quantification
 assert.equal(D.quoteTotal({ a: 'trace', b: 'refMt', c: 'x' }), 500);
 assert.deepEqual(D.extractionBudget({ a: 'trace', b: 'ref' }), { a: 2, b: 1 });
 assert.equal(checkBilingual(P).bad.length, 0);
+for (const k of ['traceY', 'refY', 'traceMt', 'refMt']) assert(/autosomaux/.test(P[k].label.fr) && /autosomal/.test(P[k].label.en), k + ' name says the autosomal STR is included (#88)');
+for (const k of ['trace', 'ref', 'orient']) assert(!/autosom/.test(P[k].label.fr), k + ' keeps its plain name');
 
 // --- every template x variant x seeds: bilingual, deterministic, ideal path is warning-free ---
 const ideal = c => Object.fromEntries(Object.entries(c.need).filter(([, v]) => v));
@@ -29,6 +31,12 @@ for (const t of D.TEMPLATES) for (const variant of ['vague', 'clear']) for (let 
   assert.deepEqual(JSON.parse(JSON.stringify(c)), JSON.parse(JSON.stringify(again)), t + ' reproducible');
   assert.equal(checkBilingual({ r: c.requisition, c: c.clarification, s: c.scelles.map(s => [s.title, s.nature]), x: Object.values(c.reasons) }).bad.length, 0, t + ' bilingual');
   assert.equal(c.needsInfo, variant === 'vague', t + ' ' + variant + ' needsInfo');
+  const doeKey = { 'id-parent': 'unk', 'id-uncle': 'unk', 'id-maternal-aunt': 'unk', 'misc-flat': 'body' }[t];
+  if (doeKey) { // the sex of the unidentified person is stated from the start and matches the truth (#87)
+    const man = c.persons[doeKey].sex === 'M';
+    assert(man ? /un homme non identifié/.test(c.requisition.fr) && /unidentified man/.test(c.requisition.en) : /une femme non identifiée/.test(c.requisition.fr) && /unidentified woman/.test(c.requisition.en), t + ' states the sex');
+    if (t === 'id-uncle') assert(man, 'paternal-uncle case is a man');
+  } else assert(!/non identifié/.test(c.requisition.fr), t + ' has no unidentified remains');
   assert(!/garde à vue|police custody|une semaine|one week/i.test(c.requisition.fr + c.requisition.en), 'no tariff text');
   const q = ideal(c);
   assert(Object.keys(q).length > 0);
@@ -49,12 +57,15 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
   const ids_ = w => w.map(x => x.id);
   assert.deepEqual(ids_(D.checkQuote(c, {})), ['missing', 'missing'], 'nothing quoted: not enough');
   assert(ids_(D.checkQuote(c, { [ids[0]]: 'refY' })).includes('missing'));
-  assert.deepEqual(ids_(D.checkQuote(c, { [ids[0]]: 'ref', [ids[1]]: 'refY' })), ['lineageMissing']);
-  assert.deepEqual(ids_(D.checkQuote(c, { [ids[0]]: 'refMt', [ids[1]]: 'refY' })), ['wrongLineage']);
-  assert.deepEqual(ids_(D.checkQuote(c, { [ids[0]]: 'traceY', [ids[1]]: 'refY' })), ['refNeedsOne']);
+  assert.deepEqual(ids_(D.checkQuote(c, { [ids[0]]: 'trace', [ids[1]]: 'refY' })), ['lineageMissing']);
+  assert.deepEqual(ids_(D.checkQuote(c, { [ids[0]]: 'refY', [ids[1]]: 'refY' })), ['traceNeedsTwo'], 'a muscle fragment quoted as Référence is warned (#86)');
+  assert.deepEqual(ids_(D.checkQuote(c, { [ids[0]]: 'traceMt', [ids[1]]: 'refY' })), ['wrongLineage']);
+  assert.deepEqual(ids_(D.checkQuote(c, { [ids[0]]: 'traceY', [ids[1]]: 'traceY' })), ['refNeedsOne']);
+  assert.deepEqual(c.need, { [ids[0]]: 'traceY', [ids[1]]: 'refY' }, 'muscle = Trace-Y, reference swab = Référence-Y (#86)');
   assert.deepEqual(ids_(D.checkQuote(c, { [ids[0]]: 'orient', [ids[1]]: 'refY' })), ['wrongOrient']);
   const pc = D.makeDossier(7, { template: 'id-parent', variant: 'clear' });
-  assert(ids_(D.checkQuote(pc, { u: 'refY', r: 'refY' })).every(i => i === 'lineageNotNeeded'));
+  assert.deepEqual(pc.need, { u: 'trace', r: 'ref' });
+  assert(ids_(D.checkQuote(pc, { u: 'traceY', r: 'refY' })).every(i => i === 'lineageNotNeeded'));
   const ts = D.makeDossier(3, { template: 'trace-suspect', variant: 'clear' }), tq = ideal(ts), tid = ts.scelles[0].id;
   assert.deepEqual(D.checkQuote(ts, { ...tq, [tid]: 'ref' }).map(w => w.id), ['traceNeedsTwo']);
   assert.deepEqual(D.checkQuote(ts, { ...tq, extra: 'trace' }).length, 0, 'unknown id ignored');
