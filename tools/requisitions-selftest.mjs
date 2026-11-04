@@ -600,5 +600,49 @@ console.log('Issue #62/#67: 3,000 FNAEG family cases and 7,200 narrative configu
   currentLang = 'fr';
   events['gen:click']();
   assert(element('missing').classList.contains('hidden'), 'fresh case re-hides an opened panel');
-  console.log('Requisitions UI: 320 fully random cases, missing-information button and a bilingual letter-format PDF smoke PASS', counts);
+  // ---- #80 point 4: every case reproducible from one case number, also from the page link ----
+{
+  for (const type of ['suspect', 'condamne', 'trace', 'disparu']) {
+    for (let seed = 0; seed < 150; seed++) {
+      const a = R.generate(type, { seed }), b = R.generate(type, { seed });
+      assert.deepEqual(a, b, type + ': same seed, same form');
+      assert.equal(a.seed, seed);
+    }
+    assert.notDeepEqual(R.generate(type, { seed: 1 }), R.generate(type, { seed: 2 }), type + ': different seeds differ');
+    assert(Number.isInteger(R.generate(type).seed), 'an unseeded form still reports the seed it used');
+  }
+  assert.throws(() => R.generate('trace', { seed: -1 }));
+  assert.throws(() => R.generate('trace', { seed: 4294967296 }));
+  assert.throws(() => R.generate('trace', { seed: 1.5 }));
+
+  const source = narrativeUI.match(/<script>([\s\S]*?)<\/script>/)[1];
+  class Pdf { constructor() { this.texts = []; } saveGraphicsState() {} setFont() {} setFontSize() {} setTextColor() {} setFillColor() {} setDrawColor() {}
+    rect() {} line() {} setLineWidth() {} addImage() {} addPage() {} text(v) { this.texts.push(v); } splitTextToSize(v) { return [String(v)]; } output() { return 'blob:mock'; } save() {} }
+  function run(search) {
+    const w = { REQUISITIONS: R, NARRATIVE_REQUISITIONS: N, location: { search, origin: 'http://x', pathname: '/requisitions.html' },
+      history: { replaceState(a, b, url) { w.__url = url; } }, jspdf: { jsPDF: Pdf }, JsBarcode: () => {}, I18N: { getLang: () => 'fr' } };
+    const els = {};
+    const el = id => els[id] ||= { value: '', style: {}, disabled: false, textContent: '', innerHTML: '',
+      classList: { add() {}, remove() {}, contains: () => true, toggle: () => true }, addEventListener() {} };
+    const d = { getElementById: el, createElement: () => ({ toDataURL: () => 'data:image/png;base64,AAAA' }), addEventListener() {} };
+    new Function('window', 'document', 'I18N', 'Math', 'URL', source)(w, d, w.I18N, Math, { revokeObjectURL() {} });
+    return { w, els };
+  }
+  const kinds = new Set();
+  for (let seed = 0; seed < 120; seed++) {
+    const a = run('?seed=' + seed), b = run('?seed=' + seed);
+    assert.equal(JSON.stringify(a.w.__lastData), JSON.stringify(b.w.__lastData), 'the same link reproduces the same case');
+    assert.deepEqual(a.w.__lastDoc.texts, b.w.__lastDoc.texts, 'and the same PDF text');
+    assert.equal(a.w.__lastData.seed, seed);
+    assert.equal(a.w.__url, '?seed=' + seed, 'the case number is kept in the address bar');
+    assert(a.els.caseNo.textContent.includes(String(seed)), 'the case number is shown');
+    kinds.add(a.w.__lastData.type + ':' + a.w.__lastData.quality.vague);
+  }
+  assert(kinds.has('narrative:true') && kinds.has('narrative:false') && [...kinds].some(k => !k.startsWith('narrative')), 'seeds reach every kind of case: ' + [...kinds]);
+  for (const bad of ['', '?seed=abc', '?seed=4294967296', '?seed=-3', '?other=1']) {
+    const r = run(bad);
+    assert(Number.isInteger(r.w.__lastData.seed), 'invalid or missing seed falls back to a random case: ' + bad);
+  }
+}
+console.log('Requisitions UI: 320 fully random cases, missing-information button and a bilingual letter-format PDF smoke PASS', counts);
 }

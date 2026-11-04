@@ -15,10 +15,22 @@
    La mise en page PDF est assurée par requisitions.html (jsPDF).
    ============================================================ */
 window.REQUISITIONS = (function () {
-  function rint(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
-  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  // Seedable PRNG (mulberry32, same algorithm as assets/epg/rng.js). `rnd` is
+  // Math.random unless generate() is given a seed (reproducible cases).
+  function mulberry(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s + 0x6d2b79f5) | 0;
+      var t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  var rnd = Math.random;
+  function rint(a, b) { return a + Math.floor(rnd() * (b - a + 1)); }
+  function pick(a) { return a[Math.floor(rnd() * a.length)]; }
   function pad(n, w) { return String(n).padStart(w, "0"); }
-  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rnd() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
   // Fictional but plausible pools --------------------------------------------
   var NOMS = ["MARTIN", "BERNARD", "DUBOIS", "PETIT", "DURAND", "LEROY", "MOREAU", "SIMON", "LAURENT", "GARNIER",
@@ -40,7 +52,7 @@ window.REQUISITIONS = (function () {
   var SCELLE_LABELS = ["UN/PTS", "DEUX/PTS", "A/SRPJ", "B/SRPJ", "ECOUV-01", "ECOUV-02", "PV-1", "TRACE-A", "TRACE-B"];
   var TRACE_TYPES = ["Trace biologique sur objet", "Prélèvement sur cadavre", "Écouvillonnage de surface", "Mégot de cigarette", "Tache de sang séché", "Vêtement taché"];
 
-  function sex() { return Math.random() < 0.5 ? "M" : "F"; }
+  function sex() { return rnd() < 0.5 ? "M" : "F"; }
   function prenom(s) { return s === "M" ? pick(PRENOMS_M) : pick(PRENOMS_F); }
   function fullName() { var s = sex(); return { nom: pick(NOMS), prenom: prenom(s), sexe: s }; }
   function service(v) { return pick(SERVICES).replace("%V", v); }
@@ -214,13 +226,22 @@ window.REQUISITIONS = (function () {
     };
   }
 
+  // generate(type, { seed }): the same seed and type give the same form, so a case
+  // can be reproduced. Dates are relative to today, so reproduction is exact on the
+  // same day; without a seed the form is random.
   function generate(type, opts) {
     opts = opts || {};
+    var seed = opts.seed == null ? Math.floor(Math.random() * 4294967296) : Number(opts.seed);
+    if (!Number.isInteger(seed) || seed < 0 || seed > 4294967295) throw new Error("Invalid seed");
+    rnd = mulberry(seed);
     var data;
-    if (type === "condamne") data = genIndividu("condamne");
-    else if (type === "trace") data = genTrace();
-    else if (type === "disparu") data = genDisparu();
-    else data = genIndividu("suspect");
+    try {
+      if (type === "condamne") data = genIndividu("condamne");
+      else if (type === "trace") data = genTrace();
+      else if (type === "disparu") data = genDisparu();
+      else data = genIndividu("suspect");
+    } finally { rnd = Math.random; }
+    data.seed = seed;
     // FNAEG forms are always complete and clear (#81): only free-form
     // requests can be vague (see requisitions-narrative.js).
     data.quality = { vague: false };
