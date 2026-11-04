@@ -100,17 +100,34 @@ window.REQUISITIONS = (function () {
       ville: vd[0]
     };
   }
+  // Trace form: ONE legal-basis article per form; the authority follows from it
+  // and the seal types are compatible with it (owner decisions, issue #80).
+  //   parquet (autorisation du procureur) : 60, 77-1, 74, 74-1
+  //   instruction (juge d'instruction)    : 80-4, 151
+  // Art. 74 (discovery of a body) draws body-related seals; art. 74-1 and 80-4
+  // (disappearance) draw traces tied to a missing person's surroundings; 60, 77-1
+  // and 151 draw any trace type. DRAFT teaching rules pending the owner's review.
+  var TRACE_ARTICLES = ["60", "77-1", "74", "74-1", "80-4", "151"];
+  var AUTORITE_JUGE = ["80-4", "151"];
+  var TRACE_TYPES_BY_ARTICLE = {
+    "74": ["Prélèvement sur cadavre", "Vêtement taché", "Écouvillonnage de surface"],
+    "74-1": ["Trace biologique sur objet", "Écouvillonnage de surface", "Tache de sang séché", "Vêtement taché"],
+    "80-4": ["Trace biologique sur objet", "Écouvillonnage de surface", "Tache de sang séché", "Vêtement taché"]
+  };
   function genTrace() {
     var vd = pick(VILLES);
+    var article = pick(TRACE_ARTICLES);
+    var types = TRACE_TYPES_BY_ARTICLE[article] || TRACE_TYPES;
     var n = rint(1, 4);
     var usedLabels = shuffle(SCELLE_LABELS).slice(0, n);
     var scelles = [];
-    for (var i = 0; i < n; i++) scelles.push({ num: usedLabels[i], type: pick(TRACE_TYPES), barcode: barcode("40", 12) });
+    for (var i = 0; i < n; i++) scelles.push({ num: usedLabels[i], type: pick(types), barcode: barcode("40", 12) });
     return {
       type: "trace",
-      cadre: shuffle(["60", "77-1", "74", "74-1", "80-4", "151"]).slice(0, rint(1, 2)),
-      autorite: Math.random() < 0.5 ? { kind: "procureur", ville: "TJ " + vd[0] + " (" + vd[1] + ")" }
-                                    : { kind: "juge", ville: "CA " + vd[0] + " (" + vd[1] + ")", date: randPastDate(0, 1) },
+      cadre: [article],
+      autorite: AUTORITE_JUGE.indexOf(article) === -1
+        ? { kind: "procureur", ville: "TJ " + vd[0] + " (" + vd[1] + ")" }
+        : { kind: "juge", ville: "CA " + vd[0] + " (" + vd[1] + ")", date: randPastDate(0, 1) },
       alinea: pick(["1", "4"]),
       infractions: infractions(),
       requerant: requerant(vd[0]),
