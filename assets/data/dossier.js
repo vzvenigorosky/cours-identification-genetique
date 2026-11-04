@@ -527,14 +527,15 @@ export const KIN_LEVELS = {
   FS:     { code: 'FS',       k: [0.25, 0.5, 0.25], label: text('Germains (frères / sœurs)', 'Full siblings') },
   HSAVGC: { code: 'HS/AV/GC', k: [0.5, 0.5, 0],     label: text('Demi-germains / oncle-tante – neveu-nièce / grand-parent – petit-enfant', 'Half-siblings / avuncular / grandparent – grandchild') }
 };
-export const KIN_PRIORS = { PO: 0.25, FS: 0.25, HSAVGC: 0.25, unrelated: 0.25 }; // equal priors (teaching assumption, #96)
+export const KIN_PRIOR = 0.5; // each level is tested alone against "unrelated" with 50 % / 50 % priors (#99)
 const SAME = { k: [0, 0, 1], mu: MU };
 
-// Posterior probability of each level and of "unrelated" given the LRs (each against unrelated) and the priors.
-export function posteriors(hyp, priors = KIN_PRIORS) {
-  const w = { PO: priors.PO * hyp.PO.lr, FS: priors.FS * hyp.FS.lr, HSAVGC: priors.HSAVGC * hyp.HSAVGC.lr, unrelated: priors.unrelated };
-  const sum = w.PO + w.FS + w.HSAVGC + w.unrelated;
-  return Object.fromEntries(Object.entries(w).map(([k, v]) => [k, v / sum]));
+// Posterior probability of each level taken ALONE against "unrelated" (two hypotheses, prior `prior` for the level):
+// P = prior·LR / (prior·LR + (1 − prior)); with equal 50 % priors this is LR / (1 + LR). The three values are
+// independent comparisons and do not add up to 1.
+export function posteriors(hyp, prior = KIN_PRIOR) {
+  const post = lr => (prior * lr) / (prior * lr + (1 - prior));
+  return { PO: post(hyp.PO.lr), FS: post(hyp.FS.lr), HSAVGC: post(hyp.HSAVGC.lr) };
 }
 export function fmtPct(p, lang = 'en') {
   const dec = x => lang === 'fr' ? x.replace('.', ',') : x;
@@ -646,11 +647,11 @@ const NOTE_PROFILES = T('Cette conclusion porte uniquement sur la comparaison de
 function levelsLine(r, lang) {
   const f = x => fmtSci(x, lang), pc = x => fmtPct(x, lang);
   const parts = Object.entries(KIN_LEVELS).map(([k, d]) => d.code + ' : LR ' + f(r.hyp[k].lr) + ', ' + pc(r.post[k]));
-  return lang === 'fr' ? parts.join(' ; ') + ' ; non apparentés : ' + pc(r.post.unrelated) : parts.join('; ').replaceAll(' : LR', ': LR') + '; unrelated: ' + pc(r.post.unrelated);
+  return lang === 'fr' ? parts.join(' ; ') : parts.join('; ').replaceAll(' : LR', ': LR');
 }
 const levelsTexts = r => [
-  T('Niveaux de parenté (LR contre « non apparentés », probabilité a posteriori) — ' + levelsLine(r, 'fr') + '. Les probabilités a posteriori supposent des probabilités a priori égales (25 % par hypothèse).',
-    'Kinship levels (LR against “unrelated”, posterior probability) — ' + levelsLine(r, 'en') + '. Posterior probabilities assume equal prior probabilities (25% per hypothesis).')
+  T('Niveaux de parenté (LR et probabilité a posteriori, chaque niveau étant comparé séparément à « non apparentés » avec des probabilités a priori de 50 % / 50 %) — ' + levelsLine(r, 'fr') + '.',
+    'Kinship levels (LR and posterior probability, each level being compared separately with “unrelated” with prior probabilities of 50% / 50%) — ' + levelsLine(r, 'en') + '.')
 ];
 
 function describeKinship(c, cmp, get) {

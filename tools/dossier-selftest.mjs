@@ -134,21 +134,23 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
   { // an allelic exclusion makes PO exactly zero (#97); the other levels stay possible
     const x = D.compareProfiles(mkProf([5, 5]), mkProf([8, 8]));
     assert.equal(x.hyp.PO.lr, 0); assert.equal(x.post.PO, 0); assert.equal(x.hyp.PO.excluded, true);
-    assert(x.hyp.FS.lr > 0 && x.hyp.HSAVGC.lr > 0 && x.post.unrelated > 0);
+    assert(x.hyp.FS.lr > 0 && x.hyp.HSAVGC.lr > 0 && x.post.FS > 0 && x.post.HSAVGC > 0 && !('unrelated' in x.post));
     assert.deepEqual(Object.keys(D.KIN_LEVELS), ['PO', 'FS', 'HSAVGC'], 'kinship levels (#95)');
     assert.deepEqual(Object.values(D.KIN_LEVELS).map(l => l.code), ['PO', 'FS', 'HS/AV/GC']);
     assert(!('same' in D.KIN_LEVELS), 'no same-person row among the kinship levels');
     const ok = D.compareProfiles(mkProf([8, 9.3]), mkProf([8, 9.3]));
     assert.equal(ok.hyp.PO.excluded, false); assert(ok.hyp.PO.lr > 0);
   }
-  // posterior probabilities (#96): equal priors, sum to 1, = LR share
+  // posterior probabilities (#96, #99): each level alone against unrelated, 50 % / 50 % priors, LR / (1 + LR)
   {
-    const hyp = { PO: { lr: 3 }, FS: { lr: 1 }, HSAVGC: { lr: 0.5 } }, post = D.posteriors(hyp);
-    assert(Math.abs(Object.values(post).reduce((a, b) => a + b, 0) - 1) < 1e-12);
-    assert(Math.abs(post.PO - 3 / 5.5) < 1e-12 && Math.abs(post.unrelated - 1 / 5.5) < 1e-12);
-    assert.deepEqual(D.KIN_PRIORS, { PO: 0.25, FS: 0.25, HSAVGC: 0.25, unrelated: 0.25 });
-    assert(Math.abs(D.posteriors({ PO: { lr: 3 }, FS: { lr: 1 }, HSAVGC: { lr: 0.5 } }, { PO: 0.1, FS: 0.1, HSAVGC: 0.1, unrelated: 0.7 }).unrelated - 0.7 / (0.7 + 0.3 + 0.1 + 0.05)) < 1e-12, 'other priors change the posteriors');
+    const post = D.posteriors({ PO: { lr: 3 }, FS: { lr: 1 }, HSAVGC: { lr: 0.5 } });
+    assert.deepEqual(Object.keys(post), ['PO', 'FS', 'HSAVGC'], 'no "unrelated" row: three separate comparisons');
+    assert(Math.abs(post.PO - 0.75) < 1e-12 && Math.abs(post.FS - 0.5) < 1e-12 && Math.abs(post.HSAVGC - 1 / 3) < 1e-12);
+    assert.equal(D.KIN_PRIOR, 0.5);
+    assert(Math.abs(D.posteriors({ PO: { lr: 9 }, FS: { lr: 9 }, HSAVGC: { lr: 9 } }, 0.1).PO - 0.5) < 1e-12, 'other priors change the posterior: 0.1·9/(0.1·9+0.9) = 0.5');
     assert.equal(D.posteriors({ PO: { lr: 0 }, FS: { lr: 2 }, HSAVGC: { lr: 2 } }).PO, 0);
+    assert(Math.abs(D.posteriors({ PO: { lr: 1e7 }, FS: { lr: 2 }, HSAVGC: { lr: 2 } }).PO - 1e7 / (1e7 + 1)) < 1e-12);
+    assert(Math.abs(Object.values(post).reduce((a, b) => a + b, 0) - 1) > 1e-6, 'independent comparisons: they do not sum to 1');
     assert.equal(D.fmtPct(0, 'fr'), '0 %'); assert.equal(D.fmtPct(0.4567, 'fr'), '45,7 %'); assert.equal(D.fmtPct(0.4567, 'en'), '45.7 %'); assert.equal(D.fmtPct(0.0001, 'en'), '< 0.1 %');
   }
   assert.equal(D.compareProfiles(mkProf([8, 9.3]), { loci: { ...mkProf([8]).loci, TH01: { alleles: [8], reliable: false } } }).compatible, 1, 'partial locus is compatible with drop-out');
@@ -214,7 +216,7 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
 {
   for (let seed = 1; seed <= 60; seed++) {
     const par = D.makeDossier(seed, { template: 'id-parent', variant: 'clear' }), rp = D.compareProfiles(D.truthAuto(par.persons.unk), D.truthAuto(par.persons.rel));
-    assert.equal(rp.noShared, 0); assert(rp.hyp.PO.lr > 1); assert(rp.post.PO > rp.post.FS && rp.post.PO > rp.post.HSAVGC && rp.post.PO > rp.post.unrelated);
+    assert.equal(rp.noShared, 0); assert(rp.hyp.PO.lr > 1e3 && rp.post.PO > 0.999, 'true parent-offspring: high LR and posterior');
     for (const t of ['id-uncle', 'id-maternal-aunt']) {
       const u = D.makeDossier(seed, { template: t, variant: 'clear' }), r = D.compareProfiles(D.truthAuto(u.persons.unk), D.truthAuto(u.persons.rel));
       assert(r.noShared >= 1, t + ' shows allelic exclusions'); assert.equal(r.hyp.PO.lr, 0); assert.equal(r.post.PO, 0);
@@ -224,7 +226,7 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
     }
   }
   const pr = D.buildReveal(D.makeDossier(3, { template: 'id-parent', variant: 'clear' }), { results: [] }).items[0].complete.map(p => p.fr).join(' ');
-  assert(/PO : LR/.test(pr) && /FS : LR/.test(pr) && /HS\/AV\/GC : LR/.test(pr) && /non apparentés : /.test(pr) && /Aucune exclusion allélique/.test(pr));
+  assert(/PO : LR/.test(pr) && /FS : LR/.test(pr) && /HS\/AV\/GC : LR/.test(pr) && /50 % \/ 50 %/.test(pr) && !/non apparentés : /.test(pr) && /Aucune exclusion allélique/.test(pr));
 }
 
 // --- trace-suspect / identity: truth agrees with the reveal ---
