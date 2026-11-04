@@ -19,8 +19,10 @@
    ASSUMPTIONS (teaching values, pending the maintainer's scientific review —
    see docs/dossier.md): prices and package contents are the ones specified
    by the maintainer; concentrations, degradation, drop-out thresholds and the
-   ancestry / phenotype model are invented teaching values; no mixtures and no
-   differential extraction are modelled (each site carries ONE source); the
+   ancestry / phenotype model are invented teaching values; no mixtures are
+   modelled (each site carries ONE source); where sperm is present or possible
+   the differential extraction is automatic and only the sperm fraction is
+   amplified (carry-over of the complainant's DNA is NOT simulated, see #104); the
    random-match calculation uses approximate European allele frequencies
    (assets/epg/frequencies.js) without a co-ancestry correction.
 
@@ -196,6 +198,9 @@ function buildFromDevis(rng, templateId, variant) {
       site('band', 'Élastique de taille (ADN de contact)', 'Waistband (touch DNA)', 'secondary', 'victim', [0.003, 0.05], [1.0, 3.0]),
       site('outer', 'Face externe propre (témoin)', 'Clean outer face (control)', 'blank', null, BLANK, [1.0, 1.2])
     ];
+    // Sperm present or possible: the lab runs a differential extraction automatically and amplifies the sperm fraction only (#104).
+    // The student makes no choice, and the possible carry-over of the complainant's DNA is not simulated: it is only a margin reminder.
+    sites.slip[0].differential = stainSource === 'author';
     sites.refv = single('Écouvillon buccal de référence (prélèvement reçu)', 'Reference cheek swab (sample received)', 'victim');
     if (!byId.refv.relevant) reasons.refv = text('Le profil de la personne plaignante n’est pas demandé.', 'The complainant’s profile is not requested.');
     comparisons.push({ kind: 'single', a: 'slip' });
@@ -285,6 +290,15 @@ export function makeDossier(seed, opts = {}) {
   return { seed: rng.seed, template, variant, needsInfo: !!b.needsInfo, requisition, clarification: curl(b.clarification),
     scelles, persons: b.persons, sites: b.sites, need: b.need, reasons: b.reasons, comparisons: b.comparisons, relation: b.relation || null };
 }
+/* Automatic differential extraction (#104): notice, site tag and margin reminder. */
+export const hasDifferential = (c, scelleId) => !!(c.sites[scelleId] && c.sites[scelleId].some(x => x.differential));
+export const DIFFERENTIAL_NOTICE = text(
+  'Prélèvement pouvant contenir des spermatozoïdes : sur la zone concernée, l’analyse devient automatiquement une extraction différentielle et seule la fraction spermatique est amplifiée. Rien à choisir de votre côté.',
+  'Sample that may contain spermatozoa: on the area concerned, the analysis automatically becomes a differential extraction and only the sperm fraction is amplified. There is nothing for you to choose.');
+export const DIFFERENTIAL_SITE_TAG = text(' — extraction différentielle automatique', ' — automatic differential extraction');
+export const DIFFERENTIAL_MARGIN = text(
+  'Fraction spermatique (extraction différentielle automatique). Un report d’ADN de la personne plaignante est possible dans cette fraction ; ces allèles ne sont pas représentés ici. Rappel de cours : il n’y a rien à traiter.',
+  'Sperm fraction (automatic differential extraction). Carry-over of the complainant’s DNA is possible in this fraction; those alleles are not shown here. Course reminder: there is nothing to deal with.');
 export const scelleOf = (c, id) => c.scelles.find(s => s.id === id);
 export const scelleName = (c, id) => 'n°' + scelleOf(c, id).no;
 
@@ -352,7 +366,7 @@ export function doExtraction(c, scelleId, siteId, k) {
   const conc = round(logUniform(rng, st.source ? st.conc : BLANK), 4);
   const person = st.source ? c.persons[st.source] : null;
   const male = person && person.sex === 'M' ? round(conc * rng.range(0.85, 1.0), 4) : 0;
-  return { id: sc_.no + '.' + (k + 1), scelleId, siteId, k, source: st.source, conc, male,
+  return { id: sc_.no + '.' + (k + 1), scelleId, siteId, k, source: st.source, conc, male, differential: !!st.differential,
     mt: Math.round(conc * 2e5 * rng.range(0.6, 1.6)), di: round(rng.range(st.di[0], st.di[1]), 1) };
 }
 
@@ -466,7 +480,7 @@ export function ngsOf(genome, q, rng) {
 export function runSlot(c, slot, extract) {
   const person = extract.source ? c.persons[extract.source] : null;
   const rng = makeRng(c.seed + ':run:' + slot.key + ':' + extract.id);
-  const base = { scelleId: slot.scelleId, slotKey: slot.key, extractId: extract.id };
+  const base = { scelleId: slot.scelleId, slotKey: slot.key, extractId: extract.id, differential: !!extract.differential };
   if (slot.kind === 'auto') {
     const o = autoFromPeaks(peaksOf(GF, person && person.auto.geno, 7000 * pcrNg(extract.conc), extract.di, rng));
     return autoResult(base, o.loci, o.sex);
@@ -727,9 +741,9 @@ function describeMatch(c, cmp, get) {
 function describeSingle(c, cmp, get) {
   const A = get(cmp.a, 'auto'), na = nm(c, cmp.a);
   if (!A) return [T('Aucun profil autosomique n’est disponible pour le ' + na.fr + '.', 'No autosomal profile is available for ' + na.en + '.')];
-  const m = randomMatch(A);
-  if (m.loci < 8) return [T('Profil du ' + na.fr + ' : seulement ' + m.loci + ' loci typés ; trop partiel pour une comparaison fiable.', 'Profile of ' + na.en + ': only ' + m.loci + ' loci typed; too partial for a reliable comparison.')];
-  return [T('Profil du ' + na.fr + ' : ' + m.loci + ' loci typés ; fréquence du profil ≈ 1 sur ' + fmtSci(m.oneIn, 'fr') + ' (fréquences approchées). Ce profil peut être comparé ultérieurement à un profil de référence.', 'Profile of ' + na.en + ': ' + m.loci + ' loci typed; profile frequency ≈ 1 in ' + fmtSci(m.oneIn, 'en') + ' (approximate frequencies). This profile can later be compared with a reference profile.'), NOTE_PROFILES];
+  const m = randomMatch(A), diff = hasDifferential(c, cmp.a) ? [T('Profil de la fraction spermatique (extraction différentielle automatique). Un report d’ADN de la personne plaignante est possible dans cette fraction ; ces allèles ne sont pas représentés ici (rappel de cours).', 'Profile of the sperm fraction (automatic differential extraction). Carry-over of the complainant’s DNA is possible in this fraction; those alleles are not shown here (course reminder).')] : [];
+  if (m.loci < 8) return [T('Profil du ' + na.fr + ' : seulement ' + m.loci + ' loci typés ; trop partiel pour une comparaison fiable.', 'Profile of ' + na.en + ': only ' + m.loci + ' loci typed; too partial for a reliable comparison.')].concat(diff);
+  return [T('Profil du ' + na.fr + ' : ' + m.loci + ' loci typés ; fréquence du profil ≈ 1 sur ' + fmtSci(m.oneIn, 'fr') + ' (fréquences approchées). Ce profil peut être comparé ultérieurement à un profil de référence.', 'Profile of ' + na.en + ': ' + m.loci + ' loci typed; profile frequency ≈ 1 in ' + fmtSci(m.oneIn, 'en') + ' (approximate frequencies). This profile can later be compared with a reference profile.'), ...diff, NOTE_PROFILES];
 }
 
 function describeOrient(c, cmp, get) {

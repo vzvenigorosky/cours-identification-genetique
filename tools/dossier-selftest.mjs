@@ -220,6 +220,45 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
   }
 }
 
+// --- automatic differential extraction on sperm-bearing items (#104) ---
+{
+  let withSperm = 0, without = 0;
+  for (let seed = 1; seed <= 120; seed++) {
+    for (const t of D.TEMPLATES) {
+      const c = D.makeDossier(seed, { template: t });
+      for (const sc of c.scelles) {
+        const flagged = D.hasDifferential(c, sc.id);
+        if (t !== 'sa-ejaculation') { assert(!flagged, t + ' has no differential'); continue; }
+        if (sc.id !== 'slip') { assert(!flagged, 'only the underwear can carry sperm'); continue; }
+        const stain = c.sites.slip.find(x => x.id === 'stain'), authorStain = stain.source === 'author';
+        assert.equal(flagged, authorStain, 'flag exactly when sperm is present or possible (not when ejaculation is excluded)');
+        assert.deepEqual(c.sites.slip.filter(x => x.differential).map(x => x.id), authorStain ? ['stain'] : [], 'only the stained area, never the waistband or the clean control');
+        authorStain ? withSperm++ : without++;
+        // the student's quote is unchanged: a plain Trace, no new package, no extra choice
+        assert.equal(c.need.slip, 'trace');
+        const ex = D.doExtraction(c, 'slip', 'stain', 0), ban = D.doExtraction(c, 'slip', 'band', 0);
+        assert.equal(ex.differential, authorStain); assert.equal(ban.differential, false);
+        const r = D.runSlot(c, { key: 'k', scelleId: 'slip', kind: 'auto' }, ex);
+        assert.equal(r.differential, authorStain, 'the result remembers it comes from the sperm fraction');
+        // carry-over is NOT simulated: no allele of the complainant that the assailant lacks ever shows up
+        if (authorStain) for (const [loc, e] of Object.entries(r.loci)) {
+          const mine = new Set(c.persons.author.auto.geno[loc]);
+          assert(e.alleles.every(a => mine.has(a)), 'no carry-over allele in ' + loc);
+        }
+        // reveal mentions the reminder exactly when it applies
+        const txt = D.buildReveal(c, { results: [] }).items.find(i => /scellé n°1/.test(i.header.fr)).complete.map(p => p.fr + ' ' + p.en).join(' ');
+        assert.equal(/fraction spermatique/.test(txt) && /sperm fraction/.test(txt), authorStain);
+      }
+    }
+  }
+  assert(withSperm > 5 && without > 5, 'both situations occur: ' + withSperm + ' / ' + without);
+  for (const t of [D.DIFFERENTIAL_NOTICE, D.DIFFERENTIAL_SITE_TAG, D.DIFFERENTIAL_MARGIN]) assert(t.fr.trim() && t.en.trim());
+  assert(/automatiquement/.test(D.DIFFERENTIAL_NOTICE.fr) && /automatically/.test(D.DIFFERENTIAL_NOTICE.en) && /fraction spermatique/.test(D.DIFFERENTIAL_NOTICE.fr));
+  assert(/report/.test(D.DIFFERENTIAL_MARGIN.fr) && /carry-over/i.test(D.DIFFERENTIAL_MARGIN.en) && /rien à traiter/.test(D.DIFFERENTIAL_MARGIN.fr));
+  assert(!/€|prix|tarif|price/i.test(D.DIFFERENTIAL_NOTICE.fr + D.DIFFERENTIAL_NOTICE.en), 'the notice invents no price');
+  assert(!FORBIDDEN.test(D.DIFFERENTIAL_MARGIN.fr + D.DIFFERENTIAL_MARGIN.en + D.DIFFERENTIAL_NOTICE.fr + D.DIFFERENTIAL_NOTICE.en));
+}
+
 // --- kinship cases: exclusions where the pair is not PO, none where it is (#97) ---
 {
   for (let seed = 1; seed <= 60; seed++) {
