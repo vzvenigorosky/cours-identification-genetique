@@ -47,3 +47,5 @@ jobs:
         run: node tools/dossier-selftest.mjs
       - name: Analytics self-tests
         run: node tools/analytics-selftest.mjs
+      - name: Trial-exam generator self-tests
+        run: node tools/exam-selftest.mjs

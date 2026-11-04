@@ -16,6 +16,7 @@
     "devis:test": "node tools/devis-selftest.mjs",
     "requisitions:test": "node tools/requisitions-selftest.mjs",
     "dossier:test": "node tools/dossier-selftest.mjs",
-    "analytics:test": "node tools/analytics-selftest.mjs"
+    "analytics:test": "node tools/analytics-selftest.mjs",
+    "exam:test": "node tools/exam-selftest.mjs"
   }
 }
