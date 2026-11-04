@@ -15,6 +15,7 @@
     "pcr:test": "node tools/pcr-selftest.mjs",
     "devis:test": "node tools/devis-selftest.mjs",
     "requisitions:test": "node tools/requisitions-selftest.mjs",
-    "dossier:test": "node tools/dossier-selftest.mjs"
+    "dossier:test": "node tools/dossier-selftest.mjs",
+    "analytics:test": "node tools/analytics-selftest.mjs"
   }
 }
