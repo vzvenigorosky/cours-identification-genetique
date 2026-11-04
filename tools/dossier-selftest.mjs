@@ -220,6 +220,39 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
   }
 }
 
+// --- low quantities of DNA give far less complete, erratic profiles (#106) ---
+{
+  const med = v => v.slice().sort((x, y) => x - y)[v.length >> 1];
+  const NG = [1, 0.5, 0.25, 0.1, 0.05, 0.025, 0.01, 0.005], LO = [21, 21, 20, 14, 8, 3, 0, 0], HI = [21, 21, 21, 18, 12, 7, 2, 0]; // owner-approved target table
+  const cases = Array.from({ length: 100 }, (_, i) => D.makeDossier(i + 1, { template: 'trace-suspect', variant: 'clear' }));
+  const meds = NG.map(ng => med(cases.map((c, s) => D.runSlot(c, { key: 'k' + s, scelleId: c.scelles[0].id, kind: 'auto' }, { id: 'x' + s, source: 't0', conc: ng / 10, male: 0, mt: 1, di: 1.5 }).complete)));
+  meds.forEach((m, j) => assert(m >= LO[j] && m <= HI[j], `median typed loci at ${NG[j]} ng = ${m}, expected ${LO[j]}-${HI[j]}`));
+  assert(meds.filter(m => m >= 1 && m <= 20).length >= 4, 'no cliff: a wide band of quantities gives partial profiles: ' + meds.join(' '));
+  for (let j = 1; j < meds.length; j++) assert(meds[j] <= meds[j - 1], 'completeness never rises when the quantity falls');
+  // the same extract analysed twice gives visibly different profiles at low quantity
+  let differ = 0; for (let i = 0; i < 60; i++) { const c = cases[i], ex = { id: 'z' + i, source: 't0', conc: 0.005, male: 0, mt: 1, di: 1.5 };
+    const a = D.runSlot(c, { key: 'a' + i + ':auto:1', scelleId: c.scelles[0].id, kind: 'auto' }, ex), b = D.runSlot(c, { key: 'a' + i + ':auto:2', scelleId: c.scelles[0].id, kind: 'auto' }, ex);
+    if (JSON.stringify(a.loci) !== JSON.stringify(b.loci)) differ++; }
+  assert(differ >= 45, 'replicates of a low-quantity extract differ in most cases: ' + differ + '/60');
+  // the profiles still contain only the person's own alleles (no drop-in, no foreign allele)
+  for (const c of cases.slice(0, 40)) { const r = D.runSlot(c, { key: 'o', scelleId: c.scelles[0].id, kind: 'auto' }, { id: 'o', source: 't0', conc: 0.02, male: 0, mt: 1, di: 3 });
+    for (const [loc, e] of Object.entries(r.loci)) assert(e.alleles.every(a => c.persons.t0.auto.geno[loc].includes(a)), 'only own alleles at ' + loc); }
+  // a lone peak is only a "reliable" homozygote when it is tall: no false exclusion for TRUE parent-offspring pairs (measured 1 in ~5,000 over all quantities)
+  let tot = 0, wrong = 0;
+  for (let seed = 1; seed <= 80; seed++) for (const conc of [0.005, 0.01, 0.02, 0.05, 0.1, 1]) for (const di of [1.2, 3, 5]) {
+    const c = D.makeDossier(seed, { template: 'id-parent', variant: 'clear' }), mk = (src, k) => D.runSlot(c, { key: 'p' + k + seed + conc + di, scelleId: 'u', kind: 'auto' }, { id: 'x' + k, source: src, conc, male: 0, mt: 1, di });
+    const r = D.compareProfiles(mk('unk', 1), mk('rel', 2)); if (r.lociCompared < 8) continue; tot++; if (r.noShared > 0) wrong++; }
+  assert(tot > 600 && wrong / tot < 0.002, `false PO exclusions: ${wrong} / ${tot}`);
+  // trace sites are poorer than before: a good share of target extracts is below 0.01 ng/uL, and sperm stains / references stay rich
+  const concs = []; for (let seed = 1; seed <= 120; seed++) { const c = D.makeDossier(seed, { template: 'trace-suspect' }); for (const s of c.scelles.filter(x => x.id !== 'ref')) concs.push(D.doExtraction(c, s.id, 'target', 0).conc); }
+  assert(concs.filter(x => x < 0.01).length / concs.length > 0.25, 'a good share of trace extracts is very poor');
+  assert(med(concs) < 0.03, 'median trace extract: ' + med(concs));
+  for (let seed = 1; seed <= 40; seed++) { const c = D.makeDossier(seed, { template: 'sa-ejaculation' }); assert(D.doExtraction(c, 'refv', 'main', 0).conc > 0.3, 'reference swabs stay rich'); }
+  // Y-STR quality falls with the male DNA too
+  const yq = ng => med(Array.from({ length: 60 }, (_, s) => { const c = D.makeDossier(s + 1, { template: 'id-uncle', variant: 'clear' }); return D.runSlot(c, { key: 'y' + s, scelleId: 'u', kind: 'y' }, { id: 'x', source: 'unk', conc: ng / 10, male: ng / 10, mt: 1, di: 1.5 }).quality; }));
+  assert(yq(1) === 100 && yq(0.025) < 90 && yq(0.01) < yq(0.025), 'Y quality falls with male DNA: ' + [1, 0.025, 0.01].map(yq).join(' '));
+}
+
 // --- automatic differential extraction on sperm-bearing items (#104) ---
 {
   let withSperm = 0, without = 0;

@@ -273,5 +273,28 @@ for (const kit of ["globalfiler", "yfilerplus"]) {
      "zoom: kit and page initialization populate selector");
 }
 
+// ---- optional stochastic low-template model (#106): off by default, opt-in via opts.stochastic ----
+{
+  const { simulate } = await import("../assets/epg/simulate.js");
+  const { makeRng } = await import("../assets/epg/rng.js");
+  const { randomProfile } = await import("../assets/epg/genetics.js");
+  const K = getKit("globalfiler"), g = randomProfile(K, makeRng("sto"), { sex: "M" });
+  const art = { stutter: true, minusA: true, pullup: false, dropin: false, spike: false, blob: false, offladder: false, noise: false };
+  const run = (amount, st, seed) => simulate(K, [{ geno: g.geno, amount, degradation: 0 }], { rng: makeRng(seed), art, stochastic: st });
+  const sig = r => JSON.stringify(r.peaks.map(p => [p.locus, p.size, p.height]));
+  ok(sig(run(3000, undefined, 1)) === sig(run(3000, undefined, 1)), "stochastic: default path reproducible");
+  ok(sig(run(3000, undefined, 1)) === sig(simulate(K, [{ geno: g.geno, amount: 3000, degradation: 0 }], { rng: makeRng(1), art })),
+     "stochastic: omitting the option is identical to the default path");
+  const st = { rfuPerCopy: 130, locusSigma: 0.6 };
+  ok(sig(run(3000, st, 1)) === sig(run(3000, st, 1)), "stochastic: reproducible for a seed");
+  ok(sig(run(3000, st, 1)) !== sig(run(3000, undefined, 1)), "stochastic: the option changes the simulation");
+  const alleles = r => r.peaks.filter(p => p.called && p.kind === "allele" && K.loci.find(l => l.name === p.locus && !l.type)).length;
+  const mean = (amt, o) => { let t = 0; for (let i = 1; i <= 60; i++) t += alleles(run(amt, o, "m" + i)); return t / 60; };
+  ok(mean(4000, st) > 36, "stochastic: plenty of template still gives (almost) all 42 alleles");
+  ok(mean(250, st) < mean(250, undefined) - 5, "stochastic: low template loses clearly more alleles than the deterministic model");
+  const spread = (amt, o) => { const h = []; for (let i = 1; i <= 40; i++) { const r = run(amt, o, "v" + i); const p = r.peaks.filter(p => p.kind === "allele" && p.locus === "TH01"); if (p.length) h.push(p[0].height); } const m = h.reduce((a, b) => a + b, 0) / h.length; return Math.sqrt(h.reduce((a, b) => a + (b - m) ** 2, 0) / h.length) / m; };
+  ok(spread(600, st) > 2 * spread(600, undefined), "stochastic: peak-height variability grows at low template");
+}
+
 console.log(`\n${fail === 0 ? "✓ ALL PASS" : "✗ FAILURES"} — ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
