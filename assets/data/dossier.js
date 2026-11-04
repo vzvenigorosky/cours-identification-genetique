@@ -60,16 +60,16 @@ export const PACKAGES = {
              label: text('Référence', 'Reference'),
              detail: text('une extraction, une quantification, un profil STR autosomal', 'one extraction, one quantification, one autosomal STR profile') },
   traceY:  { price: 100, base: 'trace',  lineage: 'y', extractions: 2, quantifications: 2, slots: ['auto', 'auto', 'y'],
-             label: text('Trace-Y', 'Trace-Y'),
+             label: text('Trace — autosomaux + STR-Y', 'Trace — autosomal + Y-STR'),
              detail: text('deux extractions, deux quantifications, deux profils STR autosomaux, un haplotype STR-Y', 'two extractions, two quantifications, two autosomal STR profiles, one Y-STR haplotype') },
   refY:    { price: 50,  base: 'ref',    lineage: 'y', extractions: 1, quantifications: 1, slots: ['auto', 'y'],
-             label: text('Référence-Y', 'Reference-Y'),
+             label: text('Référence — autosomaux + STR-Y', 'Reference — autosomal + Y-STR'),
              detail: text('une extraction, une quantification, un profil STR autosomal, un haplotype STR-Y', 'one extraction, one quantification, one autosomal STR profile, one Y-STR haplotype') },
   traceMt: { price: 600, base: 'trace',  lineage: 'mt', extractions: 2, quantifications: 2, slots: ['auto', 'mt'],
-             label: text('Trace-mtDNA', 'Trace-mtDNA'),
+             label: text('Trace — autosomaux + mtDNA', 'Trace — autosomal + mtDNA'),
              detail: text('deux extractions, deux quantifications, un profil STR autosomal, un haplotype mitochondrial complet', 'two extractions, two quantifications, one autosomal STR profile, one complete mitochondrial haplotype') },
   refMt:   { price: 400, base: 'ref',    lineage: 'mt', extractions: 1, quantifications: 1, slots: ['auto', 'mt'],
-             label: text('Référence-mtDNA', 'Reference-mtDNA'),
+             label: text('Référence — autosomaux + mtDNA', 'Reference — autosomal + mtDNA'),
              detail: text('une extraction, une quantification, un profil STR autosomal, un haplotype mitochondrial complet', 'one extraction, one quantification, one autosomal STR profile, one complete mitochondrial haplotype') },
   orient:  { price: 400, base: 'orient', lineage: null, extractions: 2, quantifications: 2, slots: ['ngs'],
              label: text('Orientation', 'Orientation'),
@@ -158,12 +158,14 @@ const joinT = (...p) => text(p.map(x => x.fr).join(''), p.map(x => x.en).join(''
 function needFromDevis(s, relation) {
   const e = expectedLine(s, relation);
   if (!e.analyse) return null;
-  return packageType(s.trace ? 'trace' : 'ref', e.y ? 'y' : e.mt ? 'mt' : null);
+  // A muscle / organ fragment is quoted as a Trace (two extractions), not as a reference sample (#86).
+  return packageType(s.trace || s.material === 'tissue' ? 'trace' : 'ref', e.y ? 'y' : e.mt ? 'mt' : null);
 }
 
 function buildFromDevis(rng, templateId, variant) {
   const dc = makeDevisCase(rng.int(1, 2 ** 30), { template: templateId, variant, deadline: 'normal' });
   const persons = {}, sites = {}, reasons = {}, comparisons = [];
+  const doe = templateId === 'sa-ejaculation' ? null : templateId === 'misc-flat' ? 'body' : 'unk';
   const byId = Object.fromEntries(dc.scelles.map(s => [s.id, s]));
   const need = Object.fromEntries(dc.scelles.map(s => [s.id, needFromDevis(s, dc.relation)]));
 
@@ -212,7 +214,7 @@ function buildFromDevis(rng, templateId, variant) {
       else comparisons.push({ kind: 'match', a: 'corps', b: s.id });
     }
   }
-  return { dc, persons, sites, need, reasons, comparisons };
+  return { dc, persons, sites, need, reasons, comparisons, doe };
 }
 
 /* ----- own templates: trace vs suspect, orientation ----- */
@@ -260,6 +262,11 @@ function buildOrientation(rng, variant) {
 
 const curl = o => o && typeof o === 'object' && 'fr' in o ? text(o.fr.replaceAll("'", '’'), o.en.replaceAll("'", '’')) : o;
 
+// The sex of an unidentified person (John / Jane Doe) is known from the start (#87).
+const doeSentence = sex => sex === 'M'
+  ? text(' Les restes sont ceux d’un homme non identifié.', ' The remains are those of an unidentified man.')
+  : text(' Les restes sont ceux d’une femme non identifiée.', ' The remains are those of an unidentified woman.');
+
 export function makeDossier(seed, opts = {}) {
   const rng = makeRng(seed);
   const template = opts.template || rng.pick(TEMPLATES);
@@ -269,12 +276,13 @@ export function makeDossier(seed, opts = {}) {
   if (DEVIS_BASED.has(template)) {
     const d = buildFromDevis(rng, template, variant);
     b = { requisition: d.dc.requisition, clarification: d.dc.clarification, needsInfo: d.dc.needsInfo, scelles: d.dc.scelles, persons: d.persons,
-      sites: d.sites, need: d.need, reasons: d.reasons, comparisons: d.comparisons, relation: d.dc.relation };
+      sites: d.sites, need: d.need, reasons: d.reasons, comparisons: d.comparisons, relation: d.dc.relation, doe: d.doe };
   } else {
     b = template === 'trace-suspect' ? buildTraceSuspect(rng, variant) : buildOrientation(rng, variant);
   }
   const scelles = b.scelles.map((s, i) => ({ id: s.id, no: i + 1, title: curl(s.title), nature: curl(s.nature) }));
-  return { seed: rng.seed, template, variant, needsInfo: !!b.needsInfo, requisition: curl(b.requisition), clarification: curl(b.clarification),
+  const requisition = b.doe ? joinT(curl(b.requisition), doeSentence(b.persons[b.doe].sex)) : curl(b.requisition);
+  return { seed: rng.seed, template, variant, needsInfo: !!b.needsInfo, requisition, clarification: curl(b.clarification),
     scelles, persons: b.persons, sites: b.sites, need: b.need, reasons: b.reasons, comparisons: b.comparisons, relation: b.relation || null };
 }
 export const scelleOf = (c, id) => c.scelles.find(s => s.id === id);
@@ -307,8 +315,8 @@ export function checkQuote(c, quote) {
     }
     if (n.base !== g.base) {
       out.push(n.base === 'trace'
-        ? W('traceNeedsTwo', s.id, 'Le scellé ' + r.fr + ' porte une trace : le forfait « Référence » ne prévoit qu’une extraction et un profil, ce qui ne permet pas de vérifier la reproductibilité du résultat.', 'Exhibit ' + r.en + ' carries a trace: the “Reference” package only provides one extraction and one profile, which does not allow the result to be checked for reproducibility.')
-        : W('refNeedsOne', s.id, 'Le scellé ' + r.fr + ' est un prélèvement de référence, abondant : le forfait « Trace » (deux extractions, deux profils) est plus que nécessaire.', 'Exhibit ' + r.en + ' is a reference sample, abundant: the “Trace” package (two extractions, two profiles) is more than needed.'));
+        ? W('traceNeedsTwo', s.id, 'Le scellé ' + r.fr + ' est à échantillonner (trace, fragment de muscle ou d’organe) : le forfait « Référence » ne prévoit qu’une extraction et un profil, ce qui ne permet pas de vérifier la reproductibilité du résultat.', 'Exhibit ' + r.en + ' has to be sampled (trace, muscle or organ fragment): the “Reference” package only provides one extraction and one profile, which does not allow the result to be checked for reproducibility.')
+        : W('refNeedsOne', s.id, 'Le scellé ' + r.fr + ' est un prélèvement de référence déjà réalisé, abondant : le forfait « Trace » (deux extractions, deux profils) est plus que nécessaire.', 'Exhibit ' + r.en + ' is a reference sample already taken, abundant: the “Trace” package (two extractions, two profiles) is more than needed.'));
     }
     if (n.lineage !== g.lineage) {
       if (n.lineage && !g.lineage) out.push(W('lineageMissing', s.id, 'Pour le scellé ' + r.fr + ', la parenté en jeu ne peut pas être éclairée par les seuls STR autosomaux : un marqueur de lignée est nécessaire — ' + lineageName(n.lineage).fr + '.', 'For exhibit ' + r.en + ', the kinship at stake cannot be addressed by autosomal STRs alone: a lineage marker is needed — ' + lineageName(n.lineage).en + '.'));
