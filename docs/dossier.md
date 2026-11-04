@@ -24,9 +24,12 @@ Prototype for the maintainer's scientific review. Package contents and prices ar
 - LR: pairwise IBD formula (k0, k1, k2) per locus on loci typed in both profiles, blended with a 0.2 % mutation / error term; frequencies from `assets/epg/frequencies.js` (approximate European). Random match = product of p² / 2pq over reliably typed loci, no θ correction. Lineage haplotype frequency is deliberately **not** computed (needs a counting database).
 - Reveal wording: statements compare profiles only, use a verbal LR scale, and end with a fixed sentence saying nothing is inferred about the case. The test suite rejects assertive words (guilty, proves, certainty…).
 
-## Points for the maintainer
+## Owner decisions
 
-- Trace-Y costs the same as Trace (100 €) and Référence-Y the same as Référence (50 €), as written in the specification: is the add-on meant to be free?
+- **Y-STR is intentionally free.** Trace-Y costs the same as Trace (100 €) and Référence-Y the same as Référence (50 €). Confirmed by the owner (2026-11-04); not a typo, not to be "fixed".
+
+## Points still open for the maintainer
+
 - Orientation replaces the STR profile (no STR is produced); the two Orientation cases state that no STR profile is requested.
 - Concentration ranges, the 5 pg/µL indicative threshold, degradation-to-drop-out mapping and the ancestry / phenotype tables need review.
 - A scellé takes exactly one package; adding a second package to the same scellé is not possible.
