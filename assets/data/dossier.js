@@ -537,10 +537,18 @@ export function posteriors(hyp, prior = KIN_PRIOR) {
   const post = lr => (prior * lr) / (prior * lr + (1 - prior));
   return { PO: post(hyp.PO.lr), FS: post(hyp.FS.lr), HSAVGC: post(hyp.HSAVGC.lr) };
 }
+// Arbitrary teaching threshold for a posterior probability (owner convention, #100) — not a legal or laboratory standard.
+export const POSTERIOR_THRESHOLD = 0.9999999; // 99.99999 %
+export const THRESHOLD_LABEL = { fr: '99,99999 %', en: '99.99999%' };
+export const reachesThreshold = p => p >= POSTERIOR_THRESHOLD - 1e-12;
+// LR needed to reach a posterior probability against "unrelated" for a given prior (50 %: LR = P / (1 − P) ≈ 10^7).
+export const lrForPosterior = (post = POSTERIOR_THRESHOLD, prior = KIN_PRIOR) => (post / (1 - post)) * ((1 - prior) / prior);
 export function fmtPct(p, lang = 'en') {
   const dec = x => lang === 'fr' ? x.replace('.', ',') : x;
   if (p === 0) return '0 %';
   if (p < 0.0005) return '< ' + dec('0.1') + ' %';
+  if (reachesThreshold(p)) return '≥ ' + THRESHOLD_LABEL[lang === 'fr' ? 'fr' : 'en'].replace('%', '').trim() + ' %'; // keeps "just under" distinguishable
+  if (p >= 0.99) return dec((p * 100).toFixed(5)) + ' %';
   return dec((Math.round(p * 1000) / 10).toFixed(1)) + ' %';
 }
 
@@ -649,9 +657,15 @@ function levelsLine(r, lang) {
   const parts = Object.entries(KIN_LEVELS).map(([k, d]) => d.code + ' : LR ' + f(r.hyp[k].lr) + ', ' + pc(r.post[k]));
   return lang === 'fr' ? parts.join(' ; ') : parts.join('; ').replaceAll(' : LR', ': LR');
 }
+const thresholdText = r => {
+  const hit = Object.entries(KIN_LEVELS).filter(([k]) => reachesThreshold(r.post[k])).map(([, d]) => d.code);
+  return T('Seuil arbitraire de cet exercice : probabilité a posteriori ≥ ' + THRESHOLD_LABEL.fr + ' (LR ≈ 10⁷ avec des a priori de 50 %). ' + (hit.length ? 'Seuil atteint par : ' + hit.join(', ') + '.' : 'Aucun niveau n’atteint ce seuil.'),
+    'Arbitrary threshold of this exercise: posterior probability ≥ ' + THRESHOLD_LABEL.en + ' (LR ≈ 10⁷ with 50% priors). ' + (hit.length ? 'Threshold reached by: ' + hit.join(', ') + '.' : 'No level reaches this threshold.'));
+};
 const levelsTexts = r => [
   T('Niveaux de parenté (LR et probabilité a posteriori, chaque niveau étant comparé séparément à « non apparentés » avec des probabilités a priori de 50 % / 50 %) — ' + levelsLine(r, 'fr') + '.',
-    'Kinship levels (LR and posterior probability, each level being compared separately with “unrelated” with prior probabilities of 50% / 50%) — ' + levelsLine(r, 'en') + '.')
+    'Kinship levels (LR and posterior probability, each level being compared separately with “unrelated” with prior probabilities of 50% / 50%) — ' + levelsLine(r, 'en') + '.'),
+  thresholdText(r)
 ];
 
 function describeKinship(c, cmp, get) {

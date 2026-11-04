@@ -151,6 +151,14 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
     assert.equal(D.posteriors({ PO: { lr: 0 }, FS: { lr: 2 }, HSAVGC: { lr: 2 } }).PO, 0);
     assert(Math.abs(D.posteriors({ PO: { lr: 1e7 }, FS: { lr: 2 }, HSAVGC: { lr: 2 } }).PO - 1e7 / (1e7 + 1)) < 1e-12);
     assert(Math.abs(Object.values(post).reduce((a, b) => a + b, 0) - 1) > 1e-6, 'independent comparisons: they do not sum to 1');
+    // arbitrary threshold 99.99999 % (#100), LR ≈ 10^7 with 50 % priors
+    assert.equal(D.POSTERIOR_THRESHOLD, 0.9999999); assert.equal(D.THRESHOLD_LABEL.fr, '99,99999 %');
+    assert(Math.abs(D.lrForPosterior() - 9999999) < 1, 'LR equivalent of the threshold'); assert(D.lrForPosterior() > 0.99e7 && D.lrForPosterior() < 1.01e7);
+    assert(D.reachesThreshold(D.posteriors({ PO: { lr: 1e7 }, FS: { lr: 1 }, HSAVGC: { lr: 1 } }).PO) && !D.reachesThreshold(D.posteriors({ PO: { lr: 1e6 }, FS: { lr: 1 }, HSAVGC: { lr: 1 } }).PO));
+    assert(D.reachesThreshold(D.posteriors({ PO: { lr: 9999999 }, FS: { lr: 1 }, HSAVGC: { lr: 1 } }).PO), 'LR 9 999 999 is exactly at the threshold');
+    assert.equal(D.fmtPct(0.99999, 'fr'), '99,99900 %'); assert.equal(D.fmtPct(0.99999, 'en'), '99.99900 %');
+    assert.notEqual(D.fmtPct(0.999999, 'fr'), '100,0 %', 'just under the threshold is not shown as 100 %'); assert.equal(D.fmtPct(0.999999, 'fr'), '99,99990 %');
+    assert.equal(D.fmtPct(0.9999999, 'fr'), '≥ 99,99999 %'); assert.equal(D.fmtPct(1, 'en'), '≥ 99.99999 %'); assert.equal(D.fmtPct(0.995, 'fr'), '99,50000 %');
     assert.equal(D.fmtPct(0, 'fr'), '0 %'); assert.equal(D.fmtPct(0.4567, 'fr'), '45,7 %'); assert.equal(D.fmtPct(0.4567, 'en'), '45.7 %'); assert.equal(D.fmtPct(0.0001, 'en'), '< 0.1 %');
   }
   assert.equal(D.compareProfiles(mkProf([8, 9.3]), { loci: { ...mkProf([8]).loci, TH01: { alleles: [8], reliable: false } } }).compatible, 1, 'partial locus is compatible with drop-out');
@@ -223,10 +231,12 @@ assert.deepEqual([...seen].sort(), ['auto', 'mt', 'ngs', 'y']);
       const txt = D.buildReveal(u, { results: [] }).items[0].complete.map(p => p.fr + ' ' + p.en).join(' ');
       assert(/PO/.test(txt) && /FS/.test(txt) && /HS\/AV\/GC/.test(txt) && /a posteriori/.test(txt) && /posterior/.test(txt), 'reveal lists the three levels with LR and posterior');
       assert(/PO est exclu|PO is excluded/.test(txt));
+      assert(/99,99999 %/.test(txt) && /99\.99999%/.test(txt), 'reveal restates the arbitrary threshold');
     }
   }
   const pr = D.buildReveal(D.makeDossier(3, { template: 'id-parent', variant: 'clear' }), { results: [] }).items[0].complete.map(p => p.fr).join(' ');
   assert(/PO : LR/.test(pr) && /FS : LR/.test(pr) && /HS\/AV\/GC : LR/.test(pr) && /50 % \/ 50 %/.test(pr) && !/non apparentés : /.test(pr) && /Aucune exclusion allélique/.test(pr));
+  assert(/Seuil atteint par : .*PO|Aucun niveau n’atteint/.test(pr), 'reveal says which levels reach the threshold');
 }
 
 // --- trace-suspect / identity: truth agrees with the reveal ---
