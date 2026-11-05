@@ -14,11 +14,7 @@
        data-fr="Les sujets d'examens des années précédentes. Certaines questions sont accompagnées d'une explication audio."
        data-en="Exam papers from previous years. Some questions come with an audio explanation."></p>
 
-    <h2 class="section">Master 1</h2>
-    <div id="list-m1"></div>
-
-    <h2 class="section">Master 2</h2>
-    <div id="list-m2"></div>
+    <div id="list"></div>
   </main>
 
   <script src="assets/i18n.js"></script>
@@ -28,27 +24,27 @@
   (function () {
     // Only audio files that actually exist in the repo are listed.
     var EXAMS = [
-      { level:"m1", fr:"M1 — UE7 — 2021", en:"M1 — UE7 — 2021",
-        pdf:"Annale_M1_UE7_2021.pdf",
-        audios:[ {src:"Annale_M1_UE7_2021.mp3", fr:"Question d. expliquée", en:"Question d explained"} ] },
-      { level:"m1", fr:"M1 — UE8 — 2021", en:"M1 — UE8 — 2021",
-        pdf:"Annale_M1_UE8_2021.pdf",
-        audios:[ {src:"Annale_M1_UE8_2021_a.mp3", fr:"Question a. expliquée", en:"Question a explained"},
-                 {src:"Annale_M1_UE8_2021_b.mp3", fr:"Question b. expliquée", en:"Question b explained"} ] },
-      { level:"m1", fr:"M1 — UE7 — 2022", en:"M1 — UE7 — 2022",
+      { fr:"2025 — UE2 — 30 min", en:"2025 — UE2 — 30 min", pdf:"Annale_M2_2025.pdf", audios:[] },
+      { fr:"2024 — UE7 — 15 min", en:"2024 — UE7 — 15 min", pdf:"Annale_M1_UE7_2024.pdf", audios:[] },
+      { fr:"2023 — UE8 — 15 min", en:"2023 — UE8 — 15 min", pdf:"Annale_M1_UE8_2023.pdf", audios:[] },
+      { fr:"2022 — UE2 — 30 min", en:"2022 — UE2 — 30 min", pdf:"Annale_M2_2022.pdf", audios:[] },
+      { fr:"2022 — UE7 — 15 min", en:"2022 — UE7 — 15 min",
         pdf:"Annale_M1_UE7_2022.pdf",
         audios:[ {src:"Annale_M1_UE7_2022.mp3", fr:"Question c. expliquée", en:"Question c explained"} ] },
-      { level:"m1", fr:"M1 — UE8 — 2022", en:"M1 — UE8 — 2022",
+      { fr:"2022 — UE8 — 15 min", en:"2022 — UE8 — 15 min",
         pdf:"Annale_M1_UE8_2022.pdf",
         audios:[ {src:"Annale_M1_UE8_2022_a.mp3", fr:"Question a. expliquée", en:"Question a explained"},
                  {src:"Annale_M1_UE8_2022_b.mp3", fr:"Question b. expliquée", en:"Question b explained"} ] },
-      { level:"m1", fr:"M1 — UE8 — 2023", en:"M1 — UE8 — 2023", pdf:"Annale_M1_UE8_2023.pdf", audios:[] },
-      { level:"m1", fr:"M1 — UE7 — 2024", en:"M1 — UE7 — 2024", pdf:"Annale_M1_UE7_2024.pdf", audios:[] },
-      { level:"m1", fr:"M1 — UE7 — sujet étendu (30 min)", en:"M1 — UE7 — extended paper (30 min)", pdf:"Annale_M1_UE7_etendu.pdf", audios:[] },
-      { level:"m1", fr:"M1 — UE8 — sujet étendu (30 min)", en:"M1 — UE8 — extended paper (30 min)", pdf:"Annale_M1_UE8_etendu.pdf", audios:[] },
-      { level:"m2", fr:"M2 — 2021", en:"M2 — 2021", pdf:"Annale_M2_2021.pdf", audios:[] },
-      { level:"m2", fr:"M2 — 2022", en:"M2 — 2022", pdf:"Annale_M2_2022.pdf", audios:[] },
-      { level:"m2", fr:"M2 — 2025", en:"M2 — 2025", pdf:"Annale_M2_2025.pdf", audios:[] }
+      { fr:"2021 — Identification génétique — 30 min", en:"2021 — Genetic identification — 30 min", pdf:"Annale_M2_2021.pdf", audios:[] },
+      { fr:"2021 — UE7 — 15 min", en:"2021 — UE7 — 15 min",
+        pdf:"Annale_M1_UE7_2021.pdf",
+        audios:[ {src:"Annale_M1_UE7_2021.mp3", fr:"Question d. expliquée", en:"Question d explained"} ] },
+      { fr:"2021 — UE8 — 15 min", en:"2021 — UE8 — 15 min",
+        pdf:"Annale_M1_UE8_2021.pdf",
+        audios:[ {src:"Annale_M1_UE8_2021_a.mp3", fr:"Question a. expliquée", en:"Question a explained"},
+                 {src:"Annale_M1_UE8_2021_b.mp3", fr:"Question b. expliquée", en:"Question b explained"} ] },
+      { fr:"Sujet étendu — UE7 — 30 min", en:"Extended paper — UE7 — 30 min", pdf:"Annale_M1_UE7_etendu.pdf", audios:[] },
+      { fr:"Sujet étendu — UE8 — 30 min", en:"Extended paper — UE8 — 30 min", pdf:"Annale_M1_UE8_etendu.pdf", audios:[] }
     ];
 
     function build(container, items) {
@@ -85,8 +81,7 @@
       I18N.apply();
     }
 
-    build(document.getElementById("list-m1"), EXAMS.filter(function (e) { return e.level === "m1"; }));
-    build(document.getElementById("list-m2"), EXAMS.filter(function (e) { return e.level === "m2"; }));
+    build(document.getElementById("list"), EXAMS);
   })();
   </script>
 </body>
