@@ -17,6 +17,7 @@
     "requisitions:test": "node tools/requisitions-selftest.mjs",
     "dossier:test": "node tools/dossier-selftest.mjs",
     "analytics:test": "node tools/analytics-selftest.mjs",
-    "exam:test": "node tools/exam-selftest.mjs"
+    "exam:test": "node tools/exam-selftest.mjs",
+    "annales:test": "node tools/annales-selftest.mjs"
   }
 }
