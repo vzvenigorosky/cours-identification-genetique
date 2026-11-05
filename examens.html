@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examens blancs — Générateur</title>
+  <link rel="stylesheet" href="assets/site.css">
+  <style>
+    .ctl { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px 14px; align-items:end; }
+    .ctl label { display:flex; flex-direction:column; gap:4px; font-size:.9rem; font-weight:600; }
+    .ctl input { width:100%; min-width:0; }
+    .case-note { border-left:4px solid var(--accent); padding:8px 14px; background:var(--stripe); }
+    .summary { margin:10px 0; overflow-x:auto; }
+    .summary table { border-collapse:collapse; font-size:.88rem; } .summary td, .summary th { border:1px solid var(--border); padding:3px 9px; text-align:left; }
+    /* ---- the exam sheets (screen preview = A4 card, print = real A4) ---- */
+    .sheets, .keys { margin-top:18px; overflow-x:auto; }
+    .sheets h2.group, .keys h2.group { font-size:1.15rem; margin:22px 0 6px; }
+    .exam { color:#000; font-family: Georgia, "Times New Roman", serif; font-size:11pt; line-height:1.28; }
+    .page { background:#fff; border:1px solid var(--border); border-radius:4px; padding:12mm 13mm; margin:0 0 14px; max-width:210mm; box-sizing:border-box; }
+    .exam-head { border-bottom:2px solid #000; margin-bottom:8px; padding-bottom:6px; }
+    .eh-top { display:flex; justify-content:space-between; font-size:14pt; } .eh-sub { font-size:10pt; margin-top:2px; }
+    .eh-id { display:flex; flex-wrap:wrap; gap:4px 18px; margin-top:8px; font-size:10pt; } .eh-id .mark { margin-left:auto; }
+    .eh-rules { font-size:9.5pt; margin:6px 0 0; font-style:italic; }
+    .part h2 { font-size:12pt; margin:8px 0 6px; border-bottom:1px solid #000; padding-bottom:2px; } .part h3 { font-size:11.5pt; margin:12px 0 4px; }
+    .pts { font-weight:400; font-size:9.5pt; }
+    ol.mcq { margin:0; padding-left:20px; } ol.mcq > li { margin-bottom:4px; break-inside:avoid; } .stem { font-weight:600; }
+    ul.opts { list-style:none; margin:1px 0 0; padding-left:2px; display:grid; grid-template-columns:1fr 1fr; gap:0 14px; } ul.opts li { margin:0; font-size:10pt; }
+    .box { display:inline-block; width:3.2mm; height:3.2mm; border:1px solid #000; vertical-align:-1px; margin-right:3px; }
+    table.tbl { border-collapse:collapse; width:100%; margin:6px 0; font-size:10pt; break-inside:avoid; }
+    table.tbl th, table.tbl td { border:1px solid #000; padding:3px 5px; text-align:center; vertical-align:middle; }
+    table.tbl th.l, table.tbl td.l { text-align:left; } table.tbl th { background:#eee; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    table.tbl tr.answer td { height:16mm; } table.tbl td.tall { height:17mm; }
+    table.price { font-size:9pt; } table.price th:last-child, table.price td:last-child { white-space:nowrap; width:17mm; } .small, .note { font-size:9.5pt; } .note { margin-top:3px; font-style:italic; }
+    .req { border:1px solid #000; padding:6px 9px; margin:6px 0; } .reply { border:1.5px dashed #000; padding:6px 9px; margin:8px 0; }
+    .lines i { display:block; height:9mm; border-bottom:1px dotted #000; }
+    .exam-foot { font-size:8.5pt; text-align:right; color:#444; margin:-8px 0 14px; } .keyline { font-weight:700; letter-spacing:.02em; }
+    .keys .exam .page { background:#fffef8; }
+    .exam.key { font-size:10pt; line-height:1.2; } .exam.key table.tbl { margin:3px 0; font-size:9.5pt; } .exam.key table.tbl th, .exam.key table.tbl td { padding:1.5px 5px; } .exam.key h3 { margin:8px 0 2px; font-size:11pt; } .exam.key p { margin:4px 0; }
+    /* ---- print ---- */
+    @page { size: A4; margin: 10mm; }
+    @media print {
+      body { background:#fff !important; } .site-header, .site-footer, .wrap > *:not(.output), .controls, .no-print { display:none !important; }
+      .wrap { padding:0; max-width:none; } .output { display:block !important; }
+      .page { border:0; border-radius:0; padding:0; margin:0; max-width:none; break-after:page; page-break-after:always; }
+      .exam-foot { display:none; } .page { position:relative; }
+      .sheets h2.group, .keys h2.group, .summary { display:none; }
+      .sheets, .keys { overflow:visible; margin:0; }
+      body[data-print="sheets"] .keys { display:none !important; } body[data-print="keys"] .sheets { display:none !important; }
+    }
+  </style>
+</head>
+<body data-page="exercices">
+<main class="wrap">
+  <a class="btn btn-ghost no-print" href="exercices.html" data-fr="← Retour aux exercices" data-en="← Back to exercises"></a>
+  <h1 class="page-title mt no-print" data-fr="Examens blancs" data-en="Trial exams"></h1>
+  <p class="page-intro no-print"
+     data-fr="Générez autant de sujets que vous voulez : 10 QCM de cours (un par chapitre) et deux exercices tirés au sort, 30 minutes, sur 20 points, à faire sur papier. Chaque sujet a sa version et sa graine ; le corrigé et le barème s’impriment à part."
+     data-en="Generate as many papers as you like: 10 course MCQ (one per chapter) and two randomly drawn exercises, 30 minutes, out of 20 points, to be done on paper. Each paper has its version and seed; the answer key and marking scheme print separately."></p>
+  <p class="case-note no-print"
+     data-fr="Ce site est public : le générateur et ses corrigés sont visibles de tous. Ce sont des examens BLANCS (entraînement, autocorrection) ; ne pas les utiliser pour un examen noté. Énoncés, barèmes et temps sont des propositions à valider par l’enseignant."
+     data-en="This site is public: the generator and its answer keys are visible to everyone. These are TRIAL exams (practice, self-marking); do not use them for a graded exam. Statements, marking schemes and timings are proposals for the teacher to validate."></p>
+
+  <section class="panel no-print">
+    <div class="ctl">
+      <label><span data-fr="Graine de base" data-en="Base seed"></span><input class="input" id="seed" type="text" maxlength="30" autocomplete="off"></label>
+      <label><span data-fr="Nombre de versions (1 à 26)" data-en="Number of versions (1 to 26)"></span><input class="input" id="n" type="number" min="1" max="26" value="4"></label>
+      <label><span data-fr="Intitulé (facultatif)" data-en="Title (optional)"></span><input class="input" id="title" type="text" maxlength="80" autocomplete="off"></label>
+      <label><span data-fr="Enseignant (facultatif)" data-en="Teacher (optional)"></span><input class="input" id="teacher" type="text" maxlength="60" autocomplete="off"></label>
+      <label><span data-fr="Consigne supplémentaire (facultatif)" data-en="Extra instruction (optional)"></span><input class="input" id="rules" type="text" maxlength="140" autocomplete="off" placeholder=""></label>
+    </div>
+    <div class="controls mt">
+      <button class="btn btn-primary" id="gen" data-fr="Générer" data-en="Generate"></button>
+      <button class="btn btn-ghost" id="rand" data-fr="Nouvelle graine" data-en="New seed"></button>
+      <button class="btn btn-ghost" id="printSheets" data-fr="Imprimer les sujets" data-en="Print the papers"></button>
+      <button class="btn btn-ghost" id="printKeys" data-fr="Imprimer les corrigés" data-en="Print the answer keys"></button>
+    </div>
+    <p class="muted-note" data-fr="Dans la boîte d’impression : papier A4, marges par défaut, « enregistrer au format PDF ». Les sujets et les corrigés se lancent par des boutons distincts."
+       data-en="In the print dialog: A4 paper, default margins, “Save as PDF”. Papers and answer keys use separate buttons."></p>
+  </section>
+
+  <div class="output">
+    <div class="summary no-print" id="summary"></div>
+    <div class="sheets" id="sheets"></div>
+    <div class="keys" id="keys"></div>
+  </div>
+</main>
+<script src="assets/i18n.js"></script>
+<script src="assets/layout.js"></script>
+<script src="assets/analytics.js"></script>
+<script src="assets/data/mcq.js"></script>
+<script src="assets/data/requisition-shared.js"></script>
+<script type="module" src="assets/exam-ui.js"></script>
+</body>
+</html>
