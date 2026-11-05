@@ -18,9 +18,9 @@
 import { makeRng } from '../epg/rng.js';
 import { getKit } from '../epg/panels.js';
 import * as G from '../epg/genetics.js';
-import { makeDossier, PACKAGES, PACKAGE_ORDER, quoteTotal, hasDifferential, DIFFERENTIAL_NOTICE } from '../data/dossier.js';
+import { makeDossier, PACKAGES, PACKAGE_ORDER, hasDifferential, DIFFERENTIAL_NOTICE } from '../data/dossier.js';
 
-export const SPEC = { minutes: 30, points: 20, maxEstimate: 28, mcqEach: 0.5, mcqMinutes: 0.75, e1: { points: 7, minutes: 6 }, e5: { points: 8, minutes: 8 } };
+export const SPEC = { minutes: 30, points: 20, maxEstimate: 28, mcqEach: 0.5, mcqMinutes: 0.75, e1: { points: 7, minutes: 6 }, e5: { points: 8, minutes: 6 } };
 export const CHAPTERS = ['adn', 'genome', 'str', 'extraction', 'amplification', 'lecture', 'identification', 'marqueurs', 'parente', 'probabilites']; // course order
 export const LETTERS = ['A', 'B', 'C', 'D'];
 
@@ -84,8 +84,7 @@ function quote(rng) {
     const caseSeed = rng.int(1, 2 ** 30), c = makeDossier(caseSeed, { template, variant });
     if (![1, 2, 3].includes(c.scelles.length)) continue; // 6 points must divide evenly between the exhibits
     const lines = c.scelles.map(s => ({ no: s.no, id: s.id, title: s.title, nature: s.nature, need: c.need[s.id] || null, reason: c.reasons[s.id] || null, differential: hasDifferential(c, s.id) }));
-    const total = quoteTotal(Object.fromEntries(lines.filter(l => l.need).map(l => [l.id, l.need])));
-    return { type: 'quote', caseSeed, template, variant, needsInfo: c.needsInfo, requisition: c.requisition, clarification: c.clarification, lines, total,
+    return { type: 'quote', caseSeed, template, variant, needsInfo: c.needsInfo, requisition: c.requisition, clarification: c.clarification, lines,
       points: SPEC.e5.points, minutes: SPEC.e5.minutes, pointsAsk: 2, pointsQuote: 6, pointsPerLine: 6 / c.scelles.length };
   }
   throw new Error('could not build a quote exercise');
@@ -101,5 +100,5 @@ export function makeExam(seed) {
   const minutes = items.length * SPEC.mcqMinutes + e1.minutes + e5.minutes;
   return { seed: id, mcq: items, mcqPoints, exercises: [e1, e5], points, minutes };
 }
-export const packageTable = () => PACKAGE_ORDER.map(k => ({ id: k, label: PACKAGES[k].label, detail: PACKAGES[k].detail, price: PACKAGES[k].price }));
+export const packageTable = () => PACKAGE_ORDER.map(k => ({ id: k, label: PACKAGES[k].label, detail: PACKAGES[k].detail })); // no price: calculating sums is not part of the exam (#110)
 export { PACKAGES, DIFFERENTIAL_NOTICE };
