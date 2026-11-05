@@ -63,7 +63,7 @@ for (let i = 0; i < N; i++) {
   const need = Object.fromEntries(q5.lines.filter(l => l.need).map(l => [l.id, l.need]));
   assert.deepEqual(need, Object.fromEntries(Object.entries(c.need).filter(([, v]) => v)), 'key = the exercise truth');
   assert.deepEqual(D.checkQuote(c, need), [], 'the key itself draws no warning');
-  assert.equal(q5.total, D.quoteTotal(need)); assert(q5.total > 0);
+  assert(!('total' in q5), 'no sum of money in the exercise (#110)'); assert(Object.keys(need).length > 0);
   assert.equal(q5.pointsAsk + q5.pointsPerLine * q5.lines.length, q5.points, 'points add up'); assert.equal(q5.pointsAsk + q5.pointsQuote, q5.points);
   q5.lines.forEach(l => assert.equal(l.differential, D.hasDifferential(c, l.id)));
   if (q5.needsInfo) assert(q5.clarification.fr.trim() && q5.clarification.en.trim());
@@ -93,13 +93,18 @@ for (let i = 0; i < 120; i++) {
     // the key states the letters, the consensus and the total
     assert(key.includes(e.mcq.map((q, k) => `${k + 1}${X.LETTERS[q.correct]}`).join(' · ')));
     e.exercises[0].key.forEach(k => assert(key.includes('<b>' + k.text + '</b>')));
-    assert(key.includes(e.exercises[1].total + ' €'));
+    for (const html of [sheet, key]) assert(!/€|\bPrix\b|\bPrice\b|Total du devis|Quote total|price/i.test(html), 'no money anywhere on the paper or the key (#110)');
+    assert(!/à lire seulement|read only after|avant de lire|before reading/i.test(sheet + key), 'no instruction about the order of reading (#110)');
     // differential notice: in the list when the case is clear, inside the requester's reply box when vague
     const q5 = e.exercises[1], hasDiff = q5.lines.some(l => l.differential), nTimes = sheet.split(tt(lang)).length - 1;
     if (lang === 'fr') hasDiff ? withNotice++ : withoutNotice++;
     assert.equal(nTimes, hasDiff ? (q5.needsInfo ? 1 : q5.lines.filter(l => l.differential).length) : 0, 'differential notice appears exactly where it should');
-    if (q5.needsInfo) { const reply = sheet.slice(sheet.indexOf('class="reply"')); assert(reply.includes(q5.clarification[lang].replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')), 'the requester reply is printed in its box'); assert(sheet.indexOf('<b>a.</b>', sheet.indexOf('Exercice 2') > 0 ? sheet.indexOf(lang === 'fr' ? 'Exercice 2' : 'Exercise 2') : 0) < sheet.indexOf('class="reply"'), 'reply comes after question a'); }
-    else assert(!sheet.includes('class="reply"'));
+    if (q5.needsInfo) {
+      const esc = x => x.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+      const at = sheet.indexOf('class="replytext"'); assert(at > 0, 'the requester reply is printed');
+      assert(sheet.slice(at).includes(esc(q5.clarification[lang])), 'the reply is the clarification text');
+      assert(at > sheet.indexOf('<b>b.</b>', sheet.indexOf(lang === 'fr' ? 'Exercice 2' : 'Exercise 2')), 'the reply is part of question b');
+    } else assert(!sheet.includes('class="replytext"'), 'a clear requisition has no reply');
   }
 }
 function tt(lang) { return D.DIFFERENTIAL_NOTICE[lang].replaceAll('&', '&amp;'); }
@@ -107,6 +112,7 @@ assert(withNotice > 0 && withoutNotice > 0, 'both situations occur');
 
 // --- wiring ---
 const page = readFileSync(new URL('../examens.html', import.meta.url), 'utf8'), idx = readFileSync(new URL('../exercices.html', import.meta.url), 'utf8');
+assert(!X.packageTable().some(p => 'price' in p), 'the package grid carries no price');
 assert(page.indexOf('assets/data/mcq.js') > 0 && page.indexOf('assets/data/mcq.js') < page.indexOf('assets/exam-ui.js') && page.indexOf('requisition-shared.js') < page.indexOf('assets/exam-ui.js'), 'data scripts load before the module');
 assert(/@page\s*\{\s*size:\s*A4/.test(page) && /data-print="sheets"/.test(page) && /data-print="keys"/.test(page) && /break-after:page/.test(page), 'A4 print stylesheet with two print modes');
 assert(!/class="grid/.test(readFileSync(new URL('../assets/exam/render.js', import.meta.url), 'utf8')), 'does not reuse the site\'s card-grid class for tables');

@@ -54,21 +54,21 @@ function consensusBlock(e, lang) {
     <p><b>b.</b> ${lang === 'fr' ? 'Quel phénomène peut expliquer qu’un allèle ne soit observé qu’une seule fois sur les quatre amplifications ?' : 'Which phenomenon can explain why an allele is observed only once in the four amplifications?'} <span class="pts">(${pt(lang, e.q2)})</span></p>${lines(3)}</section>`;
 }
 
-function priceGrid(lang) {
-  return `<table class="tbl price"><thead><tr><th class="l">${lang === 'fr' ? 'Proposition' : 'Proposal'}</th><th class="l">${lang === 'fr' ? 'Contenu' : 'Content'}</th><th>${lang === 'fr' ? 'Prix' : 'Price'}</th></tr></thead><tbody>${packageTable().map(p => `<tr><td class="l"><b>${esc(tt(lang, p.label))}</b></td><td class="l">${esc(tt(lang, p.detail))}</td><td>${p.price} €</td></tr>`).join('')}</tbody></table>`;
+function packageGrid(lang) {
+  return `<table class="tbl pkg"><thead><tr><th class="l">${lang === 'fr' ? 'Proposition' : 'Proposal'}</th><th class="l">${lang === 'fr' ? 'Contenu' : 'Content'}</th></tr></thead><tbody>${packageTable().map(p => `<tr><td class="l"><b>${esc(tt(lang, p.label))}</b></td><td class="l">${esc(tt(lang, p.detail))}</td></tr>`).join('')}</tbody></table>`;
 }
 
 function quoteBlock(e, lang) {
   const clear = !e.needsInfo, notice = esc(tt(lang, DIFFERENTIAL_NOTICE));
   const scelles = `<table class="tbl"><thead><tr><th>n°</th><th class="l">${lang === 'fr' ? 'Scellé' : 'Exhibit'}</th><th class="l">${lang === 'fr' ? 'Nature' : 'Nature'}</th></tr></thead><tbody>${e.lines.map(x => `<tr><td>${x.no}</td><td class="l">${esc(tt(lang, x.title))}</td><td class="l">${esc(tt(lang, x.nature))}${clear && x.differential ? `<div class="note">${notice}</div>` : ''}</td></tr>`).join('')}</tbody></table>`;
-  const reply = !clear ? `<div class="reply"><b>${lang === 'fr' ? 'Réponse du requérant (à lire seulement après avoir répondu à la question a)' : 'The requester replies (read only after answering question a)'} :</b> ${esc(tt(lang, e.clarification))}${e.lines.some(x => x.differential) ? `<div class="note">${notice}</div>` : ''}</div>` : '';
-  const quoteTable = `<table class="tbl answer-q"><thead><tr><th>n°</th><th class="l">${lang === 'fr' ? 'Proposition retenue (ou « non pris en charge »)' : 'Chosen proposal (or “not taken on”)'}</th><th>${lang === 'fr' ? 'Prix' : 'Price'}</th></tr></thead><tbody>${e.lines.map(x => `<tr><td>${x.no}</td><td class="tall"></td><td></td></tr>`).join('')}<tr><td colspan="2" class="l"><b>${lang === 'fr' ? 'Total du devis' : 'Quote total'}</b></td><td></td></tr></tbody></table>`;
+  // A vague requisition: the requester's answer is simply part of question b (no instruction on the order of reading).
+  const reply = !clear ? `<p class="replytext">${lang === 'fr' ? 'Le requérant vous répond' : 'The requester replies'} : « ${esc(tt(lang, e.clarification))} »${e.lines.some(x => x.differential) ? `<span class="note"> ${notice}</span>` : ''}</p>` : '';
+  const quoteTable = `<table class="tbl answer-q"><thead><tr><th>n°</th><th class="l">${lang === 'fr' ? 'Proposition retenue (ou « non pris en charge »)' : 'Chosen proposal (or “not taken on”)'}</th></tr></thead><tbody>${e.lines.map(x => `<tr><td>${x.no}</td><td class="tall"></td></tr>`).join('')}</tbody></table>`;
   return `<section class="part"><h2>${l(lang, 'ex2')} <span class="pts">(${pt(lang, e.points)})</span></h2>
     <div class="req">${esc(tt(lang, e.requisition))}</div>${scelles}
-    <p class="small">${lang === 'fr' ? 'Prix et contenus fictifs (barème pédagogique). Chaque scellé reçoit au plus une proposition.' : 'Fictional prices and contents (teaching grid). Each exhibit gets at most one proposal.'}</p>${priceGrid(lang)}
+    <p class="small">${lang === 'fr' ? 'Contenu des propositions (grille pédagogique fictive). Chaque scellé reçoit au plus une proposition.' : 'Content of the proposals (fictional teaching grid). Each exhibit gets at most one proposal.'}</p>${packageGrid(lang)}
     <p><b>a.</b> ${lang === 'fr' ? 'Cette réquisition suffit-elle pour établir le devis ? Sinon, quelle information demanderiez-vous au requérant ?' : 'Is this requisition enough to draw up the quote? If not, what information would you ask the requester for?'} <span class="pts">(${pt(lang, e.pointsAsk)})</span></p>${lines(3)}
-    ${reply}
-    <p><b>b.</b> ${lang === 'fr' ? 'Établissez le devis : pour chaque scellé, la proposition retenue et son prix, puis le total.' : 'Draw up the quote: for each exhibit, the proposal chosen and its price, then the total.'} <span class="pts">(${pt(lang, e.pointsQuote)})</span></p>${quoteTable}</section>`;
+    <p><b>b.</b> ${lang === 'fr' ? 'Établissez le devis : pour chaque scellé, indiquez la proposition retenue.' : 'Draw up the quote: for each exhibit, give the proposal chosen.'} <span class="pts">(${pt(lang, e.pointsQuote)})</span></p>${reply}${quoteTable}</section>`;
 }
 
 export function renderSheet(exam, lang, o = {}) {
@@ -94,7 +94,7 @@ function keyConsensus(e, lang) {
 }
 function keyQuote(e, lang) {
   const rows = e.lines.map(x => {
-    const ans = x.need ? `<b>${esc(tt(lang, PACKAGES[x.need].label))}</b> — ${PACKAGES[x.need].price} €<div class="small">${esc(tt(lang, PACKAGES[x.need].detail))}</div>` : `<b>${lang === 'fr' ? 'Non pris en charge' : 'Not taken on'}</b><div class="small">${esc(x.reason ? tt(lang, x.reason) : (lang === 'fr' ? 'Hors de la demande.' : 'Outside the request.'))}</div>`;
+    const ans = x.need ? `<b>${esc(tt(lang, PACKAGES[x.need].label))}</b><div class="small">${esc(tt(lang, PACKAGES[x.need].detail))}</div>` : `<b>${lang === 'fr' ? 'Non pris en charge' : 'Not taken on'}</b><div class="small">${esc(x.reason ? tt(lang, x.reason) : (lang === 'fr' ? 'Hors de la demande.' : 'Outside the request.'))}</div>`;
     return `<tr><td>${x.no}</td><td class="l">${esc(tt(lang, x.title))}</td><td class="l">${ans}</td><td>${pt(lang, e.pointsPerLine)}</td></tr>`;
   }).join('');
   const a = e.needsInfo
@@ -102,8 +102,8 @@ function keyQuote(e, lang) {
     : (lang === 'fr' ? `<b>Oui</b> : la réquisition est claire, le devis peut être établi sans question. 1 pt pour la conclusion, 1 pt pour la justification (les faits décisifs sont énoncés). Poser une question n’est pas une faute, mais n’est pas nécessaire.` : `<b>Yes</b>: the requisition is clear and the quote can be drawn up without a question. 1 pt for the conclusion, 1 pt for the justification (the decisive facts are stated). Asking is not a mistake but is not needed.`);
   return `<h3>${l(lang, 'ex2')} (${pt(lang, e.points)})</h3>
     <p><b>a.</b> (${pt(lang, e.pointsAsk)}) ${a}</p>
-    <table class="tbl"><thead><tr><th>n°</th><th class="l">${lang === 'fr' ? 'Scellé' : 'Exhibit'}</th><th class="l">${lang === 'fr' ? 'Réponse attendue' : 'Expected answer'}</th><th>${lang === 'fr' ? 'Points' : 'Points'}</th></tr></thead><tbody>${rows}<tr><td colspan="2" class="l"><b>${lang === 'fr' ? 'Total du devis' : 'Quote total'}</b></td><td class="l"><b>${e.total} €</b></td><td></td></tr></tbody></table>
-    <p class="small"><b>b.</b> ${lang === 'fr' ? 'Points par scellé : tout ou rien sur la proposition. Un total cohérent avec les propositions du candidat est accepté même si une proposition est fausse.' : 'Points per exhibit: all or nothing on the proposal. A total consistent with the candidate’s own proposals is accepted even if a proposal is wrong.'}</p>`;
+    <table class="tbl"><thead><tr><th>n°</th><th class="l">${lang === 'fr' ? 'Scellé' : 'Exhibit'}</th><th class="l">${lang === 'fr' ? 'Réponse attendue' : 'Expected answer'}</th><th>${lang === 'fr' ? 'Points' : 'Points'}</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="small"><b>b.</b> ${lang === 'fr' ? 'Points par scellé : tout ou rien sur la proposition retenue.' : 'Points per exhibit: all or nothing on the proposal chosen.'}</p>`;
 }
 
 export function renderKey(exam, lang, o = {}) {
