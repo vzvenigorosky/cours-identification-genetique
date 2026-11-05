@@ -49,3 +49,5 @@ jobs:
         run: node tools/analytics-selftest.mjs
       - name: Trial-exam generator self-tests
         run: node tools/exam-selftest.mjs
+      - name: Annales list self-test
+        run: node tools/annales-selftest.mjs
